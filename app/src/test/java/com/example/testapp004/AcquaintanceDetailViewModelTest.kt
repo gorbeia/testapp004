@@ -27,9 +27,7 @@ class AcquaintanceDetailViewModelTest {
         fakeAcquaintanceRepository = FakeAcquaintanceRepository()
         fakeCategoryRepository = FakeCategoryRepository()
         fakeRelationRepository = FakeRelationRepository()
-        runBlocking {
-            aliceId = fakeAcquaintanceRepository.addAcquaintance("Alice", "A friend", null)
-        }
+        aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "A friend", null) }
     }
 
     private fun buildViewModel() = AcquaintanceDetailViewModel(
@@ -58,8 +56,8 @@ class AcquaintanceDetailViewModelTest {
 
     @Test
     fun `categoryName reflects the assigned category`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Friends") }
         runBlocking {
-            val catId = fakeCategoryRepository.addCategory("Friends")
             fakeAcquaintanceRepository.updateAcquaintance(
                 fakeAcquaintanceRepository.getAcquaintance(aliceId)!!.copy(categoryId = catId),
             )
@@ -84,8 +82,7 @@ class AcquaintanceDetailViewModelTest {
 
     @Test
     fun `addRelation creates a relation and closes dialog`() {
-        var bobId: Long
-        runBlocking { bobId = fakeAcquaintanceRepository.addAcquaintance("Bob", "", null) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", null) }
         val vm = buildViewModel()
         vm.openAddRelationDialog()
         vm.addRelation(bobId, "works with")
@@ -95,8 +92,7 @@ class AcquaintanceDetailViewModelTest {
 
     @Test
     fun `addRelation with blank label does nothing`() {
-        var bobId: Long
-        runBlocking { bobId = fakeAcquaintanceRepository.addAcquaintance("Bob", "", null) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", null) }
         val vm = buildViewModel()
         vm.addRelation(bobId, "   ")
         assertTrue(vm.uiState.value.relations.isEmpty())
@@ -104,8 +100,7 @@ class AcquaintanceDetailViewModelTest {
 
     @Test
     fun `outgoing relation shows isOutgoing true`() {
-        var bobId: Long
-        runBlocking { bobId = fakeAcquaintanceRepository.addAcquaintance("Bob", "", null) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", null) }
         val vm = buildViewModel()
         vm.addRelation(bobId, "mentors")
         assertTrue(vm.uiState.value.relations.first().isOutgoing)
@@ -122,8 +117,7 @@ class AcquaintanceDetailViewModelTest {
 
     @Test
     fun `deleteRelation removes the relation`() {
-        var bobId: Long
-        runBlocking { bobId = fakeAcquaintanceRepository.addAcquaintance("Bob", "", null) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", null) }
         val vm = buildViewModel()
         vm.addRelation(bobId, "knows")
         val relationId = vm.uiState.value.relations.first().relationId

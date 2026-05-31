@@ -68,20 +68,15 @@ class AcquaintanceDetailViewModel @Inject constructor(
                         isOutgoing = isOutgoing,
                     )
                 }
-                val others = acquaintances.filter { it.id != acquaintanceId }
-                Triple(
-                    AcquaintanceDetailUiState(
-                        acquaintance = acquaintance,
-                        categoryName = category?.name,
-                        relations = relationDisplays,
-                        allOtherAcquaintances = others,
-                    ),
-                    Unit,
-                    Unit,
+                AcquaintanceDetailUiState(
+                    acquaintance = acquaintance,
+                    categoryName = category?.name,
+                    relations = relationDisplays,
+                    allOtherAcquaintances = acquaintances.filter { it.id != acquaintanceId },
                 )
-            }.collect { (newState, _, _) ->
+            }.collect { baseState ->
                 _uiState.update { current ->
-                    newState.copy(isAddRelationDialogOpen = current.isAddRelationDialogOpen)
+                    baseState.copy(isAddRelationDialogOpen = current.isAddRelationDialogOpen)
                 }
             }
         }

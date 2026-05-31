@@ -27,7 +27,7 @@ class AcquaintancesViewModel @Inject constructor(
     private val acquaintanceRepository: AcquaintanceRepository,
     private val categoryRepository: CategoryRepository,
 ) : ViewModel() {
-    private val _selectedCategoryId = MutableStateFlow<Long?>(null)
+    private val categoryIdFilter = MutableStateFlow<Long?>(null)
     private val _uiState = MutableStateFlow(AcquaintancesUiState())
     val uiState: StateFlow<AcquaintancesUiState> = _uiState.asStateFlow()
 
@@ -36,7 +36,7 @@ class AcquaintancesViewModel @Inject constructor(
             combine(
                 acquaintanceRepository.acquaintances,
                 categoryRepository.categories,
-                _selectedCategoryId,
+                categoryIdFilter,
             ) { acquaintances, categories, selectedCategoryId ->
                 val filtered = if (selectedCategoryId == null) {
                     acquaintances
@@ -55,7 +55,7 @@ class AcquaintancesViewModel @Inject constructor(
     }
 
     fun selectCategory(categoryId: Long?) {
-        _selectedCategoryId.value = categoryId
+        categoryIdFilter.value = categoryId
     }
 
     fun deleteAcquaintance(acquaintanceId: Long) {
