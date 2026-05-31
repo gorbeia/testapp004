@@ -4,6 +4,8 @@ import com.example.testapp004.util.MainDispatcherRule
 import com.example.testapp004.viewmodel.CategoriesViewModel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -67,6 +69,22 @@ class CategoriesViewModelTest {
     }
 
     @Test
+    fun `addCategory with parent creates child category`() {
+        viewModel.addCategory("Work")
+        val parentId = viewModel.uiState.value.categories.first().id
+        viewModel.addCategory("Engineering", parentId)
+        val child = viewModel.uiState.value.categories.find { it.name == "Engineering" }
+        assertNotNull(child)
+        assertEquals(parentId, child?.parentId)
+    }
+
+    @Test
+    fun `addCategory without parent creates root category`() {
+        viewModel.addCategory("Family")
+        assertNull(viewModel.uiState.value.categories.first().parentId)
+    }
+
+    @Test
     fun `deleteCategory removes it from list`() {
         viewModel.addCategory("Work")
         val id = viewModel.uiState.value.categories.first().id
@@ -82,6 +100,17 @@ class CategoriesViewModelTest {
         viewModel.deleteCategory(workId)
         assertEquals(1, viewModel.uiState.value.categories.size)
         assertEquals("Family", viewModel.uiState.value.categories.first().name)
+    }
+
+    @Test
+    fun `deleteCategory orphans its children`() {
+        viewModel.addCategory("Work")
+        val parentId = viewModel.uiState.value.categories.first().id
+        viewModel.addCategory("Engineering", parentId)
+        viewModel.deleteCategory(parentId)
+        val child = viewModel.uiState.value.categories.find { it.name == "Engineering" }
+        assertNotNull(child)
+        assertNull(child?.parentId)
     }
 
     @Test

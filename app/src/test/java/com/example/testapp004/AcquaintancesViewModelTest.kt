@@ -37,7 +37,7 @@ class AcquaintancesViewModelTest {
 
     @Test
     fun `acquaintances from repository appear in state`() {
-        runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "Friend", null) }
+        runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "Friend", emptySet()) }
         val vm = createViewModel()
         assertEquals(1, vm.uiState.value.acquaintances.size)
         assertEquals("Alice", vm.uiState.value.acquaintances.first().name)
@@ -45,7 +45,7 @@ class AcquaintancesViewModelTest {
 
     @Test
     fun `deleteAcquaintance removes from list`() {
-        runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", null) }
+        runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
         val vm = createViewModel()
         val id = vm.uiState.value.acquaintances.first().id
         vm.deleteAcquaintance(id)
@@ -55,8 +55,8 @@ class AcquaintancesViewModelTest {
     @Test
     fun `deleteAcquaintance only removes targeted person`() {
         runBlocking {
-            fakeAcquaintanceRepository.addAcquaintance("Alice", "", null)
-            fakeAcquaintanceRepository.addAcquaintance("Bob", "", null)
+            fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet())
+            fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet())
         }
         val vm = createViewModel()
         val aliceId = vm.uiState.value.acquaintances.first().id
@@ -69,8 +69,8 @@ class AcquaintancesViewModelTest {
     fun `selectCategory filters acquaintances to matching category`() {
         runBlocking {
             val catId = fakeCategoryRepository.addCategory("Work")
-            fakeAcquaintanceRepository.addAcquaintance("Alice", "", catId)
-            fakeAcquaintanceRepository.addAcquaintance("Bob", "", null)
+            fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId))
+            fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet())
         }
         val vm = createViewModel()
         val catId = vm.uiState.value.categories.first().id
@@ -83,14 +83,47 @@ class AcquaintancesViewModelTest {
     fun `selectCategory null shows all acquaintances`() {
         runBlocking {
             val catId = fakeCategoryRepository.addCategory("Work")
-            fakeAcquaintanceRepository.addAcquaintance("Alice", "", catId)
-            fakeAcquaintanceRepository.addAcquaintance("Bob", "", null)
+            fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId))
+            fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet())
         }
         val vm = createViewModel()
         val catId = vm.uiState.value.categories.first().id
         vm.selectCategory(catId)
         vm.selectCategory(null)
         assertEquals(2, vm.uiState.value.acquaintances.size)
+    }
+
+    @Test
+    fun `selectCategory includes people in descendant categories`() {
+        runBlocking {
+            val parentId = fakeCategoryRepository.addCategory("Work")
+            val childId = fakeCategoryRepository.addCategory("Engineering", parentId)
+            fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(parentId))
+            fakeAcquaintanceRepository.addAcquaintance("Bob", "", setOf(childId))
+            fakeAcquaintanceRepository.addAcquaintance("Carol", "", emptySet())
+        }
+        val vm = createViewModel()
+        val parentId = vm.uiState.value.categories.first { it.name == "Work" }.id
+        vm.selectCategory(parentId)
+        assertEquals(2, vm.uiState.value.acquaintances.size)
+        assertTrue(vm.uiState.value.acquaintances.any { it.name == "Alice" })
+        assertTrue(vm.uiState.value.acquaintances.any { it.name == "Bob" })
+    }
+
+    @Test
+    fun `person in multiple categories appears in each category filter`() {
+        runBlocking {
+            val workId = fakeCategoryRepository.addCategory("Work")
+            val familyId = fakeCategoryRepository.addCategory("Family")
+            fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(workId, familyId))
+        }
+        val vm = createViewModel()
+        val workId = vm.uiState.value.categories.first { it.name == "Work" }.id
+        val familyId = vm.uiState.value.categories.first { it.name == "Family" }.id
+        vm.selectCategory(workId)
+        assertEquals(1, vm.uiState.value.acquaintances.size)
+        vm.selectCategory(familyId)
+        assertEquals(1, vm.uiState.value.acquaintances.size)
     }
 
     @Test

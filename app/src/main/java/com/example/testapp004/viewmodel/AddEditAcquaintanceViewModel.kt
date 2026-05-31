@@ -18,7 +18,7 @@ import javax.inject.Inject
 data class AddEditAcquaintanceUiState(
     val name: String = "",
     val bio: String = "",
-    val selectedCategoryId: Long? = null,
+    val selectedCategoryIds: Set<Long> = emptySet(),
     val categories: List<Category> = emptyList(),
     val isEditing: Boolean = false,
     val isSaved: Boolean = false,
@@ -52,7 +52,7 @@ class AddEditAcquaintanceViewModel @Inject constructor(
                         it.copy(
                             name = acquaintance.name,
                             bio = acquaintance.bio,
-                            selectedCategoryId = acquaintance.categoryId,
+                            selectedCategoryIds = acquaintance.categoryIds,
                         )
                     }
                 }
@@ -68,8 +68,15 @@ class AddEditAcquaintanceViewModel @Inject constructor(
         _uiState.update { it.copy(bio = bio) }
     }
 
-    fun onCategorySelected(categoryId: Long?) {
-        _uiState.update { it.copy(selectedCategoryId = categoryId) }
+    fun onCategoryToggled(categoryId: Long) {
+        _uiState.update { state ->
+            val newIds = if (categoryId in state.selectedCategoryIds) {
+                state.selectedCategoryIds - categoryId
+            } else {
+                state.selectedCategoryIds + categoryId
+            }
+            state.copy(selectedCategoryIds = newIds)
+        }
     }
 
     fun save() {
@@ -80,7 +87,7 @@ class AddEditAcquaintanceViewModel @Inject constructor(
                 acquaintanceRepository.addAcquaintance(
                     name = state.name.trim(),
                     bio = state.bio.trim(),
-                    categoryId = state.selectedCategoryId,
+                    categoryIds = state.selectedCategoryIds,
                 )
             } else {
                 acquaintanceRepository.updateAcquaintance(
@@ -88,7 +95,7 @@ class AddEditAcquaintanceViewModel @Inject constructor(
                         id = acquaintanceId,
                         name = state.name.trim(),
                         bio = state.bio.trim(),
-                        categoryId = state.selectedCategoryId,
+                        categoryIds = state.selectedCategoryIds,
                     ),
                 )
             }

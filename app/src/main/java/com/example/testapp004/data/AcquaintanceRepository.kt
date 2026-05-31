@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.StateFlow
 interface AcquaintanceRepository {
     val acquaintances: StateFlow<List<Acquaintance>>
 
-    suspend fun addAcquaintance(name: String, bio: String, categoryId: Long?): Long
+    suspend fun addAcquaintance(name: String, bio: String, categoryIds: Set<Long>): Long
 
     suspend fun updateAcquaintance(acquaintance: Acquaintance)
 

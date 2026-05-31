@@ -109,7 +109,7 @@ fun AcquaintanceDetailScreen(
                 item {
                     BioSection(
                         bio = acquaintance.bio,
-                        categoryName = uiState.categoryName,
+                        categoryNames = uiState.categoryNames,
                     )
                 }
                 item {
@@ -147,17 +147,18 @@ fun AcquaintanceDetailScreen(
 }
 
 @Composable
-private fun BioSection(bio: String, categoryName: String?) {
+private fun BioSection(bio: String, categoryNames: List<String>) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            if (categoryName != null) {
-                SuggestionChip(
-                    onClick = {},
-                    label = { Text(categoryName) },
-                )
+            if (categoryNames.isNotEmpty()) {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    categoryNames.forEach { name ->
+                        SuggestionChip(onClick = {}, label = { Text(name) })
+                    }
+                }
                 Spacer(modifier = Modifier.height(8.dp))
             }
             if (bio.isNotBlank()) {

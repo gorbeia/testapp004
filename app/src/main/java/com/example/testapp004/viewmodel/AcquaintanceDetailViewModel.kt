@@ -26,7 +26,7 @@ data class RelationDisplay(
 
 data class AcquaintanceDetailUiState(
     val acquaintance: Acquaintance? = null,
-    val categoryName: String? = null,
+    val categoryNames: List<String> = emptyList(),
     val relations: List<RelationDisplay> = emptyList(),
     val allOtherAcquaintances: List<Acquaintance> = emptyList(),
     val isAddRelationDialogOpen: Boolean = false,
@@ -54,7 +54,9 @@ class AcquaintanceDetailViewModel @Inject constructor(
                 relationRepository.relations,
             ) { acquaintances, categories, relations ->
                 val acquaintance = acquaintances.find { it.id == acquaintanceId }
-                val category = acquaintance?.categoryId?.let { catId -> categories.find { it.id == catId } }
+                val categoryNames = acquaintance?.categoryIds
+                    ?.mapNotNull { catId -> categories.find { it.id == catId }?.name }
+                    ?: emptyList()
                 val relationsForPerson = relations.filter { it.fromId == acquaintanceId || it.toId == acquaintanceId }
                 val relationDisplays = relationsForPerson.mapNotNull { relation ->
                     val isOutgoing = relation.fromId == acquaintanceId
@@ -70,7 +72,7 @@ class AcquaintanceDetailViewModel @Inject constructor(
                 }
                 AcquaintanceDetailUiState(
                     acquaintance = acquaintance,
-                    categoryName = category?.name,
+                    categoryNames = categoryNames,
                     relations = relationDisplays,
                     allOtherAcquaintances = acquaintances.filter { it.id != acquaintanceId },
                 )
