@@ -19,6 +19,7 @@ class AcquaintanceDetailViewModelTest {
     private lateinit var fakeAcquaintanceRepository: FakeAcquaintanceRepository
     private lateinit var fakeCategoryRepository: FakeCategoryRepository
     private lateinit var fakeRelationRepository: FakeRelationRepository
+    private lateinit var fakeContactRepository: FakeContactRepository
     private var aliceId = 0L
 
     @Before
@@ -26,6 +27,7 @@ class AcquaintanceDetailViewModelTest {
         fakeAcquaintanceRepository = FakeAcquaintanceRepository()
         fakeCategoryRepository = FakeCategoryRepository()
         fakeRelationRepository = FakeRelationRepository()
+        fakeContactRepository = FakeContactRepository()
         aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "A friend", emptySet()) }
     }
 
@@ -33,6 +35,7 @@ class AcquaintanceDetailViewModelTest {
         acquaintanceRepository = fakeAcquaintanceRepository,
         categoryRepository = fakeCategoryRepository,
         relationRepository = fakeRelationRepository,
+        contactRepository = fakeContactRepository,
         savedStateHandle = SavedStateHandle(mapOf("acquaintanceId" to aliceId)),
     )
 
