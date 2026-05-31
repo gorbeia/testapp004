@@ -66,6 +66,26 @@ com.example.testapp004/
 
 ---
 
+## Before Every Push (for Claude)
+
+**Always run this before committing and pushing:**
+
+```
+./gradlew test
+```
+
+Fix every failure before the commit goes out. If `./gradlew test` is not available in the current environment, state that explicitly rather than skipping it.
+
+---
+
+## CI
+
+GitHub Actions runs `./gradlew test` and `./gradlew lint` on every push to `main` and on every pull request. A red CI build means something regressed — investigate before merging.
+
+Workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
+
+---
+
 ## Documentation Rules (for Claude)
 
 **Every decision made in a conversation must be recorded before the commit is pushed.**
@@ -101,3 +121,4 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | [ADR-001](docs/decisions/ADR-001-tech-stack.md) | Kotlin + Compose + MVVM as the tech stack | 2026-05-31 |
 | [ADR-002](docs/decisions/ADR-002-architecture-pattern.md) | MVVM with StateFlow as the architecture pattern | 2026-05-31 |
 | [ADR-003](docs/decisions/ADR-003-documentation-strategy.md) | Markdown ADRs + CLAUDE.md as the documentation strategy | 2026-05-31 |
+| [ADR-004](docs/decisions/ADR-004-ci-strategy.md) | GitHub Actions CI running unit tests + lint on every push | 2026-05-31 |

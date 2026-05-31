@@ -12,18 +12,17 @@ data class NotesUiState(
     val isAddNoteDialogOpen: Boolean = false
 )
 
-class NotesViewModel : ViewModel() {
+class NotesViewModel(
+    private val clock: () -> Long = System::currentTimeMillis
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(NotesUiState())
     val uiState: StateFlow<NotesUiState> = _uiState.asStateFlow()
 
     fun addNote(title: String, content: String) {
         if (title.isBlank()) return
-        val note = Note(
-            id = System.currentTimeMillis(),
-            title = title.trim(),
-            content = content.trim()
-        )
+        val now = clock()
+        val note = Note(id = now, title = title.trim(), content = content.trim(), createdAt = now)
         _uiState.update { state ->
             state.copy(notes = state.notes + note, isAddNoteDialogOpen = false)
         }
