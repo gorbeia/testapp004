@@ -4,10 +4,10 @@ import com.example.testapp004.data.AcquaintanceRepository
 import com.example.testapp004.data.AndroidContactRepository
 import com.example.testapp004.data.CategoryRepository
 import com.example.testapp004.data.ContactRepository
-import com.example.testapp004.data.InMemoryAcquaintanceRepository
-import com.example.testapp004.data.InMemoryCategoryRepository
-import com.example.testapp004.data.InMemoryRelationRepository
 import com.example.testapp004.data.RelationRepository
+import com.example.testapp004.data.RoomAcquaintanceRepository
+import com.example.testapp004.data.RoomCategoryRepository
+import com.example.testapp004.data.RoomRelationRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -19,15 +19,15 @@ import javax.inject.Singleton
 abstract class AppModule {
     @Binds
     @Singleton
-    abstract fun bindCategoryRepository(impl: InMemoryCategoryRepository): CategoryRepository
+    abstract fun bindCategoryRepository(impl: RoomCategoryRepository): CategoryRepository
 
     @Binds
     @Singleton
-    abstract fun bindAcquaintanceRepository(impl: InMemoryAcquaintanceRepository): AcquaintanceRepository
+    abstract fun bindAcquaintanceRepository(impl: RoomAcquaintanceRepository): AcquaintanceRepository
 
     @Binds
     @Singleton
-    abstract fun bindRelationRepository(impl: InMemoryRelationRepository): RelationRepository
+    abstract fun bindRelationRepository(impl: RoomRelationRepository): RelationRepository
 
     @Binds
     @Singleton
