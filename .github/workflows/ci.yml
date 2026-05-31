@@ -28,7 +28,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Test, lint & assemble
-        run: ./gradlew test lint assembleDebug --no-daemon --stacktrace
+        run: ./gradlew test lint ktlintCheck assembleDebug --no-daemon --stacktrace
 
       - name: Upload lint report
         if: always()
