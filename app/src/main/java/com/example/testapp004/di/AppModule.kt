@@ -4,9 +4,7 @@ import com.example.testapp004.data.AcquaintanceRepository
 import com.example.testapp004.data.CategoryRepository
 import com.example.testapp004.data.InMemoryAcquaintanceRepository
 import com.example.testapp004.data.InMemoryCategoryRepository
-import com.example.testapp004.data.InMemoryNotesRepository
 import com.example.testapp004.data.InMemoryRelationRepository
-import com.example.testapp004.data.NotesRepository
 import com.example.testapp004.data.RelationRepository
 import dagger.Binds
 import dagger.Module
@@ -17,10 +15,6 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class AppModule {
-    @Binds
-    @Singleton
-    abstract fun bindNotesRepository(impl: InMemoryNotesRepository): NotesRepository
-
     @Binds
     @Singleton
     abstract fun bindCategoryRepository(impl: InMemoryCategoryRepository): CategoryRepository

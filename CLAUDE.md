@@ -136,12 +136,6 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 
 | Feature | Status | Functional spec |
 |---------|--------|----------------|
-| View notes list | ✅ Done | [notes-app.md](docs/functional/notes-app.md) |
-| Empty state placeholder | ✅ Done | [notes-app.md](docs/functional/notes-app.md) |
-| Add note via dialog | ✅ Done | [notes-app.md](docs/functional/notes-app.md) |
-| Delete note | ✅ Done | [notes-app.md](docs/functional/notes-app.md) |
-| Persistent storage | ❌ Not started | — |
-| Edit existing note | ❌ Not started | — |
 | Acquaintance tracker — list people | ✅ Done | [acquaintance-tracker.md](docs/functional/acquaintance-tracker.md) |
 | Acquaintance tracker — categories | ✅ Done | [acquaintance-tracker.md](docs/functional/acquaintance-tracker.md) |
 | Acquaintance tracker — person detail & bio | ✅ Done | [acquaintance-tracker.md](docs/functional/acquaintance-tracker.md) |
@@ -164,3 +158,4 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | [ADR-007](docs/decisions/ADR-007-repository-pattern.md) | Repository pattern separating ViewModels from data sources | 2026-05-31 |
 | [ADR-008](docs/decisions/ADR-008-acquaintance-tracker.md) | Acquaintance tracker: people, categories, directed relations | 2026-05-31 |
 | [ADR-009](docs/decisions/ADR-009-category-trees-multi-membership.md) | Category trees (parentId) and multi-category membership (categoryIds) | 2026-05-31 |
+| [ADR-010](docs/decisions/ADR-010-remove-notes-feature.md) | Remove Notes feature (bootstrap placeholder, superseded by Acquaintance Tracker) | 2026-05-31 |
