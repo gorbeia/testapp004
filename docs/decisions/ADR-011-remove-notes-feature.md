@@ -1,4 +1,4 @@
-# ADR-010: Remove Notes Feature
+# ADR-011: Remove Notes Feature
 
 **Date:** 2026-05-31  
 **Status:** Accepted
