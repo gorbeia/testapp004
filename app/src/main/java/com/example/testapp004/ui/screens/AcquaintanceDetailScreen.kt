@@ -1,5 +1,9 @@
 package com.example.testapp004.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -17,6 +21,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
@@ -27,6 +32,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SuggestionChip
@@ -43,8 +49,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import com.example.testapp004.model.Acquaintance
+import com.example.testapp004.model.ContactInfo
 import com.example.testapp004.viewmodel.AcquaintanceDetailViewModel
 import com.example.testapp004.viewmodel.RelationDisplay
 
@@ -113,6 +122,14 @@ fun AcquaintanceDetailScreen(
                     )
                 }
                 item {
+                    LinkedContactSection(
+                        linkedContactInfo = uiState.linkedContactInfo,
+                        isLinked = acquaintance.androidContactLookupKey != null,
+                        onLinkContact = { viewModel.linkContact(it) },
+                        onUnlinkContact = { viewModel.unlinkContact() },
+                    )
+                }
+                item {
                     RelationsHeader(onAddClick = viewModel::openAddRelationDialog)
                 }
                 if (uiState.relations.isEmpty()) {
@@ -172,6 +189,107 @@ private fun BioSection(bio: String, categoryNames: List<String>) {
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LinkedContactSection(
+    linkedContactInfo: ContactInfo?,
+    isLinked: Boolean,
+    onLinkContact: (String) -> Unit,
+    onUnlinkContact: () -> Unit,
+) {
+    val context = LocalContext.current
+
+    val contactPickerLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickContact(),
+    ) { uri ->
+        uri?.let { onLinkContact(it.toString()) }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (granted) contactPickerLauncher.launch()
+    }
+
+    fun launchPicker() {
+        val hasPermission = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.READ_CONTACTS,
+        ) == PackageManager.PERMISSION_GRANTED
+        if (hasPermission) {
+            contactPickerLauncher.launch()
+        } else {
+            permissionLauncher.launch(Manifest.permission.READ_CONTACTS)
+        }
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Linked Contact",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (isLinked) {
+                if (linkedContactInfo != null) {
+                    Text(
+                        text = linkedContactInfo.displayName,
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    if (linkedContactInfo.primaryPhone != null) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = linkedContactInfo.primaryPhone,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = { launchPicker() }) {
+                            Text("Change")
+                        }
+                        TextButton(onClick = onUnlinkContact) {
+                            Text(
+                                text = "Unlink",
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    }
+                } else {
+                    // Linked but contact info still loading or contact was deleted from device
+                    Text(
+                        text = "Contact unavailable",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TextButton(onClick = onUnlinkContact) {
+                        Text(
+                            text = "Unlink",
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
+            } else {
+                Text(
+                    text = "No contact linked",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(onClick = { launchPicker() }) {
+                    Text("Link Contact")
+                }
             }
         }
     }
