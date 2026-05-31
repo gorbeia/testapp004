@@ -182,6 +182,7 @@ private fun UpdateBanner(
                 )
             }
         } else {
+            val canDownload = state.updateAvailable?.downloadUrl?.isNotEmpty() == true
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -200,8 +201,8 @@ private fun UpdateBanner(
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                 }
-                TextButton(onClick = onUpdate) {
-                    Text("Update")
+                TextButton(onClick = onUpdate, enabled = canDownload) {
+                    Text(if (canDownload) "Update" else "Preview")
                 }
                 IconButton(onClick = onDismiss) {
                     Icon(
