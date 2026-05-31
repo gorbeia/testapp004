@@ -5,12 +5,12 @@ import androidx.lifecycle.viewModelScope
 import com.example.testapp004.data.NotesRepository
 import com.example.testapp004.model.Note
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class NotesUiState(
     val notes: List<Note> = emptyList(),
@@ -20,9 +20,11 @@ data class NotesUiState(
 )
 
 @HiltViewModel
-class NotesViewModel @Inject constructor(
-    private val repository: NotesRepository,
-) : ViewModel() {
+class NotesViewModel
+    @Inject
+    constructor(
+        private val repository: NotesRepository,
+    ) : ViewModel() {
     private val _uiState = MutableStateFlow(NotesUiState())
     val uiState: StateFlow<NotesUiState> = _uiState.asStateFlow()
 

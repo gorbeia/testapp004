@@ -5,6 +5,8 @@ import kotlinx.coroutines.flow.StateFlow
 
 interface NotesRepository {
     val notes: StateFlow<List<Note>>
+
     suspend fun addNote(title: String, content: String)
+
     suspend fun deleteNote(noteId: Long)
 }

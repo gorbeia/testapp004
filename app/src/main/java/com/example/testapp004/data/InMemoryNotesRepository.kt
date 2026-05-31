@@ -1,15 +1,17 @@
 package com.example.testapp004.data
 
 import com.example.testapp004.model.Note
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import javax.inject.Inject
+import javax.inject.Singleton
 
 @Singleton
-class InMemoryNotesRepository @Inject constructor() : NotesRepository {
+class InMemoryNotesRepository
+    @Inject
+    constructor() : NotesRepository {
     private val _notes = MutableStateFlow<List<Note>>(emptyList())
     override val notes: StateFlow<List<Note>> = _notes.asStateFlow()
 

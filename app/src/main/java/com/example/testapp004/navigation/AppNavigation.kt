@@ -13,8 +13,10 @@ import com.example.testapp004.viewmodel.NotesViewModel
 
 sealed class Screen(val route: String) {
     object Home : Screen("home")
+
     object EditNote : Screen("edit_note/{noteId}") {
         const val ARG_NOTE_ID = "noteId"
+
         fun createRoute(noteId: Long) = "edit_note/$noteId"
     }
 }
