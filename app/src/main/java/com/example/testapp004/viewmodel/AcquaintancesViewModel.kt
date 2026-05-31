@@ -29,7 +29,7 @@ class AcquaintancesViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
 ) : ViewModel() {
     private val categoryIdFilter = MutableStateFlow<Long?>(null)
-    private val _searchQuery = MutableStateFlow("")
+    private val searchQueryFlow = MutableStateFlow("")
     private val _uiState = MutableStateFlow(AcquaintancesUiState())
     val uiState: StateFlow<AcquaintancesUiState> = _uiState.asStateFlow()
 
@@ -39,7 +39,7 @@ class AcquaintancesViewModel @Inject constructor(
                 acquaintanceRepository.acquaintances,
                 categoryRepository.categories,
                 categoryIdFilter,
-                _searchQuery,
+                searchQueryFlow,
             ) { acquaintances, categories, selectedCategoryId, searchQuery ->
                 val categoryFiltered = if (selectedCategoryId == null) {
                     acquaintances
@@ -73,7 +73,7 @@ class AcquaintancesViewModel @Inject constructor(
     }
 
     fun updateSearchQuery(query: String) {
-        _searchQuery.value = query
+        searchQueryFlow.value = query
     }
 
     fun deleteAcquaintance(acquaintanceId: Long) {
