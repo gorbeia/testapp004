@@ -15,8 +15,10 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -25,6 +27,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
@@ -35,6 +38,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.testapp004.model.Acquaintance
@@ -77,6 +81,24 @@ fun AcquaintancesListScreen(
                 .fillMaxSize()
                 .padding(paddingValues),
         ) {
+            OutlinedTextField(
+                value = uiState.searchQuery,
+                onValueChange = viewModel::updateSearchQuery,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                placeholder = { Text("Search by name or bio") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                trailingIcon = {
+                    if (uiState.searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { viewModel.updateSearchQuery("") }) {
+                            Icon(Icons.Default.Close, contentDescription = "Clear search")
+                        }
+                    }
+                },
+                singleLine = true,
+                shape = MaterialTheme.shapes.large,
+            )
             if (uiState.categories.isNotEmpty()) {
                 CategoryFilterRow(
                     categories = uiState.categories,
@@ -87,6 +109,7 @@ fun AcquaintancesListScreen(
             if (uiState.acquaintances.isEmpty()) {
                 AcquaintancesEmptyState(
                     hasFilter = uiState.selectedCategoryId != null,
+                    searchQuery = uiState.searchQuery,
                     modifier = Modifier
                         .fillMaxSize()
                         .weight(1f),
@@ -111,37 +134,91 @@ private fun CategoryFilterRow(
     selectedCategoryId: Long?,
     onCategorySelected: (Long?) -> Unit,
 ) {
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        item {
-            FilterChip(
-                selected = selectedCategoryId == null,
-                onClick = { onCategorySelected(null) },
-                label = { Text("All") },
-            )
+    val rootCategories = categories.filter { it.parentId == null }
+    val selectedCategory = categories.find { it.id == selectedCategoryId }
+
+    // Walk up to find the root ancestor (handles up to arbitrary depth, stops at root)
+    fun rootOf(category: Category): Category {
+        val parent = categories.find { it.id == category.parentId } ?: return category
+        return rootOf(parent)
+    }
+
+    val activeRoot: Category? = selectedCategory?.let { rootOf(it) }
+    val childCategories = if (activeRoot != null) {
+        categories.filter { it.parentId == activeRoot.id }
+    } else {
+        emptyList()
+    }
+
+    Column {
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            item {
+                FilterChip(
+                    selected = selectedCategoryId == null,
+                    onClick = { onCategorySelected(null) },
+                    label = { Text("All") },
+                )
+            }
+            items(rootCategories, key = { it.id }) { category ->
+                FilterChip(
+                    selected = category.id == activeRoot?.id,
+                    onClick = { onCategorySelected(category.id) },
+                    label = { Text(category.name) },
+                )
+            }
         }
-        items(categories, key = { it.id }) { category ->
-            FilterChip(
-                selected = selectedCategoryId == category.id,
-                onClick = { onCategorySelected(category.id) },
-                label = { Text(category.name) },
-            )
+        if (childCategories.isNotEmpty()) {
+            LazyRow(
+                contentPadding = PaddingValues(start = 32.dp, end = 16.dp, bottom = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                item {
+                    FilterChip(
+                        selected = selectedCategoryId == activeRoot?.id,
+                        onClick = { onCategorySelected(activeRoot?.id) },
+                        label = { Text("All ${activeRoot?.name}") },
+                    )
+                }
+                items(childCategories, key = { it.id }) { category ->
+                    FilterChip(
+                        selected = selectedCategoryId == category.id,
+                        onClick = { onCategorySelected(category.id) },
+                        label = { Text(category.name) },
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun AcquaintancesEmptyState(hasFilter: Boolean, modifier: Modifier = Modifier) {
+private fun AcquaintancesEmptyState(
+    hasFilter: Boolean,
+    searchQuery: String,
+    modifier: Modifier = Modifier,
+) {
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(horizontal = 24.dp),
+        ) {
+            val message = when {
+                searchQuery.isNotBlank() && hasFilter ->
+                    "No results for \"$searchQuery\" in this category"
+                searchQuery.isNotBlank() -> "No results for \"$searchQuery\""
+                hasFilter -> "No people in this category"
+                else -> "No people yet"
+            }
             Text(
-                text = if (hasFilter) "No people in this category" else "No people yet",
+                text = message,
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
             )
-            if (!hasFilter) {
+            if (!hasFilter && searchQuery.isBlank()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "Tap + to add your first person",

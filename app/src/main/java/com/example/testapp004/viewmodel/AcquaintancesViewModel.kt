@@ -18,6 +18,7 @@ data class AcquaintancesUiState(
     val acquaintances: List<Acquaintance> = emptyList(),
     val categories: List<Category> = emptyList(),
     val selectedCategoryId: Long? = null,
+    val searchQuery: String = "",
     val isLoading: Boolean = false,
     val error: String? = null,
 )
@@ -28,6 +29,7 @@ class AcquaintancesViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
 ) : ViewModel() {
     private val categoryIdFilter = MutableStateFlow<Long?>(null)
+    private val searchQueryFlow = MutableStateFlow("")
     private val _uiState = MutableStateFlow(AcquaintancesUiState())
     val uiState: StateFlow<AcquaintancesUiState> = _uiState.asStateFlow()
 
@@ -37,17 +39,28 @@ class AcquaintancesViewModel @Inject constructor(
                 acquaintanceRepository.acquaintances,
                 categoryRepository.categories,
                 categoryIdFilter,
-            ) { acquaintances, categories, selectedCategoryId ->
-                val filtered = if (selectedCategoryId == null) {
+                searchQueryFlow,
+            ) { acquaintances, categories, selectedCategoryId, searchQuery ->
+                val categoryFiltered = if (selectedCategoryId == null) {
                     acquaintances
                 } else {
                     val includedIds = descendantsAndSelf(categories, selectedCategoryId)
                     acquaintances.filter { person -> person.categoryIds.any { it in includedIds } }
                 }
+                val filtered = if (searchQuery.isBlank()) {
+                    categoryFiltered
+                } else {
+                    val q = searchQuery.trim()
+                    categoryFiltered.filter { person ->
+                        person.name.contains(q, ignoreCase = true) ||
+                            person.bio.contains(q, ignoreCase = true)
+                    }
+                }
                 AcquaintancesUiState(
                     acquaintances = filtered,
                     categories = categories,
                     selectedCategoryId = selectedCategoryId,
+                    searchQuery = searchQuery,
                 )
             }.collect { state ->
                 _uiState.value = state
@@ -57,6 +70,10 @@ class AcquaintancesViewModel @Inject constructor(
 
     fun selectCategory(categoryId: Long?) {
         categoryIdFilter.value = categoryId
+    }
+
+    fun updateSearchQuery(query: String) {
+        searchQueryFlow.value = query
     }
 
     fun deleteAcquaintance(acquaintanceId: Long) {
