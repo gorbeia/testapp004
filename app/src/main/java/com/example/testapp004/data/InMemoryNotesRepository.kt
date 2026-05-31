@@ -9,9 +9,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class InMemoryNotesRepository
-    @Inject
-    constructor() : NotesRepository {
+class InMemoryNotesRepository @Inject constructor() : NotesRepository {
     private val _notes = MutableStateFlow<List<Note>>(emptyList())
     override val notes: StateFlow<List<Note>> = _notes.asStateFlow()
 

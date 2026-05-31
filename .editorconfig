@@ -28,6 +28,9 @@ ktlint_standard_string-template-indent = disabled
 # Short function signatures on one line are idiomatic; Compose lambdas make multi-line unwieldy
 ktlint_standard_function-signature = disabled
 
+# @Inject constructor() on the same line as the class declaration is standard Hilt style
+ktlint_standard_annotation = disabled
+
 [*.xml]
 indent_size = 4
 

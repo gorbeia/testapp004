@@ -20,11 +20,9 @@ data class NotesUiState(
 )
 
 @HiltViewModel
-class NotesViewModel
-    @Inject
-    constructor(
-        private val repository: NotesRepository,
-    ) : ViewModel() {
+class NotesViewModel @Inject constructor(
+    private val repository: NotesRepository,
+) : ViewModel() {
     private val _uiState = MutableStateFlow(NotesUiState())
     val uiState: StateFlow<NotesUiState> = _uiState.asStateFlow()
 
