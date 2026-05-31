@@ -2,6 +2,7 @@ package com.example.testapp004
 
 import com.example.testapp004.util.MainDispatcherRule
 import com.example.testapp004.viewmodel.CategoriesViewModel
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -10,7 +11,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import kotlinx.coroutines.runBlocking
 
 class CategoriesViewModelTest {
     @get:Rule
