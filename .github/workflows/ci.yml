@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   build-and-test:
-    name: Build, test & lint
+    name: Test, lint & build
     runs-on: ubuntu-latest
 
     steps:
@@ -27,14 +27,8 @@ jobs:
       - name: Grant Gradle execute permission
         run: chmod +x gradlew
 
-      - name: Run unit tests
-        run: ./gradlew test --stacktrace
-
-      - name: Run lint
-        run: ./gradlew lint
-
-      - name: Build debug APK
-        run: ./gradlew assembleDebug --no-daemon
+      - name: Test, lint & assemble
+        run: ./gradlew test lint assembleDebug --no-daemon --stacktrace
 
       - name: Upload lint report
         if: always()
@@ -44,6 +38,7 @@ jobs:
           path: app/build/reports/lint-results-debug.html
 
       - name: Upload debug APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: debug-apk

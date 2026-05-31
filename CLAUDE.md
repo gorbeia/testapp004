@@ -71,16 +71,16 @@ com.example.testapp004/
 **Always run this before committing and pushing:**
 
 ```
-./gradlew test
+./gradlew test lint assembleDebug --no-daemon --stacktrace
 ```
 
-Fix every failure before the commit goes out. If `./gradlew test` is not available in the current environment, state that explicitly rather than skipping it.
+Fix every failure before the commit goes out. If Gradle is not available in the current environment, state that explicitly rather than skipping it.
 
 ---
 
 ## CI
 
-GitHub Actions runs `./gradlew test` and `./gradlew lint` on every push to `main` and on every pull request. A red CI build means something regressed — investigate before merging.
+GitHub Actions runs `test lint assembleDebug` in a single Gradle invocation on every push to `main` and on every pull request. A red CI build means something regressed — investigate before merging. Release workflow (`release.yml`) runs tests before building the signed APK.
 
 Workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
 
