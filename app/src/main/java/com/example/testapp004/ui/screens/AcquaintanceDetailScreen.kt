@@ -212,7 +212,7 @@ private fun LinkedContactSection(
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
-        if (granted) contactPickerLauncher.launch()
+        if (granted) contactPickerLauncher.launch(null)
     }
 
     fun launchPicker() {
@@ -221,7 +221,7 @@ private fun LinkedContactSection(
             Manifest.permission.READ_CONTACTS,
         ) == PackageManager.PERMISSION_GRANTED
         if (hasPermission) {
-            contactPickerLauncher.launch()
+            contactPickerLauncher.launch(null)
         } else {
             permissionLauncher.launch(Manifest.permission.READ_CONTACTS)
         }
