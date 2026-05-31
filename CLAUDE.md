@@ -66,6 +66,44 @@ com.example.testapp004/
 
 ---
 
+## Branch Workflow (for Claude)
+
+**Never commit directly to `main`.** All work goes through a feature branch and a PR.
+
+```
+git checkout -b feature/short-description   # or fix/ or chore/
+# ... make commits ...
+git push -u origin feature/short-description
+```
+
+Then open a PR targeting `main`. CI must be green before the PR is merged.
+The user reviews the diff and merges — do not merge your own PR.
+
+Branch naming: `feature/` for new features, `fix/` for bug fixes, `chore/` for maintenance tasks.
+
+---
+
+## Before Every Push (for Claude)
+
+**Always run this before pushing a branch:**
+
+```
+./gradlew test lint ktlintCheck assembleDebug --no-daemon --stacktrace
+```
+
+Fix every failure before the push. For ktlint violations, run `./gradlew ktlintFormat` first to auto-fix what it can, then re-run the check.
+If Gradle is not available in the current environment, state that explicitly rather than skipping it.
+
+---
+
+## CI
+
+GitHub Actions runs `test lint ktlintCheck assembleDebug` in a single Gradle invocation on every push to `main` and on every pull request. A red CI build means something regressed — investigate before merging. Release workflow (`release.yml`) runs tests before building the signed APK.
+
+Workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
+
+---
+
 ## Documentation Rules (for Claude)
 
 **Every decision made in a conversation must be recorded before the commit is pushed.**
@@ -101,3 +139,5 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | [ADR-001](docs/decisions/ADR-001-tech-stack.md) | Kotlin + Compose + MVVM as the tech stack | 2026-05-31 |
 | [ADR-002](docs/decisions/ADR-002-architecture-pattern.md) | MVVM with StateFlow as the architecture pattern | 2026-05-31 |
 | [ADR-003](docs/decisions/ADR-003-documentation-strategy.md) | Markdown ADRs + CLAUDE.md as the documentation strategy | 2026-05-31 |
+| [ADR-004](docs/decisions/ADR-004-ci-strategy.md) | GitHub Actions CI running unit tests + lint on every push | 2026-05-31 |
+| [ADR-005](docs/decisions/ADR-005-code-style.md) | ktlint for Kotlin code style enforcement | 2026-05-31 |

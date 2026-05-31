@@ -9,11 +9,13 @@ import org.junit.Test
 
 class NotesViewModelTest {
 
+    private var fakeTime = 1000L
     private lateinit var viewModel: NotesViewModel
 
     @Before
     fun setup() {
-        viewModel = NotesViewModel()
+        fakeTime = 1000L
+        viewModel = NotesViewModel(clock = { fakeTime++ })
     }
 
     @Test
@@ -72,12 +74,19 @@ class NotesViewModelTest {
     @Test
     fun `deleteNote only removes the targeted note`() {
         viewModel.addNote("Note 1", "")
-        Thread.sleep(1) // ensure unique IDs
         viewModel.addNote("Note 2", "")
         val firstId = viewModel.uiState.value.notes.first().id
         viewModel.deleteNote(firstId)
         assertEquals(1, viewModel.uiState.value.notes.size)
         assertEquals("Note 2", viewModel.uiState.value.notes.first().title)
+    }
+
+    @Test
+    fun `notes are assigned unique ids from the clock`() {
+        viewModel.addNote("Note 1", "")
+        viewModel.addNote("Note 2", "")
+        val ids = viewModel.uiState.value.notes.map { it.id }
+        assertEquals(ids.distinct(), ids)
     }
 
     @Test
