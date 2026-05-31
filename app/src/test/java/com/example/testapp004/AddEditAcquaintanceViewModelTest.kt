@@ -35,22 +35,31 @@ class AddEditAcquaintanceViewModelTest {
         val vm = buildViewModel()
         assertEquals("", vm.uiState.value.name)
         assertEquals("", vm.uiState.value.bio)
+        assertTrue(vm.uiState.value.selectedCategoryIds.isEmpty())
         assertFalse(vm.uiState.value.isEditing)
         assertFalse(vm.uiState.value.isSaved)
     }
 
     @Test
     fun `isEditing is true when acquaintanceId provided`() {
-        val id = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "Bio", null) }
+        val id = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "Bio", emptySet()) }
         assertTrue(buildViewModel(id).uiState.value.isEditing)
     }
 
     @Test
     fun `edit mode loads existing acquaintance data`() {
-        val id = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "A friend", null) }
+        val id = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "A friend", emptySet()) }
         val vm = buildViewModel(id)
         assertEquals("Alice", vm.uiState.value.name)
         assertEquals("A friend", vm.uiState.value.bio)
+    }
+
+    @Test
+    fun `edit mode loads existing category ids`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Work") }
+        val id = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val vm = buildViewModel(id)
+        assertTrue(vm.uiState.value.selectedCategoryIds.contains(catId))
     }
 
     @Test
@@ -100,7 +109,7 @@ class AddEditAcquaintanceViewModelTest {
 
     @Test
     fun `save in edit mode updates existing acquaintance without creating a new one`() {
-        val id = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "Old bio", null) }
+        val id = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "Old bio", emptySet()) }
         val vm = buildViewModel(id)
         vm.onBioChange("New bio")
         vm.save()
@@ -115,17 +124,36 @@ class AddEditAcquaintanceViewModelTest {
     }
 
     @Test
-    fun `onCategorySelected updates selectedCategoryId`() {
+    fun `onCategoryToggled adds category to selectedCategoryIds`() {
         val vm = buildViewModel()
-        vm.onCategorySelected(42L)
-        assertEquals(42L, vm.uiState.value.selectedCategoryId)
+        vm.onCategoryToggled(42L)
+        assertTrue(vm.uiState.value.selectedCategoryIds.contains(42L))
     }
 
     @Test
-    fun `onCategorySelected null clears selectedCategoryId`() {
+    fun `onCategoryToggled removes category when already selected`() {
         val vm = buildViewModel()
-        vm.onCategorySelected(42L)
-        vm.onCategorySelected(null)
-        assertEquals(null, vm.uiState.value.selectedCategoryId)
+        vm.onCategoryToggled(42L)
+        vm.onCategoryToggled(42L)
+        assertFalse(vm.uiState.value.selectedCategoryIds.contains(42L))
+    }
+
+    @Test
+    fun `onCategoryToggled supports multiple categories simultaneously`() {
+        val vm = buildViewModel()
+        vm.onCategoryToggled(1L)
+        vm.onCategoryToggled(2L)
+        assertTrue(vm.uiState.value.selectedCategoryIds.containsAll(setOf(1L, 2L)))
+    }
+
+    @Test
+    fun `save persists selected category ids`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Work") }
+        val vm = buildViewModel()
+        vm.onNameChange("Eve")
+        vm.onCategoryToggled(catId)
+        vm.save()
+        val saved = fakeAcquaintanceRepository.acquaintances.value.first()
+        assertTrue(saved.categoryIds.contains(catId))
     }
 }

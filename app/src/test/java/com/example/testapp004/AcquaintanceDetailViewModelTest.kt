@@ -7,7 +7,6 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -27,7 +26,7 @@ class AcquaintanceDetailViewModelTest {
         fakeAcquaintanceRepository = FakeAcquaintanceRepository()
         fakeCategoryRepository = FakeCategoryRepository()
         fakeRelationRepository = FakeRelationRepository()
-        aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "A friend", null) }
+        aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "A friend", emptySet()) }
     }
 
     private fun buildViewModel() = AcquaintanceDetailViewModel(
@@ -50,19 +49,33 @@ class AcquaintanceDetailViewModelTest {
     }
 
     @Test
-    fun `categoryName is null when no category assigned`() {
-        assertNull(buildViewModel().uiState.value.categoryName)
+    fun `categoryNames is empty when no categories assigned`() {
+        assertTrue(buildViewModel().uiState.value.categoryNames.isEmpty())
     }
 
     @Test
-    fun `categoryName reflects the assigned category`() {
+    fun `categoryNames reflects assigned categories`() {
         val catId = runBlocking { fakeCategoryRepository.addCategory("Friends") }
         runBlocking {
             fakeAcquaintanceRepository.updateAcquaintance(
-                fakeAcquaintanceRepository.getAcquaintance(aliceId)!!.copy(categoryId = catId),
+                fakeAcquaintanceRepository.getAcquaintance(aliceId)!!.copy(categoryIds = setOf(catId)),
             )
         }
-        assertEquals("Friends", buildViewModel().uiState.value.categoryName)
+        assertTrue(buildViewModel().uiState.value.categoryNames.contains("Friends"))
+    }
+
+    @Test
+    fun `categoryNames can contain multiple categories`() {
+        val workId = runBlocking { fakeCategoryRepository.addCategory("Work") }
+        val familyId = runBlocking { fakeCategoryRepository.addCategory("Family") }
+        runBlocking {
+            fakeAcquaintanceRepository.updateAcquaintance(
+                fakeAcquaintanceRepository.getAcquaintance(aliceId)!!.copy(categoryIds = setOf(workId, familyId)),
+            )
+        }
+        val names = buildViewModel().uiState.value.categoryNames
+        assertTrue(names.contains("Work"))
+        assertTrue(names.contains("Family"))
     }
 
     @Test
@@ -82,7 +95,7 @@ class AcquaintanceDetailViewModelTest {
 
     @Test
     fun `addRelation creates a relation and closes dialog`() {
-        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", null) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
         val vm = buildViewModel()
         vm.openAddRelationDialog()
         vm.addRelation(bobId, "works with")
@@ -92,7 +105,7 @@ class AcquaintanceDetailViewModelTest {
 
     @Test
     fun `addRelation with blank label does nothing`() {
-        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", null) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
         val vm = buildViewModel()
         vm.addRelation(bobId, "   ")
         assertTrue(vm.uiState.value.relations.isEmpty())
@@ -100,7 +113,7 @@ class AcquaintanceDetailViewModelTest {
 
     @Test
     fun `outgoing relation shows isOutgoing true`() {
-        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", null) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
         val vm = buildViewModel()
         vm.addRelation(bobId, "mentors")
         assertTrue(vm.uiState.value.relations.first().isOutgoing)
@@ -109,7 +122,7 @@ class AcquaintanceDetailViewModelTest {
     @Test
     fun `incoming relation shows isOutgoing false`() {
         runBlocking {
-            val bobId = fakeAcquaintanceRepository.addAcquaintance("Bob", "", null)
+            val bobId = fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet())
             fakeRelationRepository.addRelation(fromId = bobId, toId = aliceId, label = "mentors")
         }
         assertFalse(buildViewModel().uiState.value.relations.first().isOutgoing)
@@ -117,7 +130,7 @@ class AcquaintanceDetailViewModelTest {
 
     @Test
     fun `deleteRelation removes the relation`() {
-        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", null) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
         val vm = buildViewModel()
         vm.addRelation(bobId, "knows")
         val relationId = vm.uiState.value.relations.first().relationId
@@ -127,7 +140,7 @@ class AcquaintanceDetailViewModelTest {
 
     @Test
     fun `allOtherAcquaintances excludes the current person`() {
-        runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", null) }
+        runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
         val vm = buildViewModel()
         val ids = vm.uiState.value.allOtherAcquaintances.map { it.id }
         assertFalse(ids.contains(aliceId))

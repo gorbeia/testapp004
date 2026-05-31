@@ -17,7 +17,10 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -37,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.testapp004.model.Category
 import com.example.testapp004.viewmodel.CategoriesViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -84,6 +88,7 @@ fun CategoriesScreen(
                 }
             }
         } else {
+            val treeOrder = buildCategoryTree(uiState.categories)
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -91,31 +96,12 @@ fun CategoriesScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                items(uiState.categories, key = { it.id }) { category ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                text = category.name,
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.weight(1f),
-                            )
-                            IconButton(onClick = { viewModel.deleteCategory(category.id) }) {
-                                Icon(
-                                    imageVector = Icons.Default.Delete,
-                                    contentDescription = "Delete category",
-                                    tint = MaterialTheme.colorScheme.error,
-                                )
-                            }
-                        }
-                    }
+                items(treeOrder, key = { it.first.id }) { (category, depth) ->
+                    CategoryItem(
+                        category = category,
+                        depth = depth,
+                        onDelete = { viewModel.deleteCategory(category.id) },
+                    )
                 }
             }
         }
@@ -123,34 +109,123 @@ fun CategoriesScreen(
 
     if (uiState.isAddDialogOpen) {
         AddCategoryDialog(
-            onConfirm = viewModel::addCategory,
+            existingCategories = uiState.categories,
+            onConfirm = { name, parentId -> viewModel.addCategory(name, parentId) },
             onDismiss = viewModel::closeAddDialog,
         )
     }
 }
 
 @Composable
+private fun CategoryItem(
+    category: Category,
+    depth: Int,
+    onDelete: () -> Unit,
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = (depth * 24).dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (depth > 0) {
+                Text(
+                    text = "└ ",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Text(
+                text = category.name,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f),
+            )
+            IconButton(onClick = onDelete) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete category",
+                    tint = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 private fun AddCategoryDialog(
-    onConfirm: (String) -> Unit,
+    existingCategories: List<Category>,
+    onConfirm: (name: String, parentId: Long?) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var name by remember { mutableStateOf("") }
+    var selectedParentId by remember { mutableStateOf<Long?>(null) }
+    var isParentDropdownExpanded by remember { mutableStateOf(false) }
+    val selectedParentName = existingCategories.find { it.id == selectedParentId }?.name ?: "None"
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("New Category") },
         text = {
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text("Category name") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Category name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (existingCategories.isNotEmpty()) {
+                    ExposedDropdownMenuBox(
+                        expanded = isParentDropdownExpanded,
+                        onExpandedChange = { isParentDropdownExpanded = !isParentDropdownExpanded },
+                    ) {
+                        OutlinedTextField(
+                            value = selectedParentName,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Parent category (optional)") },
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = isParentDropdownExpanded)
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor(),
+                        )
+                        ExposedDropdownMenu(
+                            expanded = isParentDropdownExpanded,
+                            onDismissRequest = { isParentDropdownExpanded = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("None (top level)") },
+                                onClick = {
+                                    selectedParentId = null
+                                    isParentDropdownExpanded = false
+                                },
+                            )
+                            existingCategories.forEach { category ->
+                                DropdownMenuItem(
+                                    text = { Text(category.name) },
+                                    onClick = {
+                                        selectedParentId = category.id
+                                        isParentDropdownExpanded = false
+                                    },
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         },
         confirmButton = {
             TextButton(
-                onClick = { onConfirm(name) },
+                onClick = { onConfirm(name, selectedParentId) },
                 enabled = name.isNotBlank(),
             ) {
                 Text("Add")
@@ -160,4 +235,17 @@ private fun AddCategoryDialog(
             TextButton(onClick = onDismiss) { Text("Cancel") }
         },
     )
+}
+
+private fun buildCategoryTree(categories: List<Category>): List<Pair<Category, Int>> {
+    val result = mutableListOf<Pair<Category, Int>>()
+
+    fun visit(parentId: Long?, depth: Int) {
+        categories.filter { it.parentId == parentId }.forEach { cat ->
+            result.add(cat to depth)
+            visit(cat.id, depth + 1)
+        }
+    }
+    visit(null, 0)
+    return result
 }

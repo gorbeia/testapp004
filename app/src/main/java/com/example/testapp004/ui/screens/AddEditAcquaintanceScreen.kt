@@ -1,7 +1,9 @@
 package com.example.testapp004.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -10,13 +12,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -27,11 +29,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.testapp004.model.Category
 import com.example.testapp004.viewmodel.AddEditAcquaintanceViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -104,49 +105,68 @@ fun AddEditAcquaintanceScreen(
             )
 
             if (uiState.categories.isNotEmpty()) {
-                var isCategoryDropdownExpanded by remember { mutableStateOf(false) }
-                val selectedCategoryName =
-                    uiState.categories.find { it.id == uiState.selectedCategoryId }?.name ?: ""
+                CategoryMultiSelect(
+                    categories = uiState.categories,
+                    selectedIds = uiState.selectedCategoryIds,
+                    onToggle = viewModel::onCategoryToggled,
+                )
+            }
+        }
+    }
+}
 
-                ExposedDropdownMenuBox(
-                    expanded = isCategoryDropdownExpanded,
-                    onExpandedChange = { isCategoryDropdownExpanded = !isCategoryDropdownExpanded },
+@Composable
+private fun CategoryMultiSelect(
+    categories: List<Category>,
+    selectedIds: Set<Long>,
+    onToggle: (Long) -> Unit,
+) {
+    val treeOrder = buildCategoryTree(categories)
+
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = "Categories",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+            treeOrder.forEachIndexed { index, (category, depth) ->
+                if (index > 0) HorizontalDivider()
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onToggle(category.id) }
+                        .padding(
+                            start = (4 + depth * 20).dp,
+                            end = 8.dp,
+                            top = 2.dp,
+                            bottom = 2.dp,
+                        ),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    OutlinedTextField(
-                        value = selectedCategoryName,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Category (optional)") },
-                        trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = isCategoryDropdownExpanded)
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor(),
+                    Checkbox(
+                        checked = category.id in selectedIds,
+                        onCheckedChange = { onToggle(category.id) },
                     )
-                    ExposedDropdownMenu(
-                        expanded = isCategoryDropdownExpanded,
-                        onDismissRequest = { isCategoryDropdownExpanded = false },
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("None") },
-                            onClick = {
-                                viewModel.onCategorySelected(null)
-                                isCategoryDropdownExpanded = false
-                            },
-                        )
-                        uiState.categories.forEach { category ->
-                            DropdownMenuItem(
-                                text = { Text(category.name) },
-                                onClick = {
-                                    viewModel.onCategorySelected(category.id)
-                                    isCategoryDropdownExpanded = false
-                                },
-                            )
-                        }
-                    }
+                    Text(
+                        text = category.name,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
                 }
             }
         }
     }
+}
+
+private fun buildCategoryTree(categories: List<Category>): List<Pair<Category, Int>> {
+    val result = mutableListOf<Pair<Category, Int>>()
+
+    fun visit(parentId: Long?, depth: Int) {
+        categories.filter { it.parentId == parentId }.forEach { cat ->
+            result.add(cat to depth)
+            visit(cat.id, depth + 1)
+        }
+    }
+    visit(null, 0)
+    return result
 }

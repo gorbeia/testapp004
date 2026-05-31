@@ -12,8 +12,8 @@ Accessible via the **People** tab in the bottom navigation bar.
 
 ### People list (`AcquaintancesListScreen`)
 
-* Shows all acquaintances as cards (name, bio preview, category chip).
-* **Category filter row**: horizontal scrollable `FilterChip` row — "All" + one chip per existing category. Selecting a chip shows only people in that category.
+* Shows all acquaintances as cards (name, bio preview, category chips — one per assigned category).
+* **Category filter row**: horizontal scrollable `FilterChip` row — "All" + one chip per existing category. Selecting a chip shows people who have that category **or any of its descendants** assigned.
 * **FAB (+)**: navigates to Add Person screen.
 * **List icon (top-right)**: navigates to Categories screen.
 * Swipe-delete is not implemented; a delete icon is shown on each card.
@@ -22,7 +22,7 @@ Accessible via the **People** tab in the bottom navigation bar.
 ### Person detail (`AcquaintanceDetailScreen`)
 
 * **Top bar**: person's name; back, edit (pencil), delete (bin) actions.
-* **Bio card**: shows the bio text; or "No bio added" placeholder. Category chip shown if a category is assigned.
+* **Bio card**: shows the bio text; or "No bio added" placeholder. All assigned categories are shown as chips above the bio.
 * **Relations section**: list of directed relations.
   - Outgoing (this person → other): shows `→ label →` + tappable name of other person.
   - Incoming (other → this person): shows `← label ←` + tappable name of other person.
@@ -36,16 +36,19 @@ Accessible via the **People** tab in the bottom navigation bar.
 * **Top bar**: "New Person" or "Edit Person"; back button; "Save" action (disabled when name is blank).
 * **Name field** (required).
 * **Bio field** (optional, multi-line).
-* **Category dropdown** (optional): shown only when at least one category exists. Options include "None" + all categories.
+* **Categories multi-select** (optional): shown only when at least one category exists. Displayed as a card containing one checkbox row per category, indented by tree depth. A person can be assigned to any number of categories simultaneously.
 * On save, navigates back.
 
 ### Categories (`CategoriesScreen`)
 
 * **Top bar**: "Categories"; back button.
-* List of existing categories with delete icon per item.
-* **FAB (+)**: opens Add Category dialog (single-field text input).
+* List of existing categories displayed in **tree order** with visual indentation (children indented under their parent, prefixed with `└`).
+* Delete icon per item. Deleting a parent **orphans** its children (their parent is cleared to `null`).
+* **FAB (+)**: opens Add Category dialog.
+  - Text field for the category name.
+  - Optional parent-category dropdown (only shown when at least one category already exists); defaults to "None (top level)".
 * Empty state: "No categories yet".
-* Deleting a category does NOT automatically clear it from existing people (the categoryId on those Acquaintances becomes orphaned; the category chip simply won't render).
+* Deleting a category does NOT automatically clear it from existing people (the removed `categoryId` is silently dropped from rendered chips).
 
 ### Add Relation dialog (inline in detail screen)
 
@@ -57,7 +60,10 @@ Accessible via the **People** tab in the bottom navigation bar.
 
 ## Data rules
 
+* A person can belong to **zero or more** categories simultaneously.
+* Categories form a **tree**: each category has an optional `parentId`. Roots have `parentId = null`.
+* Selecting a category filter shows people in that category **and all its descendants** (recursive).
 * A person can have zero or more relations, both outgoing and incoming.
 * Relation labels are free-form text; no validation beyond non-blank.
-* Categories are independent entities; deleting a category does not cascade to people.
+* Deleting a category orphans its children and does not cascade to people.
 * All data is in-memory and lost on app restart (persistent storage is a future feature).
