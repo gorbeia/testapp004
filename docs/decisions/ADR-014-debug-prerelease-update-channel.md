@@ -1,4 +1,4 @@
-# ADR-013 — Debug pre-release update channel via GitHub pre-releases
+# ADR-014 — Debug pre-release update channel via GitHub pre-releases
 
 **Date:** 2026-05-31
 **Status:** Accepted

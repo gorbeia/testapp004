@@ -23,7 +23,7 @@ a working baseline that is extended feature by feature in collaboration with Cla
 | State | ViewModel + StateFlow | [ADR-002](docs/decisions/ADR-002-architecture-pattern.md) |
 | Navigation | Compose Navigation (sealed routes) | [ADR-002](docs/decisions/ADR-002-architecture-pattern.md) |
 | DI | Hilt + KSP | [ADR-006](docs/decisions/ADR-006-dependency-injection.md) |
-| Data | Repository pattern | [ADR-007](docs/decisions/ADR-007-repository-pattern.md) |
+| Data | Repository pattern + Room SQLite | [ADR-007](docs/decisions/ADR-007-repository-pattern.md), [ADR-013](docs/decisions/ADR-013-room-persistence.md) |
 | Build | Gradle Kotlin DSL + Version Catalog | [ADR-001](docs/decisions/ADR-001-tech-stack.md) |
 | Min SDK | 24 (Android 7.0) | [ADR-001](docs/decisions/ADR-001-tech-stack.md) |
 | Target/Compile SDK | 34 (Android 14) | [ADR-001](docs/decisions/ADR-001-tech-stack.md) |
@@ -41,7 +41,7 @@ ViewModel
   ↓ StateFlow<UiState>
 UI (re-renders on state change)
   ↑
-ViewModel → Repository interface → InMemory*Repository (swap for Room/DataStore later)
+ViewModel → Repository interface → Room*Repository (SQLite via Room)
 ```
 
 Package layout:
@@ -57,6 +57,16 @@ com.example.testapp004/
 └── ui/
     ├── screens/    ← one file per screen
     └── theme/      ← Color, Type, Theme
+```
+
+Package layout additions for Room:
+```
+data/
+├── room/           ← @Entity classes, @Dao interfaces, AppDatabase, AcquaintanceWithCategories
+├── Room*Repository ← Room-backed repository implementations
+di/
+├── ApplicationScope.kt  ← @Qualifier for the application-scoped CoroutineScope
+└── DatabaseModule.kt    ← Provides AppDatabase, DAOs, ApplicationScope
 ```
 
 ---
@@ -163,4 +173,5 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | [ADR-010](docs/decisions/ADR-010-self-update.md) | In-app self-update via GitHub Releases + OkHttp | 2026-05-31 |
 | [ADR-011](docs/decisions/ADR-011-remove-notes-feature.md) | Remove Notes feature (bootstrap placeholder, superseded by Acquaintance Tracker) | 2026-05-31 |
 | [ADR-012](docs/decisions/ADR-012-android-contact-linking.md) | Android contact linking via ContactsContract lookup key | 2026-05-31 |
-| [ADR-013](docs/decisions/ADR-013-debug-prerelease-update-channel.md) | Debug pre-release update channel via GitHub pre-releases + shared debug keystore | 2026-05-31 |
+| [ADR-013](docs/decisions/ADR-013-room-persistence.md) | Room SQLite persistence replacing in-memory storage | 2026-05-31 |
+| [ADR-014](docs/decisions/ADR-014-debug-prerelease-update-channel.md) | Debug pre-release update channel via GitHub pre-releases + shared debug keystore | 2026-05-31 |
