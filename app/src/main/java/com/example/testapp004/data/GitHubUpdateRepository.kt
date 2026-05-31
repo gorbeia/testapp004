@@ -1,5 +1,6 @@
 package com.example.testapp004.data
 
+import com.example.testapp004.BuildConfig
 import com.example.testapp004.model.AppRelease
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -14,9 +15,14 @@ class GitHubUpdateRepository @Inject constructor(
     override suspend fun checkForUpdate(currentVersionName: String): AppRelease? =
         withContext(Dispatchers.IO) {
             try {
+                val url = if (BuildConfig.DEBUG) {
+                    "https://api.github.com/repos/gorbeia/testapp004/releases/tags/debug-latest"
+                } else {
+                    "https://api.github.com/repos/gorbeia/testapp004/releases/latest"
+                }
                 val request =
                     Request.Builder()
-                        .url("https://api.github.com/repos/gorbeia/testapp004/releases/latest")
+                        .url(url)
                         .header("Accept", "application/vnd.github.v3+json")
                         .build()
                 val response = client.newCall(request).execute()

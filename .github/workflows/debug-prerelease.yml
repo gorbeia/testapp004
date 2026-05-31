@@ -1,0 +1,45 @@
+name: Debug pre-release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  debug-prerelease:
+    name: Build & publish debug APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: gradle
+
+      - name: Grant Gradle execute permission
+        run: chmod +x gradlew
+
+      - name: Run unit tests
+        run: ./gradlew test --no-daemon --stacktrace
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug --no-daemon -PdebugBuildNumber=${{ github.run_number }}
+
+      - name: Publish debug-latest pre-release
+        run: |
+          gh release delete debug-latest --cleanup-tag --yes 2>/dev/null || true
+          gh release create debug-latest \
+            --title "Debug build #${{ github.run_number }}" \
+            --notes "Automated debug build from $(echo ${{ github.sha }} | cut -c1-7) on \`main\`." \
+            --prerelease \
+            app/build/outputs/apk/debug/app-debug.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
