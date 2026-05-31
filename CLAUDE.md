@@ -22,6 +22,8 @@ a working baseline that is extended feature by feature in collaboration with Cla
 | UI | Jetpack Compose + Material3 | [ADR-001](docs/decisions/ADR-001-tech-stack.md) |
 | State | ViewModel + StateFlow | [ADR-002](docs/decisions/ADR-002-architecture-pattern.md) |
 | Navigation | Compose Navigation (sealed routes) | [ADR-002](docs/decisions/ADR-002-architecture-pattern.md) |
+| DI | Hilt + KSP | [ADR-006](docs/decisions/ADR-006-dependency-injection.md) |
+| Data | Repository pattern | [ADR-007](docs/decisions/ADR-007-repository-pattern.md) |
 | Build | Gradle Kotlin DSL + Version Catalog | [ADR-001](docs/decisions/ADR-001-tech-stack.md) |
 | Min SDK | 24 (Android 7.0) | [ADR-001](docs/decisions/ADR-001-tech-stack.md) |
 | Target/Compile SDK | 34 (Android 14) | [ADR-001](docs/decisions/ADR-001-tech-stack.md) |
@@ -38,12 +40,17 @@ UI (Composable screens)
 ViewModel
   ↓ StateFlow<UiState>
 UI (re-renders on state change)
+  ↑
+ViewModel → Repository interface → InMemoryNotesRepository (swap for Room/DataStore later)
 ```
 
 Package layout:
 ```
 com.example.testapp004/
 ├── MainActivity.kt
+├── TestApp004Application.kt
+├── data/           ← NotesRepository interface + InMemoryNotesRepository
+├── di/             ← Hilt modules
 ├── model/          ← plain Kotlin data classes
 ├── viewmodel/      ← ViewModels + UiState data classes
 ├── navigation/     ← NavHost + sealed Screen routes
@@ -57,12 +64,18 @@ com.example.testapp004/
 ## Conventions
 
 - One ViewModel per screen; pass it as a parameter, never call `viewModel()` inside child composables
+- Use `hiltViewModel()` (not `viewModel()`) in `AppNavigation.kt` to obtain ViewModels
 - `UiState` is a `data class`; all screen state lives there — nothing ad-hoc
+- `UiState` always includes `isLoading: Boolean = false` and `error: String? = null` for async operations
 - No business logic inside Composables; they only observe state and call ViewModel methods
 - Local ephemeral UI state (text field draft, scroll position) uses `remember { mutableStateOf() }`
 - State mutations use `_uiState.update { }` for atomicity
+- ViewModels use `viewModelScope.launch { }` to call `suspend` repository methods
 - Navigation routes are a `sealed class Screen(val route: String)` in `navigation/AppNavigation.kt`
+- Routes with arguments use `"{argName}"` in the route string; declare type via `navArgument`; extract via `backStackEntry.arguments`
+- Repository interface lives in `data/`; Hilt bindings live in `di/AppModule.kt`
 - Gradle dependencies go in `gradle/libs.versions.toml`; never hardcode versions in `build.gradle.kts`
+- Unit tests use `FakeNotesRepository` + `MainDispatcherRule`; no Hilt setup needed in unit tests
 
 ---
 
@@ -141,3 +154,5 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | [ADR-003](docs/decisions/ADR-003-documentation-strategy.md) | Markdown ADRs + CLAUDE.md as the documentation strategy | 2026-05-31 |
 | [ADR-004](docs/decisions/ADR-004-ci-strategy.md) | GitHub Actions CI running unit tests + lint on every push | 2026-05-31 |
 | [ADR-005](docs/decisions/ADR-005-code-style.md) | ktlint for Kotlin code style enforcement | 2026-05-31 |
+| [ADR-006](docs/decisions/ADR-006-dependency-injection.md) | Hilt + KSP for dependency injection | 2026-05-31 |
+| [ADR-007](docs/decisions/ADR-007-repository-pattern.md) | Repository pattern separating ViewModels from data sources | 2026-05-31 |

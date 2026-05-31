@@ -44,7 +44,10 @@ import com.example.testapp004.viewmodel.NotesViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(viewModel: NotesViewModel) {
+fun HomeScreen(
+    viewModel: NotesViewModel,
+    onNoteClick: (Long) -> Unit = {},
+) {
     val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
@@ -68,6 +71,7 @@ fun HomeScreen(viewModel: NotesViewModel) {
         } else {
             NotesList(
                 notes = uiState.notes,
+                onNoteClick = onNoteClick,
                 onDelete = viewModel::deleteNote,
                 modifier = Modifier.padding(paddingValues),
             )
@@ -107,6 +111,7 @@ private fun EmptyState(modifier: Modifier = Modifier) {
 @Composable
 private fun NotesList(
     notes: List<Note>,
+    onNoteClick: (Long) -> Unit,
     onDelete: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -116,14 +121,19 @@ private fun NotesList(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         items(notes, key = { it.id }) { note ->
-            NoteCard(note = note, onDelete = { onDelete(note.id) })
+            NoteCard(
+                note = note,
+                onClick = { onNoteClick(note.id) },
+                onDelete = { onDelete(note.id) },
+            )
         }
     }
 }
 
 @Composable
-private fun NoteCard(note: Note, onDelete: () -> Unit) {
+private fun NoteCard(note: Note, onClick: () -> Unit, onDelete: () -> Unit) {
     Card(
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {

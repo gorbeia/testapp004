@@ -1,20 +1,26 @@
 package com.example.testapp004
 
+import com.example.testapp004.util.MainDispatcherRule
 import com.example.testapp004.viewmodel.NotesViewModel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 
 class NotesViewModelTest {
-    private var fakeTime = 1000L
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
+    private lateinit var fakeRepository: FakeNotesRepository
     private lateinit var viewModel: NotesViewModel
 
     @Before
     fun setup() {
-        fakeTime = 1000L
-        viewModel = NotesViewModel(clock = { fakeTime++ })
+        fakeRepository = FakeNotesRepository()
+        viewModel = NotesViewModel(fakeRepository)
     }
 
     @Test
@@ -25,6 +31,12 @@ class NotesViewModelTest {
     @Test
     fun `initial state has dialog closed`() {
         assertFalse(viewModel.uiState.value.isAddNoteDialogOpen)
+    }
+
+    @Test
+    fun `initial state is not loading and has no error`() {
+        assertFalse(viewModel.uiState.value.isLoading)
+        assertNull(viewModel.uiState.value.error)
     }
 
     @Test
@@ -81,7 +93,7 @@ class NotesViewModelTest {
     }
 
     @Test
-    fun `notes are assigned unique ids from the clock`() {
+    fun `notes are assigned unique ids`() {
         viewModel.addNote("Note 1", "")
         viewModel.addNote("Note 2", "")
         val ids = viewModel.uiState.value.notes.map { it.id }
