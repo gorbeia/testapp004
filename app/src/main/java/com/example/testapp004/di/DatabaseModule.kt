@@ -2,8 +2,8 @@ package com.example.testapp004.di
 
 import android.content.Context
 import androidx.room.Room
-import com.example.testapp004.data.room.AppDatabase
 import com.example.testapp004.data.room.AcquaintanceDao
+import com.example.testapp004.data.room.AppDatabase
 import com.example.testapp004.data.room.CategoryDao
 import com.example.testapp004.data.room.RelationDao
 import dagger.Module
@@ -19,10 +19,11 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
-
     @Provides
     @Singleton
-    fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
+    fun provideAppDatabase(
+        @ApplicationContext context: Context,
+    ): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, "testapp004.db").build()
 
     @Provides

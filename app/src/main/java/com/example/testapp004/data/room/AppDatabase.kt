@@ -15,6 +15,8 @@ import androidx.room.RoomDatabase
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun acquaintanceDao(): AcquaintanceDao
+
     abstract fun categoryDao(): CategoryDao
+
     abstract fun relationDao(): RelationDao
 }

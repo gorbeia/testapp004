@@ -17,7 +17,6 @@ class RoomCategoryRepository @Inject constructor(
     private val dao: CategoryDao,
     @ApplicationScope private val scope: CoroutineScope,
 ) : CategoryRepository {
-
     override val categories: StateFlow<List<Category>> = dao.getAll()
         .map { list -> list.map { Category(id = it.id, name = it.name, parentId = it.parentId) } }
         .stateIn(scope, SharingStarted.Eagerly, emptyList())

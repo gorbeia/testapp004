@@ -1,5 +1,6 @@
 package com.example.testapp004.data
 
+import androidx.room.withTransaction
 import com.example.testapp004.data.room.AcquaintanceCategoryCrossRef
 import com.example.testapp004.data.room.AcquaintanceEntity
 import com.example.testapp004.data.room.AcquaintanceWithCategories
@@ -11,7 +12,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import androidx.room.withTransaction
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -20,7 +20,6 @@ class RoomAcquaintanceRepository @Inject constructor(
     private val db: AppDatabase,
     @ApplicationScope private val scope: CoroutineScope,
 ) : AcquaintanceRepository {
-
     private val dao = db.acquaintanceDao()
 
     override val acquaintances: StateFlow<List<Acquaintance>> = dao.getAllWithCategories()

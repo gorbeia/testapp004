@@ -17,7 +17,6 @@ class RoomRelationRepository @Inject constructor(
     private val dao: RelationDao,
     @ApplicationScope private val scope: CoroutineScope,
 ) : RelationRepository {
-
     override val relations: StateFlow<List<Relation>> = dao.getAll()
         .map { list -> list.map { Relation(id = it.id, fromId = it.fromId, toId = it.toId, label = it.label) } }
         .stateIn(scope, SharingStarted.Eagerly, emptyList())
