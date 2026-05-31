@@ -143,6 +143,7 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | Acquaintance tracker — category trees | ✅ Done | [acquaintance-tracker.md](docs/functional/acquaintance-tracker.md) |
 | Acquaintance tracker — multi-category membership | ✅ Done | [acquaintance-tracker.md](docs/functional/acquaintance-tracker.md) |
 | Self-update (GitHub Releases) | ✅ Done | [ADR-010](docs/decisions/ADR-010-self-update.md) |
+| Android contact linking | ✅ Done | [android-contact-linking.md](docs/functional/android-contact-linking.md) |
 
 ---
 
@@ -161,3 +162,4 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | [ADR-009](docs/decisions/ADR-009-category-trees-multi-membership.md) | Category trees (parentId) and multi-category membership (categoryIds) | 2026-05-31 |
 | [ADR-010](docs/decisions/ADR-010-self-update.md) | In-app self-update via GitHub Releases + OkHttp | 2026-05-31 |
 | [ADR-011](docs/decisions/ADR-011-remove-notes-feature.md) | Remove Notes feature (bootstrap placeholder, superseded by Acquaintance Tracker) | 2026-05-31 |
+| [ADR-012](docs/decisions/ADR-012-android-contact-linking.md) | Android contact linking via ContactsContract lookup key | 2026-05-31 |

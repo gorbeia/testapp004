@@ -1,7 +1,9 @@
 package com.example.testapp004.di
 
 import com.example.testapp004.data.AcquaintanceRepository
+import com.example.testapp004.data.AndroidContactRepository
 import com.example.testapp004.data.CategoryRepository
+import com.example.testapp004.data.ContactRepository
 import com.example.testapp004.data.InMemoryAcquaintanceRepository
 import com.example.testapp004.data.InMemoryCategoryRepository
 import com.example.testapp004.data.InMemoryRelationRepository
@@ -26,4 +28,8 @@ abstract class AppModule {
     @Binds
     @Singleton
     abstract fun bindRelationRepository(impl: InMemoryRelationRepository): RelationRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindContactRepository(impl: AndroidContactRepository): ContactRepository
 }

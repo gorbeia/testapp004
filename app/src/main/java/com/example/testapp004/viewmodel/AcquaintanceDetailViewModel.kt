@@ -1,12 +1,15 @@
 package com.example.testapp004.viewmodel
 
+import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.testapp004.data.AcquaintanceRepository
 import com.example.testapp004.data.CategoryRepository
+import com.example.testapp004.data.ContactRepository
 import com.example.testapp004.data.RelationRepository
 import com.example.testapp004.model.Acquaintance
+import com.example.testapp004.model.ContactInfo
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,6 +32,7 @@ data class AcquaintanceDetailUiState(
     val categoryNames: List<String> = emptyList(),
     val relations: List<RelationDisplay> = emptyList(),
     val allOtherAcquaintances: List<Acquaintance> = emptyList(),
+    val linkedContactInfo: ContactInfo? = null,
     val isAddRelationDialogOpen: Boolean = false,
     val isLoading: Boolean = false,
     val error: String? = null,
@@ -39,12 +43,15 @@ class AcquaintanceDetailViewModel @Inject constructor(
     private val acquaintanceRepository: AcquaintanceRepository,
     private val categoryRepository: CategoryRepository,
     private val relationRepository: RelationRepository,
+    private val contactRepository: ContactRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
     val acquaintanceId: Long = checkNotNull(savedStateHandle["acquaintanceId"])
 
     private val _uiState = MutableStateFlow(AcquaintanceDetailUiState())
     val uiState: StateFlow<AcquaintanceDetailUiState> = _uiState.asStateFlow()
+
+    private var lastLookupKey: String? = null
 
     init {
         viewModelScope.launch {
@@ -78,7 +85,19 @@ class AcquaintanceDetailViewModel @Inject constructor(
                 )
             }.collect { baseState ->
                 _uiState.update { current ->
-                    baseState.copy(isAddRelationDialogOpen = current.isAddRelationDialogOpen)
+                    baseState.copy(
+                        isAddRelationDialogOpen = current.isAddRelationDialogOpen,
+                        linkedContactInfo = current.linkedContactInfo,
+                    )
+                }
+
+                val newKey = baseState.acquaintance?.androidContactLookupKey
+                if (newKey != lastLookupKey) {
+                    lastLookupKey = newKey
+                    launch {
+                        val contactInfo = newKey?.let { contactRepository.lookupContactByKey(it) }
+                        _uiState.update { it.copy(linkedContactInfo = contactInfo) }
+                    }
                 }
             }
         }
@@ -109,6 +128,25 @@ class AcquaintanceDetailViewModel @Inject constructor(
     fun deleteAcquaintance() {
         viewModelScope.launch {
             acquaintanceRepository.deleteAcquaintance(acquaintanceId)
+        }
+    }
+
+    fun linkContact(contactUriString: String) {
+        viewModelScope.launch {
+            val info = contactRepository.lookupContactByUri(Uri.parse(contactUriString))
+            if (info != null) {
+                val updated = _uiState.value.acquaintance?.copy(androidContactLookupKey = info.lookupKey)
+                    ?: return@launch
+                acquaintanceRepository.updateAcquaintance(updated)
+            }
+        }
+    }
+
+    fun unlinkContact() {
+        viewModelScope.launch {
+            val updated = _uiState.value.acquaintance?.copy(androidContactLookupKey = null)
+                ?: return@launch
+            acquaintanceRepository.updateAcquaintance(updated)
         }
     }
 }
