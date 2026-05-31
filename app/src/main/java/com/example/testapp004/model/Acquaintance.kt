@@ -1,0 +1,8 @@
+package com.example.testapp004.model
+
+data class Acquaintance(
+    val id: Long,
+    val name: String,
+    val bio: String = "",
+    val categoryId: Long? = null,
+)

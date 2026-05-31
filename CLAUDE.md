@@ -142,6 +142,10 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | Delete note | ✅ Done | [notes-app.md](docs/functional/notes-app.md) |
 | Persistent storage | ❌ Not started | — |
 | Edit existing note | ❌ Not started | — |
+| Acquaintance tracker — list people | ✅ Done | [acquaintance-tracker.md](docs/functional/acquaintance-tracker.md) |
+| Acquaintance tracker — categories | ✅ Done | [acquaintance-tracker.md](docs/functional/acquaintance-tracker.md) |
+| Acquaintance tracker — person detail & bio | ✅ Done | [acquaintance-tracker.md](docs/functional/acquaintance-tracker.md) |
+| Acquaintance tracker — directed relations | ✅ Done | [acquaintance-tracker.md](docs/functional/acquaintance-tracker.md) |
 
 ---
 
@@ -156,3 +160,4 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | [ADR-005](docs/decisions/ADR-005-code-style.md) | ktlint for Kotlin code style enforcement | 2026-05-31 |
 | [ADR-006](docs/decisions/ADR-006-dependency-injection.md) | Hilt + KSP for dependency injection | 2026-05-31 |
 | [ADR-007](docs/decisions/ADR-007-repository-pattern.md) | Repository pattern separating ViewModels from data sources | 2026-05-31 |
+| [ADR-008](docs/decisions/ADR-008-acquaintance-tracker.md) | Acquaintance tracker: people, categories, directed relations | 2026-05-31 |
