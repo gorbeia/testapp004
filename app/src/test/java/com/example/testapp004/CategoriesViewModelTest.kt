@@ -2,6 +2,7 @@ package com.example.testapp004
 
 import com.example.testapp004.util.MainDispatcherRule
 import com.example.testapp004.viewmodel.CategoriesViewModel
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -119,5 +120,64 @@ class CategoriesViewModelTest {
         viewModel.addCategory("Family")
         val ids = viewModel.uiState.value.categories.map { it.id }
         assertEquals(ids.distinct(), ids)
+    }
+
+    @Test
+    fun `openEditDialog sets editingCategory and isEditDialogOpen`() {
+        runBlocking { fakeCategoryRepository.addCategory("Work") }
+        val cat = viewModel.uiState.value.categories.first()
+        viewModel.openEditDialog(cat)
+        assertEquals(cat, viewModel.uiState.value.editingCategory)
+        assertTrue(viewModel.uiState.value.isEditDialogOpen)
+    }
+
+    @Test
+    fun `closeEditDialog clears editingCategory and closes dialog`() {
+        runBlocking { fakeCategoryRepository.addCategory("Work") }
+        val cat = viewModel.uiState.value.categories.first()
+        viewModel.openEditDialog(cat)
+        viewModel.closeEditDialog()
+        assertNull(viewModel.uiState.value.editingCategory)
+        assertFalse(viewModel.uiState.value.isEditDialogOpen)
+    }
+
+    @Test
+    fun `editCategory updates category name and closes dialog`() {
+        runBlocking { fakeCategoryRepository.addCategory("Work") }
+        val cat = viewModel.uiState.value.categories.first()
+        viewModel.openEditDialog(cat)
+        viewModel.editCategory(cat.id, "Career", null)
+        assertEquals("Career", viewModel.uiState.value.categories.first().name)
+        assertFalse(viewModel.uiState.value.isEditDialogOpen)
+        assertNull(viewModel.uiState.value.editingCategory)
+    }
+
+    @Test
+    fun `editCategory trims whitespace`() {
+        runBlocking { fakeCategoryRepository.addCategory("Work") }
+        val cat = viewModel.uiState.value.categories.first()
+        viewModel.editCategory(cat.id, "  Career  ", null)
+        assertEquals("Career", viewModel.uiState.value.categories.first().name)
+    }
+
+    @Test
+    fun `editCategory with blank name does nothing`() {
+        runBlocking { fakeCategoryRepository.addCategory("Work") }
+        val cat = viewModel.uiState.value.categories.first()
+        viewModel.editCategory(cat.id, "   ", null)
+        assertEquals("Work", viewModel.uiState.value.categories.first().name)
+    }
+
+    @Test
+    fun `editCategory can change parent`() {
+        runBlocking {
+            fakeCategoryRepository.addCategory("Work")
+            fakeCategoryRepository.addCategory("Family")
+        }
+        val work = viewModel.uiState.value.categories.find { it.name == "Work" }!!
+        val family = viewModel.uiState.value.categories.find { it.name == "Family" }!!
+        viewModel.editCategory(work.id, "Work", family.id)
+        val updated = viewModel.uiState.value.categories.find { it.id == work.id }!!
+        assertEquals(family.id, updated.parentId)
     }
 }

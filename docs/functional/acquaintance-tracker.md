@@ -37,16 +37,19 @@ Accessible via the **People** tab in the bottom navigation bar.
 * **Name field** (required).
 * **Bio field** (optional, multi-line).
 * **Categories multi-select** (optional): shown only when at least one category exists. Displayed as a card containing one checkbox row per category, indented by tree depth. A person can be assigned to any number of categories simultaneously.
-* On save, navigates back.
+* On **create** save: navigates directly to the new person's detail screen, where relationships and contact linking are immediately accessible.
+* On **edit** save: navigates back to the previous screen.
 
 ### Categories (`CategoriesScreen`)
 
 * **Top bar**: "Categories"; back button.
 * List of existing categories displayed in **tree order** with visual indentation (children indented under their parent, prefixed with `└`).
-* Delete icon per item. Deleting a parent **orphans** its children (their parent is cleared to `null`).
+* **Edit icon** per item: opens Edit Category dialog pre-populated with the current name and parent. Allows renaming and re-parenting.
+* **Delete icon** per item. Deleting a parent **orphans** its children (their parent is cleared to `null`).
 * **FAB (+)**: opens Add Category dialog.
   - Text field for the category name.
   - Optional parent-category dropdown (only shown when at least one category already exists); defaults to "None (top level)".
+* **Edit Category dialog**: same layout as Add, pre-filled with existing values. The category being edited is excluded from the parent dropdown to prevent direct self-reference.
 * Empty state: "No categories yet".
 * Deleting a category does NOT automatically clear it from existing people (the removed `categoryId` is silently dropped from rendered chips).
 
@@ -66,4 +69,4 @@ Accessible via the **People** tab in the bottom navigation bar.
 * A person can have zero or more relations, both outgoing and incoming.
 * Relation labels are free-form text; no validation beyond non-blank.
 * Deleting a category orphans its children and does not cascade to people.
-* All data is in-memory and lost on app restart (persistent storage is a future feature).
+* All data persisted via Room SQLite.

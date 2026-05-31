@@ -58,6 +58,11 @@ ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }
 
+// Prevent race condition: both ksp tasks share the same schema export path.
+tasks.matching { it.name == "kspDebugKotlin" }.configureEach {
+    mustRunAfter("kspReleaseKotlin")
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

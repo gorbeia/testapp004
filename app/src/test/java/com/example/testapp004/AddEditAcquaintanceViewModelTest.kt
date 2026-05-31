@@ -6,6 +6,8 @@ import com.example.testapp004.viewmodel.AddEditAcquaintanceViewModel
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -94,6 +96,24 @@ class AddEditAcquaintanceViewModelTest {
         assertTrue(vm.uiState.value.isSaved)
         assertEquals(1, fakeAcquaintanceRepository.acquaintances.value.size)
         assertEquals("Charlie", fakeAcquaintanceRepository.acquaintances.value.first().name)
+    }
+
+    @Test
+    fun `save new person sets savedId`() {
+        val vm = buildViewModel()
+        vm.onNameChange("Charlie")
+        vm.save()
+        assertTrue(vm.uiState.value.isSaved)
+        assertNotNull(vm.uiState.value.savedId)
+    }
+
+    @Test
+    fun `save in edit mode does not set savedId`() {
+        val id = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "Bio", emptySet()) }
+        val vm = buildViewModel(id)
+        vm.save()
+        assertTrue(vm.uiState.value.isSaved)
+        assertNull(vm.uiState.value.savedId)
     }
 
     @Test

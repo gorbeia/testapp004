@@ -133,6 +133,15 @@ fun AppNavigation() {
                     AddEditAcquaintanceScreen(
                         viewModel = addEditViewModel,
                         onNavigateBack = { navController.popBackStack() },
+                        onSaved = { newId ->
+                            if (newId != null) {
+                                navController.navigate(Screen.AcquaintanceDetail.createRoute(newId)) {
+                                    popUpTo(Screen.AcquaintancesList.route) { inclusive = false }
+                                }
+                            } else {
+                                navController.popBackStack()
+                            }
+                        },
                     )
                 }
                 composable(Screen.Categories.route) {
