@@ -1,4 +1,4 @@
-# ADR-009 — Debug APK self-update via GitHub Releases
+# ADR-010 — Debug APK self-update via GitHub Releases
 
 **Date:** 2026-05-31
 **Status:** Accepted

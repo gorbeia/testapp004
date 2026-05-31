@@ -8,7 +8,7 @@ doc in `docs/`.
 
 ## Project Overview
 
-Android Notes app bootstrapped as a foundation for AI-assisted development.
+Android Acquaintance Tracker app bootstrapped as a foundation for AI-assisted development.
 The app is intentionally simple — it demonstrates the architecture and provides
 a working baseline that is extended feature by feature in collaboration with Claude.
 
@@ -41,7 +41,7 @@ ViewModel
   ↓ StateFlow<UiState>
 UI (re-renders on state change)
   ↑
-ViewModel → Repository interface → InMemoryNotesRepository (swap for Room/DataStore later)
+ViewModel → Repository interface → InMemory*Repository (swap for Room/DataStore later)
 ```
 
 Package layout:
@@ -49,7 +49,7 @@ Package layout:
 com.example.testapp004/
 ├── MainActivity.kt
 ├── TestApp004Application.kt
-├── data/           ← NotesRepository interface + InMemoryNotesRepository
+├── data/           ← Repository interfaces + InMemory implementations
 ├── di/             ← Hilt modules
 ├── model/          ← plain Kotlin data classes
 ├── viewmodel/      ← ViewModels + UiState data classes
@@ -75,7 +75,7 @@ com.example.testapp004/
 - Routes with arguments use `"{argName}"` in the route string; declare type via `navArgument`; extract via `backStackEntry.arguments`
 - Repository interface lives in `data/`; Hilt bindings live in `di/AppModule.kt`
 - Gradle dependencies go in `gradle/libs.versions.toml`; never hardcode versions in `build.gradle.kts`
-- Unit tests use `FakeNotesRepository` + `MainDispatcherRule`; no Hilt setup needed in unit tests
+- Unit tests use Fake*Repository + `MainDispatcherRule`; no Hilt setup needed in unit tests
 
 ---
 
@@ -136,19 +136,13 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 
 | Feature | Status | Functional spec |
 |---------|--------|----------------|
-| View notes list | ✅ Done | [notes-app.md](docs/functional/notes-app.md) |
-| Empty state placeholder | ✅ Done | [notes-app.md](docs/functional/notes-app.md) |
-| Add note via dialog | ✅ Done | [notes-app.md](docs/functional/notes-app.md) |
-| Delete note | ✅ Done | [notes-app.md](docs/functional/notes-app.md) |
-| Persistent storage | ❌ Not started | — |
-| Edit existing note | ❌ Not started | — |
 | Acquaintance tracker — list people | ✅ Done | [acquaintance-tracker.md](docs/functional/acquaintance-tracker.md) |
 | Acquaintance tracker — categories | ✅ Done | [acquaintance-tracker.md](docs/functional/acquaintance-tracker.md) |
 | Acquaintance tracker — person detail & bio | ✅ Done | [acquaintance-tracker.md](docs/functional/acquaintance-tracker.md) |
 | Acquaintance tracker — directed relations | ✅ Done | [acquaintance-tracker.md](docs/functional/acquaintance-tracker.md) |
 | Acquaintance tracker — category trees | ✅ Done | [acquaintance-tracker.md](docs/functional/acquaintance-tracker.md) |
 | Acquaintance tracker — multi-category membership | ✅ Done | [acquaintance-tracker.md](docs/functional/acquaintance-tracker.md) |
-| Self-update (GitHub Releases) | ✅ Done | [ADR-009](docs/decisions/ADR-009-self-update.md) |
+| Self-update (GitHub Releases) | ✅ Done | [ADR-010](docs/decisions/ADR-010-self-update.md) |
 
 ---
 
@@ -164,8 +158,6 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | [ADR-006](docs/decisions/ADR-006-dependency-injection.md) | Hilt + KSP for dependency injection | 2026-05-31 |
 | [ADR-007](docs/decisions/ADR-007-repository-pattern.md) | Repository pattern separating ViewModels from data sources | 2026-05-31 |
 | [ADR-008](docs/decisions/ADR-008-acquaintance-tracker.md) | Acquaintance tracker: people, categories, directed relations | 2026-05-31 |
-<<<<<<< HEAD
-| [ADR-009](docs/decisions/ADR-009-self-update.md) | In-app self-update via GitHub Releases + OkHttp | 2026-05-31 |
-=======
 | [ADR-009](docs/decisions/ADR-009-category-trees-multi-membership.md) | Category trees (parentId) and multi-category membership (categoryIds) | 2026-05-31 |
->>>>>>> origin/main
+| [ADR-010](docs/decisions/ADR-010-self-update.md) | In-app self-update via GitHub Releases + OkHttp | 2026-05-31 |
+| [ADR-011](docs/decisions/ADR-011-remove-notes-feature.md) | Remove Notes feature (bootstrap placeholder, superseded by Acquaintance Tracker) | 2026-05-31 |
