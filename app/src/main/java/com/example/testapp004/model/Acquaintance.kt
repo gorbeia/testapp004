@@ -4,5 +4,5 @@ data class Acquaintance(
     val id: Long,
     val name: String,
     val bio: String = "",
-    val categoryId: Long? = null,
+    val categoryIds: Set<Long> = emptySet(),
 )

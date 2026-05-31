@@ -41,7 +41,8 @@ class AcquaintancesViewModel @Inject constructor(
                 val filtered = if (selectedCategoryId == null) {
                     acquaintances
                 } else {
-                    acquaintances.filter { it.categoryId == selectedCategoryId }
+                    val includedIds = descendantsAndSelf(categories, selectedCategoryId)
+                    acquaintances.filter { person -> person.categoryIds.any { it in includedIds } }
                 }
                 AcquaintancesUiState(
                     acquaintances = filtered,
@@ -62,5 +63,13 @@ class AcquaintancesViewModel @Inject constructor(
         viewModelScope.launch {
             acquaintanceRepository.deleteAcquaintance(acquaintanceId)
         }
+    }
+
+    private fun descendantsAndSelf(categories: List<Category>, id: Long): Set<Long> {
+        val result = mutableSetOf(id)
+        categories.filter { it.parentId == id }.forEach { child ->
+            result.addAll(descendantsAndSelf(categories, child.id))
+        }
+        return result
     }
 }

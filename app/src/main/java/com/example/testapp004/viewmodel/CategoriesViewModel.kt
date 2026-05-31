@@ -42,10 +42,10 @@ class CategoriesViewModel @Inject constructor(
         _uiState.update { it.copy(isAddDialogOpen = false) }
     }
 
-    fun addCategory(name: String) {
+    fun addCategory(name: String, parentId: Long? = null) {
         if (name.isBlank()) return
         viewModelScope.launch {
-            categoryRepository.addCategory(name.trim())
+            categoryRepository.addCategory(name.trim(), parentId)
             _uiState.update { it.copy(isAddDialogOpen = false) }
         }
     }

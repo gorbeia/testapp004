@@ -169,7 +169,7 @@ private fun AcquaintancesList(
         items(acquaintances, key = { it.id }) { person ->
             AcquaintanceCard(
                 acquaintance = person,
-                categoryName = categories.find { it.id == person.categoryId }?.name,
+                categoryNames = categories.filter { it.id in person.categoryIds }.map { it.name },
                 onClick = { onPersonClick(person.id) },
                 onDelete = { onDelete(person.id) },
             )
@@ -181,7 +181,7 @@ private fun AcquaintancesList(
 @Composable
 private fun AcquaintanceCard(
     acquaintance: Acquaintance,
-    categoryName: String?,
+    categoryNames: List<String>,
     onClick: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -213,12 +213,16 @@ private fun AcquaintanceCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                if (categoryName != null) {
+                if (categoryNames.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(6.dp))
-                    SuggestionChip(
-                        onClick = {},
-                        label = { Text(categoryName, style = MaterialTheme.typography.labelSmall) },
-                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        categoryNames.forEach { name ->
+                            SuggestionChip(
+                                onClick = {},
+                                label = { Text(name, style = MaterialTheme.typography.labelSmall) },
+                            )
+                        }
+                    }
                 }
             }
             IconButton(onClick = onDelete) {

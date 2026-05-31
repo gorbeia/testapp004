@@ -13,9 +13,9 @@ class InMemoryAcquaintanceRepository @Inject constructor() : AcquaintanceReposit
     private val _acquaintances = MutableStateFlow<List<Acquaintance>>(emptyList())
     override val acquaintances: StateFlow<List<Acquaintance>> = _acquaintances.asStateFlow()
 
-    override suspend fun addAcquaintance(name: String, bio: String, categoryId: Long?): Long {
+    override suspend fun addAcquaintance(name: String, bio: String, categoryIds: Set<Long>): Long {
         val id = System.currentTimeMillis()
-        _acquaintances.update { it + Acquaintance(id = id, name = name, bio = bio, categoryId = categoryId) }
+        _acquaintances.update { it + Acquaintance(id = id, name = name, bio = bio, categoryIds = categoryIds) }
         return id
     }
 
