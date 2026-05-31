@@ -11,7 +11,6 @@ import javax.inject.Inject
 class GitHubUpdateRepository @Inject constructor(
     private val client: OkHttpClient,
 ) : UpdateRepository {
-
     override suspend fun checkForUpdate(currentVersionName: String): AppRelease? =
         withContext(Dispatchers.IO) {
             try {
