@@ -8,5 +8,7 @@ interface CategoryRepository {
 
     suspend fun addCategory(name: String, parentId: Long? = null): Long
 
+    suspend fun updateCategory(category: Category)
+
     suspend fun deleteCategory(categoryId: Long)
 }

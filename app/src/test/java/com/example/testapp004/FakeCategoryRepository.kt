@@ -18,6 +18,10 @@ class FakeCategoryRepository : CategoryRepository {
         return id
     }
 
+    override suspend fun updateCategory(category: Category) {
+        _categories.update { list -> list.map { if (it.id == category.id) category else it } }
+    }
+
     override suspend fun deleteCategory(categoryId: Long) {
         _categories.update { list ->
             list.filter { it.id != categoryId }
