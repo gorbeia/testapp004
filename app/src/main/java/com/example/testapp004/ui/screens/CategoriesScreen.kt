@@ -239,6 +239,7 @@ private fun AddCategoryDialog(
 
 private fun buildCategoryTree(categories: List<Category>): List<Pair<Category, Int>> {
     val result = mutableListOf<Pair<Category, Int>>()
+
     fun visit(parentId: Long?, depth: Int) {
         categories.filter { it.parentId == parentId }.forEach { cat ->
             result.add(cat to depth)
