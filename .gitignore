@@ -9,7 +9,8 @@
 .cxx
 local.properties
 
-# Signing keystores — never commit these
+# Signing keystores — never commit these (except the shared debug keystore below)
 *.keystore
 *.jks
 *.b64
+!keystores/debug.keystore

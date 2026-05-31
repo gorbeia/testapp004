@@ -40,29 +40,29 @@ system installer.
 
 ## Setting up the debug update channel
 
-The debug CI workflow re-signs the APK with the developer's own debug keystore
-so Android accepts the install over the sideloaded debug build.
+The shared debug keystore (`keystores/debug.keystore`) is committed to the
+repository. CI signs debug APKs with it directly — no secret required.
 
-**One-time setup:**
+**One-time setup (per developer):**
 
 ```bash
-# Export your local debug keystore as a base64 string
-base64 -w 0 ~/.android/debug.keystore
+# Replace the repo keystore with your own so sideloaded and CI builds match
+cp ~/.android/debug.keystore keystores/debug.keystore
+git add keystores/debug.keystore
+git commit -m "chore: add shared debug keystore"
 ```
 
-Add the output as an Actions secret named `DEBUG_KEYSTORE_BASE64` in the
-repository settings (Settings → Secrets and variables → Actions).
-
 The default Android debug keystore credentials (`android` / `androiddebugkey`
-/ `android`) are assumed. If yours differ, update the `--ks-pass`, `--key-pass`,
-and `--ks-key-alias` arguments in `debug-prerelease.yml`.
+/ `android`) are assumed. If yours were generated with different credentials,
+update the `signingConfigs.debug` block in `app/build.gradle.kts`.
 
-**How it works after setup:**
+**How it works:**
 
 1. Every push to `main` triggers `debug-prerelease.yml`.
-2. The debug APK is built with `versionName = "1.0.<run_number>"`.
-3. It is re-signed with your debug keystore and uploaded to a `debug-latest`
-   pre-release (the previous one is deleted first).
+2. The debug APK is built with `versionName = "1.0.<run_number>"`, signed
+   with `keystores/debug.keystore` via the Gradle signing config.
+3. The APK is uploaded to a `debug-latest` pre-release (the previous one is
+   deleted first).
 4. The debug app on your device checks `/releases/tags/debug-latest` on
    startup and shows the banner if the build number is higher than installed.
 

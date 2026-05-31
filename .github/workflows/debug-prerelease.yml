@@ -33,19 +33,6 @@ jobs:
       - name: Build debug APK
         run: ./gradlew assembleDebug --no-daemon -PdebugBuildNumber=${{ github.run_number }}
 
-      - name: Re-sign with shared debug keystore
-        run: |
-          echo "${{ secrets.DEBUG_KEYSTORE_BASE64 }}" | base64 --decode > debug.jks
-          BUILD_TOOLS=$(ls -d ${ANDROID_HOME}/build-tools/* | sort -V | tail -1)
-          ${BUILD_TOOLS}/apksigner sign \
-            --ks debug.jks \
-            --ks-pass "pass:android" \
-            --key-pass "pass:android" \
-            --ks-key-alias androiddebugkey \
-            --out app/build/outputs/apk/debug/app-debug-signed.apk \
-            app/build/outputs/apk/debug/app-debug.apk
-          rm debug.jks
-
       - name: Publish debug-latest pre-release
         run: |
           gh release delete debug-latest --cleanup-tag --yes 2>/dev/null || true
@@ -53,6 +40,6 @@ jobs:
             --title "Debug build #${{ github.run_number }}" \
             --notes "Automated debug build from $(echo ${{ github.sha }} | cut -c1-7) on \`main\`." \
             --prerelease \
-            app/build/outputs/apk/debug/app-debug-signed.apk
+            app/build/outputs/apk/debug/app-debug.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -24,9 +24,9 @@ automatically on every push to `main`:
 
 - A new CI workflow (`debug-prerelease.yml`) builds the debug APK with a
   version stamped `1.0.<run_number>` (always newer than the installed `1.0`),
-  re-signs it with the developer's own debug keystore (stored as the
-  `DEBUG_KEYSTORE_BASE64` Actions secret), then deletes and recreates the
-  `debug-latest` pre-release with the new APK.
+  using a shared debug keystore committed to the repository at
+  `keystores/debug.keystore`, then deletes and recreates the `debug-latest`
+  pre-release with the new APK.
 - `GitHubUpdateRepository` checks
   `/releases/tags/debug-latest` when `BuildConfig.DEBUG` is true, and
   `/releases/latest` otherwise.
@@ -46,10 +46,10 @@ well-known and acceptable for a non-production signing artifact.
 
 ## Consequences
 
-- The repository requires a new Actions secret `DEBUG_KEYSTORE_BASE64` (base64
-  of `~/.android/debug.keystore`) before the workflow can publish a signed APK.
-  Until that secret is set, the re-sign step fails and no pre-release is
-  created; the banner simply won't appear.
+- The repository includes `keystores/debug.keystore` (the developer's local
+  debug keystore). Each developer must replace this file with their own
+  `~/.android/debug.keystore` so that locally sideloaded APKs and CI-built
+  APKs share the same signing certificate. No Actions secret is required.
 - Each push to `main` creates a new `debug-latest` pre-release, so there is
   always at most one pre-release in the releases list.
 - `versionCode` and `versionName` in debug builds are stamped with
