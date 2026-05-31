@@ -55,14 +55,12 @@ class UpdateViewModel
             viewModelScope.launch {
                 _uiState.update { it.copy(isChecking = true, error = null) }
                 val release = updateRepository.checkForUpdate(BuildConfig.VERSION_NAME)
-                    ?: if (BuildConfig.DEBUG) AppRelease(versionName = "99.0.0", downloadUrl = "") else null
                 _uiState.update { it.copy(isChecking = false, updateAvailable = release) }
             }
         }
 
         fun downloadAndInstall() {
             val release = _uiState.value.updateAvailable ?: return
-            if (release.downloadUrl.isEmpty()) return
             viewModelScope.launch {
                 _uiState.update { it.copy(isDownloading = true, downloadProgress = 0f, error = null) }
                 try {

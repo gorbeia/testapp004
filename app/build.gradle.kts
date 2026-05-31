@@ -7,6 +7,8 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+val debugBuildNumber = project.findProperty("debugBuildNumber")?.toString()
+
 android {
     namespace = "com.example.testapp004"
     compileSdk = 34
@@ -15,8 +17,8 @@ android {
         applicationId = "com.example.testapp004"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = debugBuildNumber?.toIntOrNull() ?: 1
+        versionName = if (debugBuildNumber != null) "1.0.$debugBuildNumber" else "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
