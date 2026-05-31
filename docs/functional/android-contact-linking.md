@@ -18,6 +18,24 @@ display name and primary phone number.
 5. Select a contact. The detail screen updates to show the contact's name and
    primary phone number.
 
+### Opening the linked contact
+
+- Tap **Open Contact** in the Linked Contact card to view the contact in the
+  device's Contacts app.
+
+### Calling the linked contact
+
+- Tap **Call** in the Linked Contact card to open the phone dialler with the
+  contact's primary phone number pre-filled. Only shown when a primary phone
+  number is available.
+
+### Sending a WhatsApp message to the linked contact
+
+- Tap **WhatsApp** in the Linked Contact card. If WhatsApp is installed it opens
+  a new chat directly; otherwise the browser opens `https://wa.me/<number>`.
+  Only shown when a primary phone number is available. The number is normalised
+  to digits only before building the URL.
+
 ### Changing a linked contact
 
 - Tap **Change** in the Linked Contact card to re-open the picker and select a
