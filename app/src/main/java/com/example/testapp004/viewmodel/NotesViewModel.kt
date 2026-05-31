@@ -9,13 +9,12 @@ import kotlinx.coroutines.flow.update
 
 data class NotesUiState(
     val notes: List<Note> = emptyList(),
-    val isAddNoteDialogOpen: Boolean = false
+    val isAddNoteDialogOpen: Boolean = false,
 )
 
 class NotesViewModel(
-    private val clock: () -> Long = System::currentTimeMillis
+    private val clock: () -> Long = System::currentTimeMillis,
 ) : ViewModel() {
-
     private val _uiState = MutableStateFlow(NotesUiState())
     val uiState: StateFlow<NotesUiState> = _uiState.asStateFlow()
 
