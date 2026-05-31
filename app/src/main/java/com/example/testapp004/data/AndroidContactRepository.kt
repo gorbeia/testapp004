@@ -14,7 +14,6 @@ import javax.inject.Singleton
 class AndroidContactRepository @Inject constructor(
     @ApplicationContext private val context: Context,
 ) : ContactRepository {
-
     override suspend fun lookupContactByUri(contactUri: Uri): ContactInfo? = withContext(Dispatchers.IO) {
         val cursor = context.contentResolver.query(
             contactUri,
