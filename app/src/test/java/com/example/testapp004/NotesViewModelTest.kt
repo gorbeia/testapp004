@@ -8,7 +8,6 @@ import org.junit.Before
 import org.junit.Test
 
 class NotesViewModelTest {
-
     private var fakeTime = 1000L
     private lateinit var viewModel: NotesViewModel
 

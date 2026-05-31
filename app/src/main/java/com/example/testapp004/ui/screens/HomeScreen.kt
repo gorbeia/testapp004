@@ -53,15 +53,15 @@ fun HomeScreen(viewModel: NotesViewModel) {
                 title = { Text("My Notes") },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                ),
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = viewModel::openAddNoteDialog) {
                 Icon(Icons.Default.Add, contentDescription = "Add note")
             }
-        }
+        },
     ) { paddingValues ->
         if (uiState.notes.isEmpty()) {
             EmptyState(modifier = Modifier.padding(paddingValues))
@@ -69,7 +69,7 @@ fun HomeScreen(viewModel: NotesViewModel) {
             NotesList(
                 notes = uiState.notes,
                 onDelete = viewModel::deleteNote,
-                modifier = Modifier.padding(paddingValues)
+                modifier = Modifier.padding(paddingValues),
             )
         }
     }
@@ -77,7 +77,7 @@ fun HomeScreen(viewModel: NotesViewModel) {
     if (uiState.isAddNoteDialogOpen) {
         AddNoteDialog(
             onConfirm = viewModel::addNote,
-            onDismiss = viewModel::closeAddNoteDialog
+            onDismiss = viewModel::closeAddNoteDialog,
         )
     }
 }
@@ -86,19 +86,19 @@ fun HomeScreen(viewModel: NotesViewModel) {
 private fun EmptyState(modifier: Modifier = Modifier) {
     Box(
         modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = "No notes yet",
                 style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "Tap + to add your first note",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -108,12 +108,12 @@ private fun EmptyState(modifier: Modifier = Modifier) {
 private fun NotesList(
     notes: List<Note>,
     onDelete: (Long) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         items(notes, key = { it.id }) { note ->
             NoteCard(note = note, onDelete = { onDelete(note.id) })
@@ -125,20 +125,20 @@ private fun NotesList(
 private fun NoteCard(note: Note, onDelete: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = note.title,
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
                 )
                 if (note.content.isNotBlank()) {
                     Spacer(modifier = Modifier.height(4.dp))
@@ -147,7 +147,7 @@ private fun NoteCard(note: Note, onDelete: () -> Unit) {
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
@@ -155,7 +155,7 @@ private fun NoteCard(note: Note, onDelete: () -> Unit) {
                 Icon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = "Delete note",
-                    tint = MaterialTheme.colorScheme.error
+                    tint = MaterialTheme.colorScheme.error,
                 )
             }
         }
@@ -165,7 +165,7 @@ private fun NoteCard(note: Note, onDelete: () -> Unit) {
 @Composable
 private fun AddNoteDialog(
     onConfirm: (String, String) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     var title by remember { mutableStateOf("") }
     var content by remember { mutableStateOf("") }
@@ -180,7 +180,7 @@ private fun AddNoteDialog(
                     onValueChange = { title = it },
                     label = { Text("Title") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
@@ -189,20 +189,20 @@ private fun AddNoteDialog(
                     label = { Text("Content (optional)") },
                     minLines = 3,
                     maxLines = 5,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
         },
         confirmButton = {
             TextButton(
                 onClick = { onConfirm(title, content) },
-                enabled = title.isNotBlank()
+                enabled = title.isNotBlank(),
             ) {
                 Text("Add")
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }
-        }
+        },
     )
 }

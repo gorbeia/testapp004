@@ -15,6 +15,19 @@ max_line_length = 120
 # avoids noise from the large Compose API surface
 ktlint_standard_no-wildcard-imports = disabled
 
+# Compose requires PascalCase for @Composable functions — conflicts with ktlint's camelCase rule
+ktlint_standard_function-naming = disabled
+
+# val X = MultilineCall(...) is idiomatic Kotlin; rule conflicts with Compose's named parameter style
+ktlint_standard_multiline-expression-wrapping = disabled
+
+# string-template-indent depends on multiline-expression-wrapping at the engine level — must be
+# disabled together or ktlint throws IllegalStateException instead of skipping gracefully
+ktlint_standard_string-template-indent = disabled
+
+# Short function signatures on one line are idiomatic; Compose lambdas make multi-line unwieldy
+ktlint_standard_function-signature = disabled
+
 [*.xml]
 indent_size = 4
 
