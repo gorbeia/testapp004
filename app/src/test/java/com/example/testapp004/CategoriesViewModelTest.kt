@@ -16,14 +16,12 @@ class CategoriesViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private lateinit var fakeCategoryRepository: FakeCategoryRepository
-    private lateinit var fakeAcquaintanceRepository: FakeAcquaintanceRepository
     private lateinit var viewModel: CategoriesViewModel
 
     @Before
     fun setup() {
         fakeCategoryRepository = FakeCategoryRepository()
-        fakeAcquaintanceRepository = FakeAcquaintanceRepository()
-        viewModel = CategoriesViewModel(fakeCategoryRepository, fakeAcquaintanceRepository)
+        viewModel = CategoriesViewModel(fakeCategoryRepository)
     }
 
     @Test
@@ -189,32 +187,4 @@ class CategoriesViewModelTest {
         assertNull(viewModel.uiState.value.categories.find { it.id == childId }?.parentId)
     }
 
-    @Test
-    fun `categoriesWithPeople is empty when no acquaintances exist`() {
-        viewModel.addCategory("Work")
-        assertTrue(viewModel.uiState.value.categoriesWithPeople.isEmpty())
-    }
-
-    @Test
-    fun `categoriesWithPeople contains category id when acquaintance is assigned`() {
-        viewModel.addCategory("Work")
-        val catId = viewModel.uiState.value.categories.first().id
-        kotlinx.coroutines.runBlocking {
-            fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId))
-        }
-        assertTrue(viewModel.uiState.value.categoriesWithPeople.contains(catId))
-    }
-
-    @Test
-    fun `categoriesWithPeople excludes category with no acquaintances`() {
-        viewModel.addCategory("Work")
-        viewModel.addCategory("Family")
-        val workId = viewModel.uiState.value.categories.first { it.name == "Work" }.id
-        val familyId = viewModel.uiState.value.categories.first { it.name == "Family" }.id
-        kotlinx.coroutines.runBlocking {
-            fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(workId))
-        }
-        assertTrue(viewModel.uiState.value.categoriesWithPeople.contains(workId))
-        assertFalse(viewModel.uiState.value.categoriesWithPeople.contains(familyId))
-    }
 }
