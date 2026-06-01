@@ -18,11 +18,16 @@ class RoomCategoryRepository @Inject constructor(
     @ApplicationScope private val scope: CoroutineScope,
 ) : CategoryRepository {
     override val categories: StateFlow<List<Category>> = dao.getAll()
-        .map { list -> list.map { Category(id = it.id, name = it.name, parentId = it.parentId) } }
+        .map { list ->
+            list.map { Category(id = it.id, name = it.name, parentId = it.parentId, sortOrder = it.sortOrder) }
+        }
         .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
-    override suspend fun addCategory(name: String, parentId: Long?): Long =
-        dao.insert(CategoryEntity(name = name, parentId = parentId))
+    override suspend fun addCategory(name: String, parentId: Long?): Long {
+        val siblings = dao.getAllOnce().filter { it.parentId == parentId }
+        val nextSortOrder = (siblings.maxOfOrNull { it.sortOrder } ?: -1) + 1
+        return dao.insert(CategoryEntity(name = name, parentId = parentId, sortOrder = nextSortOrder))
+    }
 
     override suspend fun updateCategory(categoryId: Long, name: String, parentId: Long?) {
         dao.updateById(categoryId, name, parentId)
@@ -31,5 +36,29 @@ class RoomCategoryRepository @Inject constructor(
     override suspend fun deleteCategory(categoryId: Long) {
         // ON DELETE SET NULL on the parent_id FK handles child categories automatically
         dao.deleteById(categoryId)
+    }
+
+    override suspend fun reorderCategory(movedId: Long, targetId: Long) {
+        val all = dao.getAllOnce()
+        val moved = all.find { it.id == movedId } ?: return
+        val target = all.find { it.id == targetId } ?: return
+        if (moved.parentId != target.parentId) return
+
+        val siblings = all.filter { it.parentId == moved.parentId }
+            .sortedWith(compareBy({ it.sortOrder }, { it.id }))
+            .toMutableList()
+
+        val movedIdx = siblings.indexOfFirst { it.id == movedId }
+        val targetIdx = siblings.indexOfFirst { it.id == targetId }
+        if (movedIdx == -1 || targetIdx == -1 || movedIdx == targetIdx) return
+
+        val movedItem = siblings.removeAt(movedIdx)
+        siblings.add(minOf(targetIdx, siblings.size), movedItem)
+
+        siblings.forEachIndexed { index, entity ->
+            if (entity.sortOrder != index) {
+                dao.updateSortOrder(entity.id, index)
+            }
+        }
     }
 }

@@ -15,6 +15,7 @@ import javax.inject.Inject
 data class CategoriesUiState(
     val categories: List<Category> = emptyList(),
     val isAddDialogOpen: Boolean = false,
+    val addChildToCategory: Category? = null,
     val editingCategory: Category? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
@@ -36,18 +37,26 @@ class CategoriesViewModel @Inject constructor(
     }
 
     fun openAddDialog() {
-        _uiState.update { it.copy(isAddDialogOpen = true) }
+        _uiState.update { it.copy(isAddDialogOpen = true, addChildToCategory = null) }
     }
 
     fun closeAddDialog() {
         _uiState.update { it.copy(isAddDialogOpen = false) }
     }
 
+    fun openAddChildDialog(category: Category) {
+        _uiState.update { it.copy(addChildToCategory = category, isAddDialogOpen = false) }
+    }
+
+    fun closeAddChildDialog() {
+        _uiState.update { it.copy(addChildToCategory = null) }
+    }
+
     fun addCategory(name: String, parentId: Long? = null) {
         if (name.isBlank()) return
         viewModelScope.launch {
             categoryRepository.addCategory(name.trim(), parentId)
-            _uiState.update { it.copy(isAddDialogOpen = false) }
+            _uiState.update { it.copy(isAddDialogOpen = false, addChildToCategory = null) }
         }
     }
 
@@ -70,6 +79,12 @@ class CategoriesViewModel @Inject constructor(
     fun deleteCategory(categoryId: Long) {
         viewModelScope.launch {
             categoryRepository.deleteCategory(categoryId)
+        }
+    }
+
+    fun reorderCategory(movedId: Long, targetId: Long) {
+        viewModelScope.launch {
+            categoryRepository.reorderCategory(movedId, targetId)
         }
     }
 }

@@ -22,4 +22,5 @@ data class CategoryEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
     @ColumnInfo(name = "parent_id") val parentId: Long?,
+    @ColumnInfo(name = "sort_order") val sortOrder: Int = 0,
 )

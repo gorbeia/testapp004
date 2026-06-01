@@ -4,4 +4,5 @@ data class Category(
     val id: Long,
     val name: String,
     val parentId: Long? = null,
+    val sortOrder: Int = 0,
 )

@@ -90,6 +90,40 @@ di/
 
 ---
 
+## Testing (for Claude)
+
+Every feature addition or behaviour change **must** ship with unit tests in the same commit. Tests are not optional and must not be deferred to a follow-up.
+
+### What to test
+
+| Change type | Required tests |
+|-------------|---------------|
+| New ViewModel method | Happy path + edge cases (blank input, no-op conditions) |
+| New UiState field | State transitions that set and clear the field |
+| New repository method | Core behaviour via the corresponding Fake*Repository |
+| Bug fix | Regression test that would have caught the bug |
+| Refactor / rename only | No new tests required, but existing tests must still pass |
+
+### How to test
+
+- **ViewModels**: instantiate directly with a `Fake*Repository`; use `MainDispatcherRule` to control coroutines; assert on `viewModel.uiState.value`
+- **Repository logic**: add the method to the relevant `Fake*Repository` and test it either via the ViewModel or directly
+- **Pure functions** (helpers, algorithms): test them directly with plain JUnit
+
+### What not to test
+
+- Composables (no UI tests in this project)
+- Hilt wiring / DI modules
+- Room DAOs (covered by Room's own test infrastructure)
+
+### Before opening a PR, verify
+
+- Every new public ViewModel method has at least one test
+- Every new UiState field has a test that confirms it is set and cleared correctly
+- Edge cases are covered: empty input, same-item no-ops, cross-group operations that should be ignored
+
+---
+
 ## Branch Workflow (for Claude)
 
 **Never commit directly to `main`.** All work goes through a feature branch and a PR.
@@ -109,12 +143,19 @@ Branch naming: `feature/` for new features, `fix/` for bug fixes, `chore/` for m
 
 ## Before Every Push (for Claude)
 
-**Always run this before pushing a branch:**
+Work through this checklist in order before every push:
 
+**1. Documentation** — update docs first, before running the build:
+- New/changed feature behaviour → update or create `docs/functional/<feature>.md`
+- New library, pattern, or tool decision → create `docs/decisions/ADR-NNN-title.md` and add a row to the Decision Log in this file
+- Changed top-level convention or architecture → update this file and the relevant ADR
+
+**2. Tests** — every new ViewModel method, UiState field, or repository behaviour must have a unit test in the same commit (see Testing section above).
+
+**3. Build**:
 ```
 ./gradlew test lint ktlintCheck assembleDebug --no-daemon --stacktrace
 ```
-
 Fix every failure before the push. For ktlint violations, run `./gradlew ktlintFormat` first to auto-fix what it can, then re-run the check.
 If Gradle is not available in the current environment, state that explicitly rather than skipping it.
 
@@ -201,3 +242,4 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | [ADR-020](docs/decisions/ADR-020-create-related-person-from-detail.md) | Create related person directly from the Add Relation dialog | 2026-06-01 |
 | [ADR-021](docs/decisions/ADR-021-canvas-drag-drop-relations.md) | Canvas drag-drop to create relations (long-press node, drag onto another) | 2026-06-01 |
 | [ADR-022](docs/decisions/ADR-022-canvas-color-scheme.md) | Canvas color scheme: nodes and edges colored by relation category (family/professional/social) | 2026-06-01 |
+| [ADR-023](docs/decisions/ADR-023-categories-management-updates.md) | Categories management: remove canvas link, add child button, drag-drop sort order | 2026-06-01 |

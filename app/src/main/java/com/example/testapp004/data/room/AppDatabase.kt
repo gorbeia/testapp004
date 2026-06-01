@@ -12,7 +12,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         RelationEntity::class,
         AcquaintanceCategoryCrossRef::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -23,6 +23,12 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun relationDao(): RelationDao
 
     companion object {
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE categories ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(

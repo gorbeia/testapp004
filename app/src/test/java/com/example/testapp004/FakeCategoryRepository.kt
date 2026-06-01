@@ -14,7 +14,9 @@ class FakeCategoryRepository : CategoryRepository {
 
     override suspend fun addCategory(name: String, parentId: Long?): Long {
         val id = nextId++
-        _categories.update { it + Category(id = id, name = name, parentId = parentId) }
+        val siblings = _categories.value.filter { it.parentId == parentId }
+        val nextSortOrder = (siblings.maxOfOrNull { it.sortOrder } ?: -1) + 1
+        _categories.update { it + Category(id = id, name = name, parentId = parentId, sortOrder = nextSortOrder) }
         return id
     }
 
@@ -28,6 +30,29 @@ class FakeCategoryRepository : CategoryRepository {
         _categories.update { list ->
             list.filter { it.id != categoryId }
                 .map { if (it.parentId == categoryId) it.copy(parentId = null) else it }
+        }
+    }
+
+    override suspend fun reorderCategory(movedId: Long, targetId: Long) {
+        val all = _categories.value
+        val moved = all.find { it.id == movedId } ?: return
+        val target = all.find { it.id == targetId } ?: return
+        if (moved.parentId != target.parentId) return
+
+        val siblings = all.filter { it.parentId == moved.parentId }
+            .sortedWith(compareBy({ it.sortOrder }, { it.id }))
+            .toMutableList()
+
+        val movedIdx = siblings.indexOfFirst { it.id == movedId }
+        val targetIdx = siblings.indexOfFirst { it.id == targetId }
+        if (movedIdx == -1 || targetIdx == -1 || movedIdx == targetIdx) return
+
+        val movedItem = siblings.removeAt(movedIdx)
+        siblings.add(minOf(targetIdx, siblings.size), movedItem)
+
+        val reordered = siblings.mapIndexed { index, cat -> cat.copy(sortOrder = index) }
+        _categories.update { list ->
+            list.map { cat -> reordered.find { it.id == cat.id } ?: cat }
         }
     }
 }
