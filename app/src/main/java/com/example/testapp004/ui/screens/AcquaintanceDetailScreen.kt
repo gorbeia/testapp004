@@ -58,6 +58,9 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.testapp004.model.Acquaintance
 import com.example.testapp004.model.ContactInfo
+import com.example.testapp004.model.RelationCategory
+import com.example.testapp004.model.RelationTypeOption
+import com.example.testapp004.model.RelationTypes
 import com.example.testapp004.viewmodel.AcquaintanceDetailViewModel
 import com.example.testapp004.viewmodel.RelationDisplay
 
@@ -161,7 +164,9 @@ fun AcquaintanceDetailScreen(
     if (uiState.isAddRelationDialogOpen) {
         AddRelationDialog(
             allAcquaintances = uiState.allOtherAcquaintances,
-            onConfirm = { toId, label -> viewModel.addRelation(toId, label) },
+            onConfirm = { otherId, typeKey, isCurrentPersonFrom, customLabel ->
+                viewModel.addRelation(otherId, typeKey, isCurrentPersonFrom, customLabel)
+            },
             onDismiss = viewModel::closeAddRelationDialog,
         )
     }
@@ -387,13 +392,8 @@ private fun RelationCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                val directionText = if (relation.isOutgoing) {
-                    "→ ${relation.label} →"
-                } else {
-                    "← ${relation.label} ←"
-                }
                 Text(
-                    text = directionText,
+                    text = relation.label,
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -423,13 +423,22 @@ private fun RelationCard(
 @Composable
 private fun AddRelationDialog(
     allAcquaintances: List<Acquaintance>,
-    onConfirm: (toId: Long, label: String) -> Unit,
+    onConfirm: (otherId: Long, typeKey: String, isCurrentPersonFrom: Boolean, customLabel: String?) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val typeOptions = remember { RelationTypes.typeOptions() }
+
     var selectedPersonId by remember { mutableStateOf<Long?>(null) }
-    var label by remember { mutableStateOf("") }
-    var isDropdownExpanded by remember { mutableStateOf(false) }
+    var selectedOption by remember { mutableStateOf<RelationTypeOption?>(null) }
+    var customLabel by remember { mutableStateOf("") }
+    var isPersonDropdownExpanded by remember { mutableStateOf(false) }
+    var isTypeDropdownExpanded by remember { mutableStateOf(false) }
+
     val selectedPersonName = allAcquaintances.find { it.id == selectedPersonId }?.name ?: ""
+    val isCustom = selectedOption?.typeKey == RelationTypes.CUSTOM_KEY
+    val isConfirmEnabled = selectedPersonId != null &&
+        selectedOption != null &&
+        (!isCustom || customLabel.isNotBlank())
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -437,48 +446,108 @@ private fun AddRelationDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 ExposedDropdownMenuBox(
-                    expanded = isDropdownExpanded,
-                    onExpandedChange = { isDropdownExpanded = !isDropdownExpanded },
+                    expanded = isPersonDropdownExpanded,
+                    onExpandedChange = { isPersonDropdownExpanded = !isPersonDropdownExpanded },
                 ) {
                     OutlinedTextField(
                         value = selectedPersonName,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("To person") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isDropdownExpanded) },
+                        label = { Text("Person") },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = isPersonDropdownExpanded)
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .menuAnchor(),
                     )
                     ExposedDropdownMenu(
-                        expanded = isDropdownExpanded,
-                        onDismissRequest = { isDropdownExpanded = false },
+                        expanded = isPersonDropdownExpanded,
+                        onDismissRequest = { isPersonDropdownExpanded = false },
                     ) {
                         allAcquaintances.forEach { person ->
                             DropdownMenuItem(
                                 text = { Text(person.name) },
                                 onClick = {
                                     selectedPersonId = person.id
-                                    isDropdownExpanded = false
+                                    isPersonDropdownExpanded = false
                                 },
                             )
                         }
                     }
                 }
-                OutlinedTextField(
-                    value = label,
-                    onValueChange = { label = it },
-                    label = { Text("Relation label") },
-                    placeholder = { Text("e.g. works with, mentors") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+
+                ExposedDropdownMenuBox(
+                    expanded = isTypeDropdownExpanded,
+                    onExpandedChange = { isTypeDropdownExpanded = !isTypeDropdownExpanded },
+                ) {
+                    OutlinedTextField(
+                        value = selectedOption?.displayLabel ?: "",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Relation type") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isTypeDropdownExpanded) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(),
+                    )
+                    ExposedDropdownMenu(
+                        expanded = isTypeDropdownExpanded,
+                        onDismissRequest = { isTypeDropdownExpanded = false },
+                    ) {
+                        var lastCategory: RelationCategory? = null
+                        typeOptions.forEach { option ->
+                            if (option.typeKey != RelationTypes.CUSTOM_KEY && option.category != lastCategory) {
+                                lastCategory = option.category
+                                val categoryLabel = when (option.category) {
+                                    RelationCategory.FAMILY -> "Family"
+                                    RelationCategory.PROFESSIONAL -> "Professional"
+                                    RelationCategory.SOCIAL -> "Social"
+                                }
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = categoryLabel,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.primary,
+                                        )
+                                    },
+                                    onClick = {},
+                                    enabled = false,
+                                )
+                            }
+                            DropdownMenuItem(
+                                text = { Text(option.displayLabel) },
+                                onClick = {
+                                    selectedOption = option
+                                    customLabel = ""
+                                    isTypeDropdownExpanded = false
+                                },
+                            )
+                        }
+                    }
+                }
+
+                if (isCustom) {
+                    OutlinedTextField(
+                        value = customLabel,
+                        onValueChange = { customLabel = it },
+                        label = { Text("Label") },
+                        placeholder = { Text("e.g. mentor, colleague") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
         },
         confirmButton = {
             TextButton(
-                onClick = { selectedPersonId?.let { onConfirm(it, label) } },
-                enabled = selectedPersonId != null && label.isNotBlank(),
+                onClick = {
+                    val pid = selectedPersonId ?: return@TextButton
+                    val opt = selectedOption ?: return@TextButton
+                    onConfirm(pid, opt.typeKey, opt.isCurrentPersonFrom, customLabel.takeIf { isCustom })
+                },
+                enabled = isConfirmEnabled,
             ) {
                 Text("Add")
             }

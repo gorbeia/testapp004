@@ -86,6 +86,7 @@ di/
 - Repository interface lives in `data/`; Hilt bindings live in `di/AppModule.kt`
 - Gradle dependencies go in `gradle/libs.versions.toml`; never hardcode versions in `build.gradle.kts`
 - Unit tests use Fake*Repository + `MainDispatcherRule`; no Hilt setup needed in unit tests
+- **Maximum line length is 120 characters** (enforced by ktlint). When any single line would exceed this — constructor calls, function arguments, lambda bodies, string concatenations — break it into multiple lines with each argument on its own line and a trailing comma. Check every new line before committing.
 
 ---
 
@@ -152,6 +153,7 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | Acquaintance tracker — directed relations | ✅ Done | [acquaintance-tracker.md](docs/functional/acquaintance-tracker.md) |
 | Acquaintance tracker — category trees | ✅ Done | [acquaintance-tracker.md](docs/functional/acquaintance-tracker.md) |
 | Acquaintance tracker — multi-category membership | ✅ Done | [acquaintance-tracker.md](docs/functional/acquaintance-tracker.md) |
+| Acquaintance tracker — predefined relation types | ✅ Done | [acquaintance-tracker.md](docs/functional/acquaintance-tracker.md) |
 | Self-update (GitHub Releases) | ✅ Done | [self-update.md](docs/functional/self-update.md) |
 | Android contact linking | ✅ Done | [android-contact-linking.md](docs/functional/android-contact-linking.md) |
 
@@ -176,3 +178,4 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | [ADR-013](docs/decisions/ADR-013-room-persistence.md) | Room SQLite persistence replacing in-memory storage | 2026-05-31 |
 | [ADR-014](docs/decisions/ADR-014-debug-prerelease-update-channel.md) | Debug pre-release update channel via GitHub pre-releases + shared debug keystore | 2026-05-31 |
 | [ADR-015](docs/decisions/ADR-015-room-gradle-plugin.md) | Room Gradle Plugin for variant-safe schema export (fixes KSP parallel-build race) | 2026-06-01 |
+| [ADR-016](docs/decisions/ADR-016-predefined-relation-types.md) | Predefined relation types with perspective-aware labels (one row per relationship) | 2026-06-01 |

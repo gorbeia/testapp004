@@ -12,9 +12,11 @@ class FakeRelationRepository : RelationRepository {
     override val relations: StateFlow<List<Relation>> = _relations.asStateFlow()
     private var nextId = 4000L
 
-    override suspend fun addRelation(fromId: Long, toId: Long, label: String) {
+    override suspend fun addRelation(fromId: Long, toId: Long, typeKey: String, customLabel: String?) {
         val id = nextId++
-        _relations.update { it + Relation(id = id, fromId = fromId, toId = toId, label = label) }
+        _relations.update {
+            it + Relation(id = id, fromId = fromId, toId = toId, typeKey = typeKey, customLabel = customLabel)
+        }
     }
 
     override suspend fun deleteRelation(relationId: Long) {

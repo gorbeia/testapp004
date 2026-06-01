@@ -28,5 +28,6 @@ data class RelationEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     @ColumnInfo(name = "from_id") val fromId: Long,
     @ColumnInfo(name = "to_id") val toId: Long,
-    val label: String,
+    @ColumnInfo(name = "type_key") val typeKey: String,
+    @ColumnInfo(name = "custom_label") val customLabel: String? = null,
 )
