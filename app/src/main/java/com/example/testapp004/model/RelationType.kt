@@ -17,7 +17,10 @@ object RelationTypes {
     val PARENT_CHILD = RelationType("PARENT_CHILD", "Parent", "Child", RelationCategory.FAMILY)
     val SIBLING = RelationType("SIBLING", "Sibling", "Sibling", RelationCategory.FAMILY)
     val GRANDPARENT_GRANDCHILD = RelationType(
-        "GRANDPARENT_GRANDCHILD", "Grandparent", "Grandchild", RelationCategory.FAMILY,
+        "GRANDPARENT_GRANDCHILD",
+        "Grandparent",
+        "Grandchild",
+        RelationCategory.FAMILY,
     )
     val UNCLE_AUNT = RelationType("UNCLE_AUNT", "Uncle / Aunt", "Nephew / Niece", RelationCategory.FAMILY)
     val COUSIN = RelationType("COUSIN", "Cousin", "Cousin", RelationCategory.FAMILY)
