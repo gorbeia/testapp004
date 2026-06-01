@@ -122,7 +122,16 @@ If Gradle is not available in the current environment, state that explicitly rat
 
 ## CI
 
-GitHub Actions runs `test lint ktlintCheck assembleDebug` in a single Gradle invocation on every push to `main` and on every pull request. A red CI build means something regressed — investigate before merging. Release workflow (`release.yml`) runs tests before building the signed APK.
+GitHub Actions runs four parallel jobs on every push to `main` and on every pull request:
+
+| Job | Gradle task | Fails when |
+|-----|-------------|------------|
+| `ktlint` | `ktlintCheck` | Code style violation |
+| `unit-tests` | `test` | Logic regression |
+| `lint` | `lint` | Android lint warning/error |
+| `assemble` | `assembleDebug` | Compilation failure |
+
+Jobs run in parallel. Each creates its own named check on the PR, so the failure type is visible without reading log output. A red CI build means something regressed — investigate before merging. Release workflow (`release.yml`) runs tests before building the signed APK.
 
 Workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
 
