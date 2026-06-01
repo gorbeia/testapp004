@@ -86,6 +86,7 @@ di/
 - Repository interface lives in `data/`; Hilt bindings live in `di/AppModule.kt`
 - Gradle dependencies go in `gradle/libs.versions.toml`; never hardcode versions in `build.gradle.kts`
 - Unit tests use Fake*Repository + `MainDispatcherRule`; no Hilt setup needed in unit tests
+- **Maximum line length is 120 characters** (enforced by ktlint). When any single line would exceed this — constructor calls, function arguments, lambda bodies, string concatenations — break it into multiple lines with each argument on its own line and a trailing comma. Check every new line before committing.
 
 ---
 
