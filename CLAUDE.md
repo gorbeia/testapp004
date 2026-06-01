@@ -201,3 +201,4 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | [ADR-020](docs/decisions/ADR-020-create-related-person-from-detail.md) | Create related person directly from the Add Relation dialog | 2026-06-01 |
 | [ADR-021](docs/decisions/ADR-021-canvas-drag-drop-relations.md) | Canvas drag-drop to create relations (long-press node, drag onto another) | 2026-06-01 |
 | [ADR-022](docs/decisions/ADR-022-canvas-color-scheme.md) | Canvas color scheme: nodes and edges colored by relation category (family/professional/social) | 2026-06-01 |
+| [ADR-023](docs/decisions/ADR-023-categories-management-updates.md) | Categories management: remove canvas link, add child button, drag-drop sort order | 2026-06-01 |

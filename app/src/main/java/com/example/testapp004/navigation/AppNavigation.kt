@@ -217,9 +217,6 @@ fun AppNavigation() {
                     CategoriesScreen(
                         viewModel = categoriesViewModel,
                         onNavigateBack = { navController.popBackStack() },
-                        onCanvasClick = { id ->
-                            navController.navigate(Screen.CategoryCanvas.createRoute(id))
-                        },
                     )
                 }
                 composable(
