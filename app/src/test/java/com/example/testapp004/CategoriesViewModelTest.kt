@@ -186,4 +186,127 @@ class CategoriesViewModelTest {
         viewModel.updateCategory(childId, "Engineering", null)
         assertNull(viewModel.uiState.value.categories.find { it.id == childId }?.parentId)
     }
+
+    // --- add child dialog ---
+
+    @Test
+    fun `openAddChildDialog sets addChildToCategory and closes regular dialog`() {
+        viewModel.addCategory("Work")
+        val category = viewModel.uiState.value.categories.first()
+        viewModel.openAddDialog()
+        viewModel.openAddChildDialog(category)
+        assertEquals(category, viewModel.uiState.value.addChildToCategory)
+        assertFalse(viewModel.uiState.value.isAddDialogOpen)
+    }
+
+    @Test
+    fun `closeAddChildDialog clears addChildToCategory`() {
+        viewModel.addCategory("Work")
+        val category = viewModel.uiState.value.categories.first()
+        viewModel.openAddChildDialog(category)
+        viewModel.closeAddChildDialog()
+        assertNull(viewModel.uiState.value.addChildToCategory)
+    }
+
+    @Test
+    fun `openAddDialog clears addChildToCategory`() {
+        viewModel.addCategory("Work")
+        viewModel.openAddChildDialog(viewModel.uiState.value.categories.first())
+        viewModel.openAddDialog()
+        assertNull(viewModel.uiState.value.addChildToCategory)
+        assertTrue(viewModel.uiState.value.isAddDialogOpen)
+    }
+
+    @Test
+    fun `addCategory closes addChildToCategory dialog`() {
+        viewModel.addCategory("Work")
+        val parentId = viewModel.uiState.value.categories.first().id
+        viewModel.openAddChildDialog(viewModel.uiState.value.categories.first())
+        viewModel.addCategory("Engineering", parentId)
+        assertNull(viewModel.uiState.value.addChildToCategory)
+    }
+
+    // --- sort order ---
+
+    @Test
+    fun `addCategory assigns increasing sort order within siblings`() {
+        viewModel.addCategory("Alpha")
+        viewModel.addCategory("Beta")
+        viewModel.addCategory("Gamma")
+        val orders = viewModel.uiState.value.categories
+            .sortedBy { it.sortOrder }
+            .map { it.name }
+        assertEquals(listOf("Alpha", "Beta", "Gamma"), orders)
+    }
+
+    @Test
+    fun `addCategory assigns sort order per parent group independently`() {
+        viewModel.addCategory("Root1")
+        viewModel.addCategory("Root2")
+        val root1Id = viewModel.uiState.value.categories.first { it.name == "Root1" }.id
+        val root2Id = viewModel.uiState.value.categories.first { it.name == "Root2" }.id
+        viewModel.addCategory("Child1A", root1Id)
+        viewModel.addCategory("Child2A", root2Id)
+        viewModel.addCategory("Child1B", root1Id)
+        val child1A = viewModel.uiState.value.categories.first { it.name == "Child1A" }
+        val child1B = viewModel.uiState.value.categories.first { it.name == "Child1B" }
+        val child2A = viewModel.uiState.value.categories.first { it.name == "Child2A" }
+        assertTrue("Child1A should be before Child1B", child1A.sortOrder < child1B.sortOrder)
+        assertTrue("Child2A should have sort order 0", child2A.sortOrder == 0)
+    }
+
+    // --- reorder ---
+
+    @Test
+    fun `reorderCategory moves item to target position`() {
+        viewModel.addCategory("A")
+        viewModel.addCategory("B")
+        viewModel.addCategory("C")
+        val aId = viewModel.uiState.value.categories.first { it.name == "A" }.id
+        val cId = viewModel.uiState.value.categories.first { it.name == "C" }.id
+        viewModel.reorderCategory(aId, cId)
+        val ordered = viewModel.uiState.value.categories.sortedWith(
+            compareBy({ it.sortOrder }, { it.id }),
+        ).map { it.name }
+        assertEquals(listOf("B", "C", "A"), ordered)
+    }
+
+    @Test
+    fun `reorderCategory moving item up works correctly`() {
+        viewModel.addCategory("A")
+        viewModel.addCategory("B")
+        viewModel.addCategory("C")
+        val cId = viewModel.uiState.value.categories.first { it.name == "C" }.id
+        val aId = viewModel.uiState.value.categories.first { it.name == "A" }.id
+        viewModel.reorderCategory(cId, aId)
+        val ordered = viewModel.uiState.value.categories.sortedWith(
+            compareBy({ it.sortOrder }, { it.id }),
+        ).map { it.name }
+        assertEquals(listOf("C", "A", "B"), ordered)
+    }
+
+    @Test
+    fun `reorderCategory does nothing for different parents`() {
+        viewModel.addCategory("Root1")
+        viewModel.addCategory("Root2")
+        val root1Id = viewModel.uiState.value.categories.first { it.name == "Root1" }.id
+        val root2Id = viewModel.uiState.value.categories.first { it.name == "Root2" }.id
+        viewModel.addCategory("Child", root1Id)
+        val childId = viewModel.uiState.value.categories.first { it.name == "Child" }.id
+        val before = viewModel.uiState.value.categories.find { it.id == childId }?.sortOrder
+        viewModel.reorderCategory(childId, root2Id)
+        val after = viewModel.uiState.value.categories.find { it.id == childId }?.sortOrder
+        assertEquals(before, after)
+    }
+
+    @Test
+    fun `reorderCategory does nothing when moved onto itself`() {
+        viewModel.addCategory("A")
+        viewModel.addCategory("B")
+        val aId = viewModel.uiState.value.categories.first { it.name == "A" }.id
+        val beforeA = viewModel.uiState.value.categories.find { it.id == aId }?.sortOrder
+        viewModel.reorderCategory(aId, aId)
+        val afterA = viewModel.uiState.value.categories.find { it.id == aId }?.sortOrder
+        assertEquals(beforeA, afterA)
+    }
 }
