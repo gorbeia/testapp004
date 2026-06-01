@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.testapp004.BuildConfig
 import com.example.testapp004.data.UpdateRepository
 import com.example.testapp004.model.AppRelease
+import com.example.testapp004.model.UpdateCheckOutcome
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -31,6 +32,8 @@ data class UpdateUiState(
     val isDownloading: Boolean = false,
     val downloadProgress: Float = 0f,
     val error: String? = null,
+    val showDebugDialog: Boolean = false,
+    val lastCheckOutcome: UpdateCheckOutcome? = null,
 )
 
 @HiltViewModel
@@ -53,10 +56,32 @@ class UpdateViewModel
 
         fun checkForUpdate() {
             viewModelScope.launch {
-                _uiState.update { it.copy(isChecking = true, error = null) }
-                val release = updateRepository.checkForUpdate(BuildConfig.VERSION_NAME)
-                _uiState.update { it.copy(isChecking = false, updateAvailable = release) }
+                _uiState.update { it.copy(isChecking = true, error = null, lastCheckOutcome = null) }
+                val outcome = updateRepository.checkForUpdate(BuildConfig.VERSION_NAME)
+                val release = if (outcome is UpdateCheckOutcome.UpdateAvailable) outcome.release else null
+                val error = when (outcome) {
+                    is UpdateCheckOutcome.HttpError -> "HTTP ${outcome.code} from server"
+                    is UpdateCheckOutcome.NetworkError -> outcome.message
+                    else -> null
+                }
+                _uiState.update {
+                    it.copy(
+                        isChecking = false,
+                        updateAvailable = release,
+                        error = error,
+                        lastCheckOutcome = outcome,
+                    )
+                }
             }
+        }
+
+        fun openDebugDialog() {
+            _uiState.update { it.copy(showDebugDialog = true) }
+            checkForUpdate()
+        }
+
+        fun closeDebugDialog() {
+            _uiState.update { it.copy(showDebugDialog = false) }
         }
 
         fun downloadAndInstall() {

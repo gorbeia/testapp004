@@ -2,6 +2,7 @@ package com.example.testapp004.data
 
 import com.example.testapp004.BuildConfig
 import com.example.testapp004.model.AppRelease
+import com.example.testapp004.model.UpdateCheckOutcome
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -12,44 +13,49 @@ import javax.inject.Inject
 class GitHubUpdateRepository @Inject constructor(
     private val client: OkHttpClient,
 ) : UpdateRepository {
-    override suspend fun checkForUpdate(currentVersionName: String): AppRelease? =
+    val checkUrl: String get() = if (BuildConfig.DEBUG) {
+        "https://api.github.com/repos/gorbeia/testapp004/releases/tags/debug-latest"
+    } else {
+        "https://api.github.com/repos/gorbeia/testapp004/releases/latest"
+    }
+
+    override suspend fun checkForUpdate(currentVersionName: String): UpdateCheckOutcome =
         withContext(Dispatchers.IO) {
             try {
-                val url = if (BuildConfig.DEBUG) {
-                    "https://api.github.com/repos/gorbeia/testapp004/releases/tags/debug-latest"
-                } else {
-                    "https://api.github.com/repos/gorbeia/testapp004/releases/latest"
-                }
+                val url = checkUrl
                 val request =
                     Request.Builder()
                         .url(url)
                         .header("Accept", "application/vnd.github.v3+json")
                         .build()
                 val response = client.newCall(request).execute()
-                if (!response.isSuccessful) return@withContext null
-                val body = response.body?.string() ?: return@withContext null
+                if (!response.isSuccessful) {
+                    return@withContext UpdateCheckOutcome.HttpError(response.code, url)
+                }
+                val body = response.body?.string()
+                    ?: return@withContext UpdateCheckOutcome.NetworkError("Empty response body")
                 val json = JSONObject(body)
                 val assets = json.getJSONArray("assets")
                 val apkAsset =
                     (0 until assets.length())
                         .map { assets.getJSONObject(it) }
                         .firstOrNull { it.getString("name").endsWith(".apk") }
-                        ?: return@withContext null
+                        ?: return@withContext UpdateCheckOutcome.NoAsset(json.optString("tag_name", "unknown"))
                 val versionName =
                     if (BuildConfig.DEBUG) {
-                        // tag_name is "debug-latest" (not semver); version is in the asset filename
-                        // e.g. "app-debug-1.0.42.apk" → "1.0.42"
                         apkAsset.getString("name")
                             .removePrefix("app-debug-")
                             .removeSuffix(".apk")
                     } else {
                         json.getString("tag_name").removePrefix("v")
                     }
-                if (!isNewer(versionName, currentVersionName)) return@withContext null
+                if (!isNewer(versionName, currentVersionName)) {
+                    return@withContext UpdateCheckOutcome.UpToDate(versionName, currentVersionName)
+                }
                 val downloadUrl = apkAsset.getString("browser_download_url")
-                AppRelease(versionName = versionName, downloadUrl = downloadUrl)
+                UpdateCheckOutcome.UpdateAvailable(AppRelease(versionName = versionName, downloadUrl = downloadUrl))
             } catch (e: Exception) {
-                null
+                UpdateCheckOutcome.NetworkError(e.message ?: "Unknown error")
             }
         }
 

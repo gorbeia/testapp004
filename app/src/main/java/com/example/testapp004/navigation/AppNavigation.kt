@@ -6,16 +6,21 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -27,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
@@ -34,6 +40,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.testapp004.BuildConfig
+import com.example.testapp004.model.UpdateCheckOutcome
 import com.example.testapp004.ui.screens.AcquaintanceDetailScreen
 import com.example.testapp004.ui.screens.AcquaintancesListScreen
 import com.example.testapp004.ui.screens.AddEditAcquaintanceScreen
@@ -104,6 +112,7 @@ fun AppNavigation() {
                         onPersonClick = { id -> navController.navigate(Screen.AcquaintanceDetail.createRoute(id)) },
                         onAddPersonClick = { navController.navigate(Screen.AddEditAcquaintance.ROUTE_NEW) },
                         onManageCategoriesClick = { navController.navigate(Screen.Categories.route) },
+                        onCheckForUpdatesClick = updateViewModel::openDebugDialog,
                     )
                 }
                 composable(
@@ -143,6 +152,119 @@ fun AppNavigation() {
                 }
             }
         }
+    }
+
+    if (updateState.showDebugDialog) {
+        UpdateDebugDialog(
+            state = updateState,
+            onCheckAgain = updateViewModel::checkForUpdate,
+            onInstall = updateViewModel::downloadAndInstall,
+            onDismiss = updateViewModel::closeDebugDialog,
+        )
+    }
+}
+
+@Composable
+private fun UpdateDebugDialog(
+    state: UpdateUiState,
+    onCheckAgain: () -> Unit,
+    onInstall: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val channel = if (BuildConfig.DEBUG) "debug (pre-release)" else "release"
+    val apiUrl = if (BuildConfig.DEBUG) {
+        "https://api.github.com/repos/gorbeia/testapp004/releases/tags/debug-latest"
+    } else {
+        "https://api.github.com/repos/gorbeia/testapp004/releases/latest"
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Update check") },
+        text = {
+            Column {
+                DebugRow("Current version", BuildConfig.VERSION_NAME)
+                DebugRow("Channel", channel)
+                DebugRow("API URL", apiUrl)
+                Spacer(Modifier.height(8.dp))
+                HorizontalDivider()
+                Spacer(Modifier.height(8.dp))
+                when {
+                    state.isChecking -> {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Checking…", style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                    state.isDownloading -> {
+                        Text("Downloading…", style = MaterialTheme.typography.bodyMedium)
+                        Spacer(Modifier.height(4.dp))
+                        LinearProgressIndicator(
+                            progress = { state.downloadProgress },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Text(
+                            text = "${(state.downloadProgress * 100).toInt()}%",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    else -> {
+                        val outcomeText = when (val o = state.lastCheckOutcome) {
+                            is UpdateCheckOutcome.UpdateAvailable ->
+                                "Update available: ${o.release.versionName}"
+                            is UpdateCheckOutcome.UpToDate ->
+                                "Up to date (remote: ${o.remoteVersion}, local: ${o.currentVersion})"
+                            is UpdateCheckOutcome.NoAsset ->
+                                "No APK asset found on release \"${o.tagName}\""
+                            is UpdateCheckOutcome.HttpError ->
+                                "HTTP ${o.code} — check GitHub release exists"
+                            is UpdateCheckOutcome.NetworkError ->
+                                "Network error: ${o.message}"
+                            null -> "Not checked yet"
+                        }
+                        Text(
+                            text = outcomeText,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
+                        )
+                        state.error?.let { err ->
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = err,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            if (state.updateAvailable != null && !state.isDownloading && !state.isChecking) {
+                Button(onClick = onInstall) { Text("Install") }
+            } else if (!state.isChecking && !state.isDownloading) {
+                TextButton(onClick = onCheckAgain) { Text("Check again") }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Close") }
+        },
+    )
+}
+
+@Composable
+private fun DebugRow(label: String, value: String) {
+    Column(modifier = Modifier.padding(vertical = 2.dp)) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+        )
     }
 }
 
