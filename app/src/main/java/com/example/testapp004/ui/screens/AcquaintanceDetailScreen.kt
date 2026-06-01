@@ -71,6 +71,7 @@ fun AcquaintanceDetailScreen(
     onNavigateBack: () -> Unit,
     onEditClick: (Long) -> Unit,
     onPersonClick: (Long) -> Unit,
+    onCategoryClick: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val acquaintance = uiState.acquaintance
@@ -126,6 +127,7 @@ fun AcquaintanceDetailScreen(
                     BioSection(
                         bio = acquaintance.bio,
                         categoryNames = uiState.categoryNames,
+                        onCategoryClick = onCategoryClick,
                     )
                 }
                 item {
@@ -173,7 +175,7 @@ fun AcquaintanceDetailScreen(
 }
 
 @Composable
-private fun BioSection(bio: String, categoryNames: List<String>) {
+private fun BioSection(bio: String, categoryNames: List<String>, onCategoryClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
@@ -182,7 +184,7 @@ private fun BioSection(bio: String, categoryNames: List<String>) {
             if (categoryNames.isNotEmpty()) {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     categoryNames.forEach { name ->
-                        SuggestionChip(onClick = {}, label = { Text(name) })
+                        SuggestionChip(onClick = onCategoryClick, label = { Text(name) })
                     }
                 }
                 Spacer(modifier = Modifier.height(8.dp))

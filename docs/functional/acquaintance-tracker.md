@@ -12,17 +12,18 @@ Accessible via the **People** tab in the bottom navigation bar.
 
 ### People list (`AcquaintancesListScreen`)
 
-* Shows all acquaintances as cards (name, bio preview, category chips — one per assigned category).
+* Shows all acquaintances as cards (name, bio preview, category chips — one per assigned category). Tapping a category chip navigates to the Categories screen.
 * **Category filter row**: horizontal scrollable `FilterChip` row — "All" + one chip per existing category. Selecting a chip shows people who have that category **or any of its descendants** assigned.
 * **FAB (+)**: navigates to Add Person screen.
 * **List icon (top-right)**: navigates to Categories screen.
+* Category chips on person cards navigate to the Categories screen.
 * Swipe-delete is not implemented; a delete icon is shown on each card.
 * Empty state: "No people yet" / "No people in this category".
 
 ### Person detail (`AcquaintanceDetailScreen`)
 
 * **Top bar**: person's name; back, edit (pencil), delete (bin) actions.
-* **Bio card**: shows the bio text; or "No bio added" placeholder. All assigned categories are shown as chips above the bio.
+* **Bio card**: shows the bio text; or "No bio added" placeholder. All assigned categories are shown as chips above the bio. Tapping a category chip navigates to the Categories screen.
 * **Relations section**: list of directed relations.
   - Outgoing (this person → other): shows `→ label →` + tappable name of other person.
   - Incoming (other → this person): shows `← label ←` + tappable name of other person.
@@ -43,7 +44,9 @@ Accessible via the **People** tab in the bottom navigation bar.
 
 * **Top bar**: "Categories"; back button.
 * List of existing categories displayed in **tree order** with visual indentation (children indented under their parent, prefixed with `└`).
-* Each item has an **edit (pencil)** icon and a **delete (bin)** icon.
+* Each item has up to three icons: **people (canvas)**, **edit (pencil)**, **delete (bin)**.
+  - Canvas (group icon): only shown when at least one person is assigned to the category. Tapping it
+    navigates to the People list pre-filtered to that category.
   - Delete: deleting a parent **orphans** its children (their parent is cleared to `null`).
   - Edit: opens Edit Category dialog pre-filled with the current name and parent.
 * **FAB (+)**: opens Add Category dialog.

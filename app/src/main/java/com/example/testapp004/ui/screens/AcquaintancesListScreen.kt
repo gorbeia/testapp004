@@ -59,6 +59,7 @@ fun AcquaintancesListScreen(
     onAddPersonClick: () -> Unit,
     onManageCategoriesClick: () -> Unit,
     onCheckForUpdatesClick: () -> Unit,
+    onCategoryClick: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var menuExpanded by remember { mutableStateOf(false) }
@@ -145,6 +146,7 @@ fun AcquaintancesListScreen(
                     categories = uiState.categories,
                     onPersonClick = onPersonClick,
                     onDelete = viewModel::deleteAcquaintance,
+                    onCategoryClick = onCategoryClick,
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -261,6 +263,7 @@ private fun AcquaintancesList(
     categories: List<Category>,
     onPersonClick: (Long) -> Unit,
     onDelete: (Long) -> Unit,
+    onCategoryClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -274,6 +277,7 @@ private fun AcquaintancesList(
                 categoryNames = categories.filter { it.id in person.categoryIds }.map { it.name },
                 onClick = { onPersonClick(person.id) },
                 onDelete = { onDelete(person.id) },
+                onCategoryClick = onCategoryClick,
             )
         }
     }
@@ -286,6 +290,7 @@ private fun AcquaintanceCard(
     categoryNames: List<String>,
     onClick: () -> Unit,
     onDelete: () -> Unit,
+    onCategoryClick: () -> Unit,
 ) {
     Card(
         onClick = onClick,
@@ -320,7 +325,7 @@ private fun AcquaintanceCard(
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         categoryNames.forEach { name ->
                             SuggestionChip(
-                                onClick = {},
+                                onClick = onCategoryClick,
                                 label = { Text(name, style = MaterialTheme.typography.labelSmall) },
                             )
                         }

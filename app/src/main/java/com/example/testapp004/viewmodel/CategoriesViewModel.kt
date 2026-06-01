@@ -2,18 +2,21 @@ package com.example.testapp004.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.testapp004.data.AcquaintanceRepository
 import com.example.testapp004.data.CategoryRepository
 import com.example.testapp004.model.Category
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class CategoriesUiState(
     val categories: List<Category> = emptyList(),
+    val categoriesWithPeople: Set<Long> = emptySet(),
     val isAddDialogOpen: Boolean = false,
     val editingCategory: Category? = null,
     val isLoading: Boolean = false,
@@ -23,14 +26,20 @@ data class CategoriesUiState(
 @HiltViewModel
 class CategoriesViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
+    private val acquaintanceRepository: AcquaintanceRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(CategoriesUiState())
     val uiState: StateFlow<CategoriesUiState> = _uiState.asStateFlow()
 
     init {
         viewModelScope.launch {
-            categoryRepository.categories.collect { cats ->
-                _uiState.update { it.copy(categories = cats) }
+            combine(
+                categoryRepository.categories,
+                acquaintanceRepository.acquaintances,
+            ) { categories, acquaintances ->
+                categories to acquaintances.flatMap { it.categoryIds }.toSet()
+            }.collect { (categories, withPeople) ->
+                _uiState.update { it.copy(categories = categories, categoriesWithPeople = withPeople) }
             }
         }
     }
