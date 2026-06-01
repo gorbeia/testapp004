@@ -44,12 +44,22 @@ Accessible via the **People** tab in the bottom navigation bar.
 * Deleting the person navigates back automatically.
 * Tapping another person's name in a relation navigates to their detail screen.
 
+### Category canvas (`CategoryCanvasScreen`)
+
+* **Top bar**: category name; back button.
+* Pan/zoom graph of all people in the category (and its descendants) as circular nodes; directed relations between them as arrowed edges with labels.
+* **FAB (+)**: navigates to Add Person screen with the canvas category pre-checked.
+* Tapping a node navigates to that person's detail screen.
+* Loading state: spinner while data is fetched.
+* Empty state: "No people in this category" when the category has no members.
+
 ### Add / Edit person (`AddEditAcquaintanceScreen`)
 
 * **Top bar**: "New Person" or "Edit Person"; back button; "Save" action (disabled when name is blank).
 * **Name field** (required).
 * **Bio field** (optional, multi-line).
 * **Categories multi-select** (optional): shown only when at least one category exists. Displayed as a card containing one checkbox row per category, indented by tree depth. A person can be assigned to any number of categories simultaneously.
+* When opened from the category canvas FAB, the canvas's category is pre-checked.
 * On save, navigates back.
 
 ### Categories (`CategoriesScreen`)

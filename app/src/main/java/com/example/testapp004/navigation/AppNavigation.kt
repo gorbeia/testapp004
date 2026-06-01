@@ -64,11 +64,16 @@ sealed class Screen(val route: String) {
         fun createRoute(id: Long) = "acquaintance/$id"
     }
 
-    object AddEditAcquaintance : Screen("add_edit_acquaintance?acquaintanceId={acquaintanceId}") {
+    object AddEditAcquaintance : Screen(
+        "add_edit_acquaintance?acquaintanceId={acquaintanceId}&preselectedCategoryId={preselectedCategoryId}",
+    ) {
         const val ARG_ACQUAINTANCE_ID = "acquaintanceId"
+        const val ARG_PRESELECTED_CATEGORY_ID = "preselectedCategoryId"
         const val ROUTE_NEW = "add_edit_acquaintance"
 
         fun createRoute(id: Long) = "add_edit_acquaintance?acquaintanceId=$id"
+        fun createRouteWithCategory(categoryId: Long) =
+            "add_edit_acquaintance?preselectedCategoryId=$categoryId"
     }
 
     object Categories : Screen("categories")
@@ -152,6 +157,10 @@ fun AppNavigation() {
                             type = NavType.LongType
                             defaultValue = -1L
                         },
+                        navArgument(Screen.AddEditAcquaintance.ARG_PRESELECTED_CATEGORY_ID) {
+                            type = NavType.LongType
+                            defaultValue = -1L
+                        },
                     ),
                 ) {
                     val addEditViewModel: AddEditAcquaintanceViewModel = hiltViewModel()
@@ -176,13 +185,20 @@ fun AppNavigation() {
                             type = NavType.LongType
                         },
                     ),
-                ) {
+                ) { backStackEntry ->
+                    val categoryId = backStackEntry.arguments
+                        ?.getLong(Screen.CategoryCanvas.ARG_CATEGORY_ID) ?: -1L
                     val canvasViewModel: CategoryCanvasViewModel = hiltViewModel()
                     CategoryCanvasScreen(
                         viewModel = canvasViewModel,
                         onNavigateBack = { navController.popBackStack() },
                         onPersonClick = { id ->
                             navController.navigate(Screen.AcquaintanceDetail.createRoute(id))
+                        },
+                        onAddPersonClick = {
+                            navController.navigate(
+                                Screen.AddEditAcquaintance.createRouteWithCategory(categoryId),
+                            )
                         },
                     )
                 }
