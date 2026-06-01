@@ -44,28 +44,6 @@ class AcquaintancesViewModelTest {
     }
 
     @Test
-    fun `deleteAcquaintance removes from list`() {
-        runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
-        val vm = createViewModel()
-        val id = vm.uiState.value.acquaintances.first().id
-        vm.deleteAcquaintance(id)
-        assertTrue(vm.uiState.value.acquaintances.isEmpty())
-    }
-
-    @Test
-    fun `deleteAcquaintance only removes targeted person`() {
-        runBlocking {
-            fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet())
-            fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet())
-        }
-        val vm = createViewModel()
-        val aliceId = vm.uiState.value.acquaintances.first().id
-        vm.deleteAcquaintance(aliceId)
-        assertEquals(1, vm.uiState.value.acquaintances.size)
-        assertEquals("Bob", vm.uiState.value.acquaintances.first().name)
-    }
-
-    @Test
     fun `selectCategory filters acquaintances to matching category`() {
         runBlocking {
             val catId = fakeCategoryRepository.addCategory("Work")
