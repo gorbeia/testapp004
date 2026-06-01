@@ -113,6 +113,7 @@ fun AppNavigation() {
                         onAddPersonClick = { navController.navigate(Screen.AddEditAcquaintance.ROUTE_NEW) },
                         onManageCategoriesClick = { navController.navigate(Screen.Categories.route) },
                         onCheckForUpdatesClick = updateViewModel::openDebugDialog,
+                        onCategoryClick = { navController.navigate(Screen.Categories.route) },
                     )
                 }
                 composable(
@@ -127,6 +128,7 @@ fun AppNavigation() {
                         onNavigateBack = { navController.popBackStack() },
                         onEditClick = { id -> navController.navigate(Screen.AddEditAcquaintance.createRoute(id)) },
                         onPersonClick = { id -> navController.navigate(Screen.AcquaintanceDetail.createRoute(id)) },
+                        onCategoryClick = { navController.navigate(Screen.Categories.route) },
                     )
                 }
                 composable(

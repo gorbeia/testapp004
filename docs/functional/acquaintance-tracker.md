@@ -12,7 +12,7 @@ Accessible via the **People** tab in the bottom navigation bar.
 
 ### People list (`AcquaintancesListScreen`)
 
-* Shows all acquaintances as cards (name, bio preview, category chips — one per assigned category).
+* Shows all acquaintances as cards (name, bio preview, category chips — one per assigned category). Tapping a category chip navigates to the Categories screen.
 * **Category filter row**: horizontal scrollable `FilterChip` row — "All" + one chip per existing category. Selecting a chip shows people who have that category **or any of its descendants** assigned.
 * **FAB (+)**: navigates to Add Person screen.
 * **List icon (top-right)**: navigates to Categories screen.
@@ -22,7 +22,7 @@ Accessible via the **People** tab in the bottom navigation bar.
 ### Person detail (`AcquaintanceDetailScreen`)
 
 * **Top bar**: person's name; back, edit (pencil), delete (bin) actions.
-* **Bio card**: shows the bio text; or "No bio added" placeholder. All assigned categories are shown as chips above the bio.
+* **Bio card**: shows the bio text; or "No bio added" placeholder. All assigned categories are shown as chips above the bio. Tapping a category chip navigates to the Categories screen.
 * **Relations section**: list of directed relations.
   - Outgoing (this person → other): shows `→ label →` + tappable name of other person.
   - Incoming (other → this person): shows `← label ←` + tappable name of other person.
