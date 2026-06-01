@@ -36,6 +36,7 @@ Accessible via the **People** tab in the bottom navigation bar.
 
 * **Top bar**: person's name; back, edit (pencil), delete (bin) actions.
 * **Bio card**: shows the bio text; or "No bio added" placeholder. All assigned categories are shown as chips above the bio. Tapping a category chip navigates to the Categories screen.
+  - A pencil icon in the top-right of the card enters **inline edit mode**: the bio is replaced by a multi-line text field with Save and Cancel buttons. Saving persists immediately; Cancel restores the previous text. No navigation required.
 * **Relations section**: list of directed relations.
   - Outgoing (this person → other): shows `→ label →` + tappable name of other person.
   - Incoming (other → this person): shows `← label ←` + tappable name of other person.
