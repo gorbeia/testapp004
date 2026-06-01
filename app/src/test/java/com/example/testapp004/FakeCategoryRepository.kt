@@ -14,7 +14,9 @@ class FakeCategoryRepository : CategoryRepository {
 
     override suspend fun addCategory(name: String, parentId: Long?): Long {
         val id = nextId++
-        _categories.update { it + Category(id = id, name = name, parentId = parentId) }
+        val siblings = _categories.value.filter { it.parentId == parentId }
+        val nextSortOrder = (siblings.maxOfOrNull { it.sortOrder } ?: -1) + 1
+        _categories.update { it + Category(id = id, name = name, parentId = parentId, sortOrder = nextSortOrder) }
         return id
     }
 
