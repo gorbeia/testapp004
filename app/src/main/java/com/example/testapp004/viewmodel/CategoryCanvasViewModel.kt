@@ -48,7 +48,6 @@ class CategoryCanvasViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val relationRepository: RelationRepository,
 ) : ViewModel() {
-
     private val categoryId: Long = checkNotNull(savedStateHandle["categoryId"])
 
     private val _uiState = MutableStateFlow(CategoryCanvasUiState())
