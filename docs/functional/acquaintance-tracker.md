@@ -81,7 +81,8 @@ Spatial overview of the people in a category and their relationships.
 * **Bio field** (optional, multi-line).
 * **Categories multi-select** (optional): shown only when at least one category exists. Displayed as a card containing one checkbox row per category, indented by tree depth. A person can be assigned to any number of categories simultaneously.
 * When opened from the category canvas FAB, the canvas's category is pre-checked.
-* On save, navigates back.
+* **On save (add mode)**: navigates to the new person's detail screen, giving immediate access to link a contact and add relations.
+* **On save (edit mode)**: navigates back to the detail screen.
 
 ### Categories (`CategoriesScreen`)
 

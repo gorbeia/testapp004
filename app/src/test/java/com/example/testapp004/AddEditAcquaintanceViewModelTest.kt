@@ -97,6 +97,26 @@ class AddEditAcquaintanceViewModelTest {
     }
 
     @Test
+    fun `save in add mode sets savedId to the new person's id`() {
+        val vm = buildViewModel()
+        vm.onNameChange("Charlie")
+        vm.save()
+        val savedId = vm.uiState.value.savedId
+        val createdId = fakeAcquaintanceRepository.acquaintances.value.first().id
+        assertEquals(createdId, savedId)
+    }
+
+    @Test
+    fun `save in edit mode leaves savedId null`() {
+        val id = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "Bio", emptySet()) }
+        val vm = buildViewModel(id)
+        vm.onBioChange("Updated")
+        vm.save()
+        assertTrue(vm.uiState.value.isSaved)
+        assertEquals(null, vm.uiState.value.savedId)
+    }
+
+    @Test
     fun `save trims whitespace from name and bio`() {
         val vm = buildViewModel()
         vm.onNameChange("  Dave  ")
