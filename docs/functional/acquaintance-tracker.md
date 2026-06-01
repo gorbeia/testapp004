@@ -53,7 +53,6 @@ Accessible via the **People** tab in the bottom navigation bar.
 Spatial overview of the people in a category and their relationships.
 
 **Entry points:**
-* Hub icon on any category row in the Categories screen.
 * Hub icon on any category row in the Browse Categories screen.
 
 **Layout:**
@@ -91,14 +90,16 @@ Spatial overview of the people in a category and their relationships.
 ### Categories (`CategoriesScreen`)
 
 * **Top bar**: "Categories"; back button.
-* List of existing categories displayed in **tree order** with visual indentation (children indented under their parent, prefixed with `└`).
-* Each item has three icons: **hub (canvas)**, **edit (pencil)**, **delete (bin)**.
-  - Hub icon: navigates to the Category canvas for that category.
-  - Delete: deleting a parent **orphans** its children (their parent is cleared to `null`).
-  - Edit: opens Edit Category dialog pre-filled with the current name and parent.
-* **FAB (+)**: opens Add Category dialog.
+* List of existing categories displayed in **tree order** with visual indentation (children indented under their parent, prefixed with `└`). Order within each sibling group is user-defined and persisted via `sort_order`.
+* Each item shows a **drag handle (☰)** on the left and three action icons on the right: **add child (+)**, **edit (pencil)**, **delete (bin)**.
+  - **Drag handle / long-press**: initiates drag-and-drop reordering. Dragging onto a sibling (same parent) repositions the item there. Dragging onto a category from a different parent is a no-op.
+  - **Add child (+)**: opens the Add Category dialog with the current category pre-selected as parent. The parent can still be changed or cleared in the dialog.
+  - **Edit**: opens Edit Category dialog pre-filled with the current name and parent.
+  - **Delete**: deleting a parent **orphans** its children (their `parentId` is cleared to `null`).
+* **FAB (+)**: opens Add Category dialog with no parent pre-selected.
   - Text field for the category name.
   - Optional parent-category dropdown (only shown when at least one category already exists); defaults to "None (top level)".
+  - New categories are inserted at the end of their sibling group.
 * **Edit Category dialog**: pre-filled name field + parent dropdown. The category being edited and all its descendants are excluded from the parent dropdown to prevent cycles. "Save" button disabled when name is blank.
 * Empty state: "No categories yet".
 * Deleting a category does NOT automatically clear it from existing people (the removed `categoryId` is silently dropped from rendered chips).
