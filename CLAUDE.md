@@ -170,6 +170,7 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | Combined main screen (category browser + people search tabs) | ✅ Done | [ADR-018](docs/decisions/ADR-018-main-screen-tabs.md) |
 | Add person from canvas (category pre-checked) | ✅ Done | [ADR-019](docs/decisions/ADR-019-add-person-from-canvas.md) |
 | Create related person from relation dialog | ✅ Done | [ADR-020](docs/decisions/ADR-020-create-related-person-from-detail.md) |
+| Canvas drag-drop to create relations | ✅ Done | [ADR-021](docs/decisions/ADR-021-canvas-drag-drop-relations.md) |
 
 ---
 
@@ -197,3 +198,4 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | [ADR-018](docs/decisions/ADR-018-main-screen-tabs.md) | Combined main screen: category browser (default) + people search as two tabs | 2026-06-01 |
 | [ADR-019](docs/decisions/ADR-019-add-person-from-canvas.md) | Add person from canvas FAB with canvas category pre-checked | 2026-06-01 |
 | [ADR-020](docs/decisions/ADR-020-create-related-person-from-detail.md) | Create related person directly from the Add Relation dialog | 2026-06-01 |
+| [ADR-021](docs/decisions/ADR-021-canvas-drag-drop-relations.md) | Canvas drag-drop to create relations (long-press node, drag onto another) | 2026-06-01 |

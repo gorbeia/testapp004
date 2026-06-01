@@ -1,22 +1,34 @@
 package com.example.testapp004.ui.screens
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -47,7 +59,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.testapp004.model.RelationCategory
+import com.example.testapp004.model.RelationTypeOption
+import com.example.testapp004.model.RelationTypes
 import com.example.testapp004.viewmodel.CanvasPersonNode
 import com.example.testapp004.viewmodel.CanvasRelationEdge
 import com.example.testapp004.viewmodel.CategoryCanvasViewModel
@@ -111,9 +127,24 @@ fun CategoryCanvasScreen(
                     nodes = uiState.nodes,
                     edges = uiState.edges,
                     onPersonClick = onPersonClick,
+                    onRelationDrop = viewModel::openRelationDialog,
                 )
             }
         }
+    }
+
+    if (uiState.isRelationDialogOpen &&
+        uiState.pendingRelationFromId != null &&
+        uiState.pendingRelationToId != null
+    ) {
+        CanvasAddRelationDialog(
+            fromPersonName = uiState.pendingRelationFromName,
+            toPersonName = uiState.pendingRelationToName,
+            onConfirm = { typeKey, isDragSourceFrom, customLabel ->
+                viewModel.addRelationFromCanvas(typeKey, isDragSourceFrom, customLabel)
+            },
+            onDismiss = viewModel::closeRelationDialog,
+        )
     }
 }
 
@@ -122,12 +153,18 @@ private fun CanvasGraph(
     nodes: List<CanvasPersonNode>,
     edges: List<CanvasRelationEdge>,
     onPersonClick: (Long) -> Unit,
+    onRelationDrop: (fromId: Long, toId: Long) -> Unit,
 ) {
     val nodeMap = remember(nodes) { nodes.associateBy { it.id } }
 
     var zoom by remember { mutableFloatStateOf(1f) }
     var panOffset by remember { mutableStateOf(Offset.Zero) }
     var canvasSize by remember { mutableStateOf(Size.Zero) }
+
+    var isDragging by remember { mutableStateOf(false) }
+    var draggedNodeId by remember { mutableStateOf<Long?>(null) }
+    var dragScreenPos by remember { mutableStateOf(Offset.Zero) }
+    var dropTargetId by remember { mutableStateOf<Long?>(null) }
 
     LaunchedEffect(nodes, canvasSize) {
         if (nodes.isEmpty() || canvasSize == Size.Zero) return@LaunchedEffect
@@ -164,6 +201,10 @@ private fun CanvasGraph(
     val textColor = MaterialTheme.colorScheme.onPrimaryContainer
     val edgeColor = MaterialTheme.colorScheme.outline
     val labelColor = MaterialTheme.colorScheme.onSurface
+    val dropTargetHighlightColor = MaterialTheme.colorScheme.tertiary
+    val dragGhostNodeColor = nodeColor.copy(alpha = 0.3f)
+    val dragGhostStrokeColor = nodeStrokeColor.copy(alpha = 0.3f)
+    val dragGhostTextColor = textColor.copy(alpha = 0.3f)
 
     Canvas(
         modifier = Modifier
@@ -171,9 +212,11 @@ private fun CanvasGraph(
             .onSizeChanged { canvasSize = Size(it.width.toFloat(), it.height.toFloat()) }
             .pointerInput(Unit) {
                 detectTransformGestures { centroid, pan, zoomChange, _ ->
-                    val newZoom = (zoom * zoomChange).coerceIn(0.1f, 5f)
-                    panOffset = centroid - (centroid - panOffset) * (newZoom / zoom) + pan
-                    zoom = newZoom
+                    if (!isDragging) {
+                        val newZoom = (zoom * zoomChange).coerceIn(0.1f, 5f)
+                        panOffset = centroid - (centroid - panOffset) * (newZoom / zoom) + pan
+                        zoom = newZoom
+                    }
                 }
             }
             .pointerInput(nodes, zoom, panOffset) {
@@ -187,6 +230,53 @@ private fun CanvasGraph(
                             abs(dy) <= NODE_HALF_H
                     }?.let { onPersonClick(it.id) }
                 }
+            }
+            .pointerInput(nodes, zoom, panOffset) {
+                detectDragGesturesAfterLongPress(
+                    onDragStart = { offset ->
+                        val vx = (offset.x - panOffset.x) / zoom
+                        val vy = (offset.y - panOffset.y) / zoom
+                        val node = nodes.firstOrNull { n ->
+                            abs(vx - n.x) <= (nodeHalfWidths[n.id] ?: NODE_MAX_HALF_W) &&
+                                abs(vy - n.y) <= NODE_HALF_H
+                        }
+                        if (node != null) {
+                            draggedNodeId = node.id
+                            dragScreenPos = offset
+                            isDragging = true
+                        }
+                    },
+                    onDrag = { change, _ ->
+                        if (isDragging) {
+                            dragScreenPos = change.position
+                            val vx = (change.position.x - panOffset.x) / zoom
+                            val vy = (change.position.y - panOffset.y) / zoom
+                            dropTargetId = nodes.firstOrNull { n ->
+                                n.id != draggedNodeId &&
+                                    abs(vx - n.x) <= (nodeHalfWidths[n.id] ?: NODE_MAX_HALF_W) &&
+                                    abs(vy - n.y) <= NODE_HALF_H
+                            }?.id
+                            change.consume()
+                        }
+                    },
+                    onDragEnd = {
+                        if (isDragging) {
+                            val from = draggedNodeId
+                            val to = dropTargetId
+                            if (from != null && to != null) {
+                                onRelationDrop(from, to)
+                            }
+                            isDragging = false
+                            draggedNodeId = null
+                            dropTargetId = null
+                        }
+                    },
+                    onDragCancel = {
+                        isDragging = false
+                        draggedNodeId = null
+                        dropTargetId = null
+                    },
+                )
             },
     ) {
         withTransform({
@@ -208,15 +298,49 @@ private fun CanvasGraph(
                 )
             }
             nodes.forEach { node ->
+                val isDropTarget = isDragging && node.id == dropTargetId
+                val isDragSource = isDragging && node.id == draggedNodeId
                 drawNode(
                     center = Offset(node.x, node.y),
                     halfW = nodeHalfWidths[node.id] ?: NODE_MAX_HALF_W,
                     name = node.name,
-                    nodeColor = nodeColor,
-                    strokeColor = nodeStrokeColor,
-                    textColor = textColor,
+                    nodeColor = if (isDragSource) dragGhostNodeColor else nodeColor,
+                    strokeColor = when {
+                        isDropTarget -> dropTargetHighlightColor
+                        isDragSource -> dragGhostStrokeColor
+                        else -> nodeStrokeColor
+                    },
+                    textColor = if (isDragSource) dragGhostTextColor else textColor,
                     textMeasurer = textMeasurer,
                 )
+                if (isDropTarget) {
+                    val hw = nodeHalfWidths[node.id] ?: NODE_MAX_HALF_W
+                    val pad = 6f
+                    drawRoundRect(
+                        color = dropTargetHighlightColor,
+                        topLeft = Offset(node.x - hw - pad, node.y - NODE_HALF_H - pad),
+                        size = Size((hw + pad) * 2, (NODE_HALF_H + pad) * 2),
+                        cornerRadius = CornerRadius(NODE_HALF_H + pad),
+                        style = Stroke(width = 3.5f),
+                    )
+                }
+            }
+            if (isDragging) {
+                val id = draggedNodeId
+                val ghostNode = if (id != null) nodeMap[id] else null
+                if (ghostNode != null) {
+                    val ghostCanvasX = (dragScreenPos.x - panOffset.x) / zoom
+                    val ghostCanvasY = (dragScreenPos.y - panOffset.y) / zoom
+                    drawNode(
+                        center = Offset(ghostCanvasX, ghostCanvasY),
+                        halfW = nodeHalfWidths[ghostNode.id] ?: NODE_MAX_HALF_W,
+                        name = ghostNode.name,
+                        nodeColor = nodeColor,
+                        strokeColor = if (dropTargetId != null) dropTargetHighlightColor else nodeStrokeColor,
+                        textColor = textColor,
+                        textMeasurer = textMeasurer,
+                    )
+                }
             }
         }
     }
@@ -317,5 +441,128 @@ private fun DrawScope.drawNode(
     drawText(
         textLayoutResult = measured,
         topLeft = Offset(center.x - measured.size.width / 2f, center.y - measured.size.height / 2f),
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CanvasAddRelationDialog(
+    fromPersonName: String,
+    toPersonName: String,
+    onConfirm: (typeKey: String, isDragSourceFrom: Boolean, customLabel: String?) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val typeOptions = remember { RelationTypes.typeOptions() }
+
+    var selectedOption by remember { mutableStateOf<RelationTypeOption?>(null) }
+    var customLabel by remember { mutableStateOf("") }
+    var isTypeDropdownExpanded by remember { mutableStateOf(false) }
+
+    val isCustom = selectedOption?.typeKey == RelationTypes.CUSTOM_KEY
+    val isConfirmEnabled = selectedOption != null && (!isCustom || customLabel.isNotBlank())
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add Relation") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = fromPersonName,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Icon(
+                        imageVector = Icons.Default.ArrowForward,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = toPersonName,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                ExposedDropdownMenuBox(
+                    expanded = isTypeDropdownExpanded,
+                    onExpandedChange = { isTypeDropdownExpanded = !isTypeDropdownExpanded },
+                ) {
+                    OutlinedTextField(
+                        value = selectedOption?.displayLabel ?: "",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Relation type") },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = isTypeDropdownExpanded)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(),
+                    )
+                    ExposedDropdownMenu(
+                        expanded = isTypeDropdownExpanded,
+                        onDismissRequest = { isTypeDropdownExpanded = false },
+                    ) {
+                        var lastCategory: RelationCategory? = null
+                        typeOptions.forEach { option ->
+                            if (option.typeKey != RelationTypes.CUSTOM_KEY && option.category != lastCategory) {
+                                lastCategory = option.category
+                                val categoryLabel = when (option.category) {
+                                    RelationCategory.FAMILY -> "Family"
+                                    RelationCategory.PROFESSIONAL -> "Professional"
+                                    RelationCategory.SOCIAL -> "Social"
+                                }
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = categoryLabel,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.primary,
+                                        )
+                                    },
+                                    onClick = {},
+                                    enabled = false,
+                                )
+                            }
+                            DropdownMenuItem(
+                                text = { Text(option.displayLabel) },
+                                onClick = {
+                                    selectedOption = option
+                                    customLabel = ""
+                                    isTypeDropdownExpanded = false
+                                },
+                            )
+                        }
+                    }
+                }
+                if (isCustom) {
+                    OutlinedTextField(
+                        value = customLabel,
+                        onValueChange = { customLabel = it },
+                        label = { Text("Label") },
+                        placeholder = { Text("e.g. mentor, colleague") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val opt = selectedOption ?: return@TextButton
+                    onConfirm(opt.typeKey, opt.isCurrentPersonFrom, customLabel.takeIf { isCustom })
+                },
+                enabled = isConfirmEnabled,
+            ) {
+                Text("Add")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
     )
 }
