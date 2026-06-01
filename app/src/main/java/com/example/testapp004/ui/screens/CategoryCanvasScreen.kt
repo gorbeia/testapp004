@@ -300,7 +300,11 @@ private fun DrawScope.drawNode(
     val corner = CornerRadius(NODE_HALF_H, NODE_HALF_H)
     drawRoundRect(color = nodeColor, topLeft = topLeft, size = size, cornerRadius = corner)
     drawRoundRect(
-        color = strokeColor, topLeft = topLeft, size = size, cornerRadius = corner, style = Stroke(width = 2.5f),
+        color = strokeColor,
+        topLeft = topLeft,
+        size = size,
+        cornerRadius = corner,
+        style = Stroke(width = 2.5f),
     )
 
     val measured = textMeasurer.measure(
