@@ -43,7 +43,10 @@ class GitHubUpdateRepository @Inject constructor(
                         ?: return@withContext UpdateCheckOutcome.NoAsset(json.optString("tag_name", "unknown"))
                 val versionName =
                     if (BuildConfig.DEBUG) {
-                        apkAsset.getString("name")
+                        // CI uploads as "app-debug.apk#app-debug-1.0.<run>.apk"; the label carries
+                        // the versioned name while name is always the fixed "app-debug.apk"
+                        val sourceName = apkAsset.optString("label", "").ifEmpty { apkAsset.getString("name") }
+                        sourceName
                             .removePrefix("app-debug-")
                             .removeSuffix(".apk")
                     } else {
