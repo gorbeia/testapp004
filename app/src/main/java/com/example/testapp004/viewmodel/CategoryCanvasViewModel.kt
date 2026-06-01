@@ -8,12 +8,14 @@ import com.example.testapp004.data.CategoryRepository
 import com.example.testapp004.data.RelationRepository
 import com.example.testapp004.model.Category
 import com.example.testapp004.model.Relation
+import com.example.testapp004.model.RelationTypes
 import com.example.testapp004.model.labelFor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.PI
@@ -40,6 +42,11 @@ data class CategoryCanvasUiState(
     val edges: List<CanvasRelationEdge> = emptyList(),
     val isLoading: Boolean = true,
     val error: String? = null,
+    val isRelationDialogOpen: Boolean = false,
+    val pendingRelationFromId: Long? = null,
+    val pendingRelationToId: Long? = null,
+    val pendingRelationFromName: String = "",
+    val pendingRelationToName: String = "",
 )
 
 @HiltViewModel
@@ -92,7 +99,62 @@ class CategoryCanvasViewModel @Inject constructor(
                     },
                     isLoading = false,
                 )
-            }.collect { _uiState.value = it }
+            }.collect { newState ->
+                _uiState.update { current ->
+                    newState.copy(
+                        isRelationDialogOpen = current.isRelationDialogOpen,
+                        pendingRelationFromId = current.pendingRelationFromId,
+                        pendingRelationToId = current.pendingRelationToId,
+                        pendingRelationFromName = current.pendingRelationFromName,
+                        pendingRelationToName = current.pendingRelationToName,
+                    )
+                }
+            }
+        }
+    }
+
+    fun openRelationDialog(fromId: Long, toId: Long) {
+        val nodes = _uiState.value.nodes
+        val fromName = nodes.find { it.id == fromId }?.name ?: ""
+        val toName = nodes.find { it.id == toId }?.name ?: ""
+        _uiState.update {
+            it.copy(
+                isRelationDialogOpen = true,
+                pendingRelationFromId = fromId,
+                pendingRelationToId = toId,
+                pendingRelationFromName = fromName,
+                pendingRelationToName = toName,
+            )
+        }
+    }
+
+    fun closeRelationDialog() {
+        _uiState.update {
+            it.copy(
+                isRelationDialogOpen = false,
+                pendingRelationFromId = null,
+                pendingRelationToId = null,
+                pendingRelationFromName = "",
+                pendingRelationToName = "",
+            )
+        }
+    }
+
+    fun addRelationFromCanvas(typeKey: String, isDragSourceFrom: Boolean, customLabel: String?) {
+        val state = _uiState.value
+        val dragFromId = state.pendingRelationFromId ?: return
+        val dragToId = state.pendingRelationToId ?: return
+        if (typeKey == RelationTypes.CUSTOM_KEY && customLabel.isNullOrBlank()) return
+        val actualFromId = if (isDragSourceFrom) dragFromId else dragToId
+        val actualToId = if (isDragSourceFrom) dragToId else dragFromId
+        viewModelScope.launch {
+            relationRepository.addRelation(
+                fromId = actualFromId,
+                toId = actualToId,
+                typeKey = typeKey,
+                customLabel = customLabel,
+            )
+            closeRelationDialog()
         }
     }
 
