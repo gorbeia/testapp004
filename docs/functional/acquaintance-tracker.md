@@ -46,12 +46,33 @@ Accessible via the **People** tab in the bottom navigation bar.
 
 ### Category canvas (`CategoryCanvasScreen`)
 
-* **Top bar**: category name; back button.
-* Pan/zoom graph of all people in the category (and its descendants) as circular nodes; directed relations between them as arrowed edges with labels.
-* **FAB (+)**: navigates to Add Person screen with the canvas category pre-checked.
-* Tapping a node navigates to that person's detail screen.
-* Loading state: spinner while data is fetched.
-* Empty state: "No people in this category" when the category has no members.
+Spatial overview of the people in a category and their relationships.
+
+**Entry points:**
+* Hub icon on any category row in the Categories screen.
+* Hub icon on any category row in the Browse Categories screen.
+
+**Layout:**
+* People are rendered as circular nodes labelled with their name.
+* Directed relations between people in the category are drawn as arrowed lines; the label sits at the midpoint of the edge and is perspective-aware (uses `Relation.labelFor(fromId)`).
+* Only relations where **both** endpoints belong to the category (or its descendants) are drawn; cross-category relations are invisible from the canvas.
+* Nodes are grouped by connected component (Union-Find). Each component's nodes are arranged in a circle. Components are placed in a left-to-right grid (max 3 per row), sorted largest first.
+* Isolated people (no intra-category relations) appear as single-node clusters.
+
+**Interaction:**
+* **Pinch / two-finger drag**: zoom in/out, centred on the pinch midpoint.
+* **One-finger drag**: pan the canvas.
+* **Tap a node**: navigates to that person's detail screen.
+* **Initial fit-to-view**: on first render the canvas automatically zooms and pans so all nodes fit with padding (capped at 1.2× zoom).
+
+**Scope:**
+* Includes people from the selected category **and all its descendants** (same recursive logic as the list-view filter).
+
+**FAB (+):** navigates to the Add Person screen with this category pre-checked in the category multi-select.
+
+**States:**
+* Loading: spinner while data is fetched.
+* Empty: "No people in this category" when the category (and descendants) has no members.
 
 ### Add / Edit person (`AddEditAcquaintanceScreen`)
 
@@ -66,9 +87,8 @@ Accessible via the **People** tab in the bottom navigation bar.
 
 * **Top bar**: "Categories"; back button.
 * List of existing categories displayed in **tree order** with visual indentation (children indented under their parent, prefixed with `└`).
-* Each item has up to three icons: **people (canvas)**, **edit (pencil)**, **delete (bin)**.
-  - Canvas (group icon): only shown when at least one person is assigned to the category. Tapping it
-    navigates to the People list pre-filtered to that category.
+* Each item has three icons: **hub (canvas)**, **edit (pencil)**, **delete (bin)**.
+  - Hub icon: navigates to the Category canvas for that category.
   - Delete: deleting a parent **orphans** its children (their parent is cleared to `null`).
   - Edit: opens Edit Category dialog pre-filled with the current name and parent.
 * **FAB (+)**: opens Add Category dialog.
