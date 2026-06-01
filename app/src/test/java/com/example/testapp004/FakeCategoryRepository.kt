@@ -18,6 +18,12 @@ class FakeCategoryRepository : CategoryRepository {
         return id
     }
 
+    override suspend fun updateCategory(categoryId: Long, name: String, parentId: Long?) {
+        _categories.update { list ->
+            list.map { if (it.id == categoryId) it.copy(name = name, parentId = parentId) else it }
+        }
+    }
+
     override suspend fun deleteCategory(categoryId: Long) {
         _categories.update { list ->
             list.filter { it.id != categoryId }

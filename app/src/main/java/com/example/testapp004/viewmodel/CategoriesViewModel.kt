@@ -15,6 +15,7 @@ import javax.inject.Inject
 data class CategoriesUiState(
     val categories: List<Category> = emptyList(),
     val isAddDialogOpen: Boolean = false,
+    val editingCategory: Category? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
 )
@@ -47,6 +48,22 @@ class CategoriesViewModel @Inject constructor(
         viewModelScope.launch {
             categoryRepository.addCategory(name.trim(), parentId)
             _uiState.update { it.copy(isAddDialogOpen = false) }
+        }
+    }
+
+    fun openEditDialog(category: Category) {
+        _uiState.update { it.copy(editingCategory = category) }
+    }
+
+    fun closeEditDialog() {
+        _uiState.update { it.copy(editingCategory = null) }
+    }
+
+    fun updateCategory(categoryId: Long, name: String, parentId: Long?) {
+        if (name.isBlank()) return
+        viewModelScope.launch {
+            categoryRepository.updateCategory(categoryId, name.trim(), parentId)
+            _uiState.update { it.copy(editingCategory = null) }
         }
     }
 

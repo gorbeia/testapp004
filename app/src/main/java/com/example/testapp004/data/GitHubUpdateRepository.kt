@@ -29,16 +29,25 @@ class GitHubUpdateRepository @Inject constructor(
                 if (!response.isSuccessful) return@withContext null
                 val body = response.body?.string() ?: return@withContext null
                 val json = JSONObject(body)
-                val tagName = json.getString("tag_name").removePrefix("v")
-                if (!isNewer(tagName, currentVersionName)) return@withContext null
                 val assets = json.getJSONArray("assets")
-                val downloadUrl =
+                val apkAsset =
                     (0 until assets.length())
                         .map { assets.getJSONObject(it) }
                         .firstOrNull { it.getString("name").endsWith(".apk") }
-                        ?.getString("browser_download_url")
                         ?: return@withContext null
-                AppRelease(versionName = tagName, downloadUrl = downloadUrl)
+                val versionName =
+                    if (BuildConfig.DEBUG) {
+                        // tag_name is "debug-latest" (not semver); version is in the asset filename
+                        // e.g. "app-debug-1.0.42.apk" → "1.0.42"
+                        apkAsset.getString("name")
+                            .removePrefix("app-debug-")
+                            .removeSuffix(".apk")
+                    } else {
+                        json.getString("tag_name").removePrefix("v")
+                    }
+                if (!isNewer(versionName, currentVersionName)) return@withContext null
+                val downloadUrl = apkAsset.getString("browser_download_url")
+                AppRelease(versionName = versionName, downloadUrl = downloadUrl)
             } catch (e: Exception) {
                 null
             }
