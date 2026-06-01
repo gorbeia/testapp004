@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -49,6 +50,7 @@ import com.example.testapp004.viewmodel.CategoriesViewModel
 fun CategoriesScreen(
     viewModel: CategoriesViewModel,
     onNavigateBack: () -> Unit,
+    onCanvasClick: (Long) -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -101,8 +103,10 @@ fun CategoriesScreen(
                     CategoryItem(
                         category = category,
                         depth = depth,
+                        hasPeople = category.id in uiState.categoriesWithPeople,
                         onEdit = { viewModel.openEditDialog(category) },
                         onDelete = { viewModel.deleteCategory(category.id) },
+                        onCanvas = { onCanvasClick(category.id) },
                     )
                 }
             }
@@ -131,8 +135,10 @@ fun CategoriesScreen(
 private fun CategoryItem(
     category: Category,
     depth: Int,
+    hasPeople: Boolean,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onCanvas: () -> Unit,
 ) {
     Card(
         modifier = Modifier
@@ -158,6 +164,15 @@ private fun CategoryItem(
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.weight(1f),
             )
+            if (hasPeople) {
+                IconButton(onClick = onCanvas) {
+                    Icon(
+                        imageVector = Icons.Default.Group,
+                        contentDescription = "View people in category",
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
             IconButton(onClick = onEdit) {
                 Icon(
                     imageVector = Icons.Default.Edit,

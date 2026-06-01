@@ -150,6 +150,10 @@ fun AppNavigation() {
                     CategoriesScreen(
                         viewModel = categoriesViewModel,
                         onNavigateBack = { navController.popBackStack() },
+                        onCanvasClick = { categoryId ->
+                            acquaintancesViewModel.selectCategory(categoryId)
+                            navController.popBackStack()
+                        },
                     )
                 }
             }
