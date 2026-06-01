@@ -29,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -50,12 +51,15 @@ import androidx.compose.ui.unit.sp
 import com.example.testapp004.viewmodel.CanvasPersonNode
 import com.example.testapp004.viewmodel.CanvasRelationEdge
 import com.example.testapp004.viewmodel.CategoryCanvasViewModel
+import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-private const val NODE_RADIUS = 50f
+private const val NODE_HALF_H = 26f
+private const val NODE_MAX_HALF_W = 110f
+private const val NODE_H_PAD = 18f
 private const val ARROW_LEN = 18f
 private const val ARROW_HALF_ANGLE = 0.4f
 
@@ -128,10 +132,10 @@ private fun CanvasGraph(
     LaunchedEffect(nodes, canvasSize) {
         if (nodes.isEmpty() || canvasSize == Size.Zero) return@LaunchedEffect
         val padding = 80f
-        val minX = nodes.minOf { it.x } - NODE_RADIUS - padding
-        val minY = nodes.minOf { it.y } - NODE_RADIUS - padding
-        val maxX = nodes.maxOf { it.x } + NODE_RADIUS + padding
-        val maxY = nodes.maxOf { it.y } + NODE_RADIUS + padding
+        val minX = nodes.minOf { it.x } - NODE_MAX_HALF_W - padding
+        val minY = nodes.minOf { it.y } - NODE_HALF_H - padding
+        val maxX = nodes.maxOf { it.x } + NODE_MAX_HALF_W + padding
+        val maxY = nodes.maxOf { it.y } + NODE_HALF_H + padding
         val contentW = maxX - minX
         val contentH = maxY - minY
         zoom = minOf(canvasSize.width / contentW, canvasSize.height / contentH, 1.2f)
@@ -143,6 +147,18 @@ private fun CanvasGraph(
     }
 
     val textMeasurer = rememberTextMeasurer()
+    val nodeHalfWidths = remember(nodes, textMeasurer) {
+        nodes.associate { node ->
+            val m = textMeasurer.measure(
+                text = node.name,
+                style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium),
+                overflow = TextOverflow.Ellipsis,
+                maxLines = 1,
+                constraints = Constraints(maxWidth = ((NODE_MAX_HALF_W - NODE_H_PAD) * 2).toInt()),
+            )
+            node.id to (m.size.width / 2f + NODE_H_PAD).coerceIn(NODE_HALF_H, NODE_MAX_HALF_W)
+        }
+    }
     val nodeColor = MaterialTheme.colorScheme.primaryContainer
     val nodeStrokeColor = MaterialTheme.colorScheme.primary
     val textColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -167,7 +183,8 @@ private fun CanvasGraph(
                     nodes.firstOrNull { node ->
                         val dx = vx - node.x
                         val dy = vy - node.y
-                        dx * dx + dy * dy <= NODE_RADIUS * NODE_RADIUS
+                        abs(dx) <= (nodeHalfWidths[node.id] ?: NODE_MAX_HALF_W) &&
+                            abs(dy) <= NODE_HALF_H
                     }?.let { onPersonClick(it.id) }
                 }
             },
@@ -182,6 +199,8 @@ private fun CanvasGraph(
                 drawEdge(
                     from = Offset(from.x, from.y),
                     to = Offset(to.x, to.y),
+                    fromHalfW = nodeHalfWidths[edge.fromId] ?: NODE_MAX_HALF_W,
+                    toHalfW = nodeHalfWidths[edge.toId] ?: NODE_MAX_HALF_W,
                     label = edge.label,
                     edgeColor = edgeColor,
                     labelColor = labelColor,
@@ -191,6 +210,7 @@ private fun CanvasGraph(
             nodes.forEach { node ->
                 drawNode(
                     center = Offset(node.x, node.y),
+                    halfW = nodeHalfWidths[node.id] ?: NODE_MAX_HALF_W,
                     name = node.name,
                     nodeColor = nodeColor,
                     strokeColor = nodeStrokeColor,
@@ -202,9 +222,18 @@ private fun CanvasGraph(
     }
 }
 
+private fun rectBorderPoint(cx: Float, cy: Float, ux: Float, uy: Float, hw: Float, hh: Float): Offset {
+    val ax = abs(ux)
+    val ay = abs(uy)
+    val t = if (ax * hh >= ay * hw) hw / ax else hh / ay
+    return Offset(cx + ux * t, cy + uy * t)
+}
+
 private fun DrawScope.drawEdge(
     from: Offset,
     to: Offset,
+    fromHalfW: Float,
+    toHalfW: Float,
     label: String,
     edgeColor: Color,
     labelColor: Color,
@@ -218,8 +247,8 @@ private fun DrawScope.drawEdge(
     val ux = dx / length
     val uy = dy / length
 
-    val start = Offset(from.x + ux * NODE_RADIUS, from.y + uy * NODE_RADIUS)
-    val end = Offset(to.x - ux * NODE_RADIUS, to.y - uy * NODE_RADIUS)
+    val start = rectBorderPoint(from.x, from.y, ux, uy, fromHalfW, NODE_HALF_H)
+    val end = rectBorderPoint(to.x, to.y, -ux, -uy, toHalfW, NODE_HALF_H)
 
     drawLine(color = edgeColor, start = start, end = end, strokeWidth = 2.5f, cap = StrokeCap.Round)
 
@@ -259,21 +288,31 @@ private fun DrawScope.drawEdge(
 
 private fun DrawScope.drawNode(
     center: Offset,
+    halfW: Float,
     name: String,
     nodeColor: Color,
     strokeColor: Color,
     textColor: Color,
     textMeasurer: TextMeasurer,
 ) {
-    drawCircle(color = nodeColor, radius = NODE_RADIUS, center = center)
-    drawCircle(color = strokeColor, radius = NODE_RADIUS, center = center, style = Stroke(width = 2.5f))
+    val topLeft = Offset(center.x - halfW, center.y - NODE_HALF_H)
+    val size = Size(halfW * 2, NODE_HALF_H * 2)
+    val corner = CornerRadius(NODE_HALF_H, NODE_HALF_H)
+    drawRoundRect(color = nodeColor, topLeft = topLeft, size = size, cornerRadius = corner)
+    drawRoundRect(
+        color = strokeColor,
+        topLeft = topLeft,
+        size = size,
+        cornerRadius = corner,
+        style = Stroke(width = 2.5f),
+    )
 
     val measured = textMeasurer.measure(
         text = name,
-        style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium, color = textColor),
+        style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium, color = textColor),
         overflow = TextOverflow.Ellipsis,
-        maxLines = 2,
-        constraints = Constraints(maxWidth = (NODE_RADIUS * 1.8f).toInt()),
+        maxLines = 1,
+        constraints = Constraints(maxWidth = ((halfW - NODE_H_PAD) * 2).coerceAtLeast(1f).toInt()),
     )
     drawText(
         textLayoutResult = measured,
