@@ -143,12 +143,19 @@ Branch naming: `feature/` for new features, `fix/` for bug fixes, `chore/` for m
 
 ## Before Every Push (for Claude)
 
-**Always run this before pushing a branch:**
+Work through this checklist in order before every push:
 
+**1. Documentation** — update docs first, before running the build:
+- New/changed feature behaviour → update or create `docs/functional/<feature>.md`
+- New library, pattern, or tool decision → create `docs/decisions/ADR-NNN-title.md` and add a row to the Decision Log in this file
+- Changed top-level convention or architecture → update this file and the relevant ADR
+
+**2. Tests** — every new ViewModel method, UiState field, or repository behaviour must have a unit test in the same commit (see Testing section above).
+
+**3. Build**:
 ```
 ./gradlew test lint ktlintCheck assembleDebug --no-daemon --stacktrace
 ```
-
 Fix every failure before the push. For ktlint violations, run `./gradlew ktlintFormat` first to auto-fix what it can, then re-run the check.
 If Gradle is not available in the current environment, state that explicitly rather than skipping it.
 
