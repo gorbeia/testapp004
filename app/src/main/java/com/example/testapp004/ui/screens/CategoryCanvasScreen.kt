@@ -7,9 +7,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -63,6 +65,7 @@ fun CategoryCanvasScreen(
     viewModel: CategoryCanvasViewModel,
     onNavigateBack: () -> Unit,
     onPersonClick: (Long) -> Unit,
+    onAddPersonClick: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -80,6 +83,11 @@ fun CategoryCanvasScreen(
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 ),
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = onAddPersonClick) {
+                Icon(Icons.Default.Add, contentDescription = "Add person")
+            }
         },
     ) { paddingValues ->
         Box(

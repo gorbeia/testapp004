@@ -35,7 +35,19 @@ class AddEditAcquaintanceViewModel @Inject constructor(
     private val acquaintanceId: Long? =
         savedStateHandle.get<Long>("acquaintanceId")?.takeIf { it != -1L }
 
-    private val _uiState = MutableStateFlow(AddEditAcquaintanceUiState(isEditing = acquaintanceId != null))
+    private val preselectedCategoryId: Long? =
+        savedStateHandle.get<Long>("preselectedCategoryId")?.takeIf { it != -1L }
+
+    private val _uiState = MutableStateFlow(
+        AddEditAcquaintanceUiState(
+            isEditing = acquaintanceId != null,
+            selectedCategoryIds = if (acquaintanceId == null && preselectedCategoryId != null) {
+                setOf(preselectedCategoryId)
+            } else {
+                emptySet()
+            },
+        ),
+    )
     val uiState: StateFlow<AddEditAcquaintanceUiState> = _uiState.asStateFlow()
 
     init {
