@@ -61,4 +61,39 @@ class RoomCategoryRepository @Inject constructor(
             }
         }
     }
+
+    override suspend fun moveCategory(movedId: Long, newParentId: Long?, targetPositionId: Long?) {
+        val all = dao.getAllOnce()
+        val moved = all.find { it.id == movedId } ?: return
+        val oldParentId = moved.parentId
+        if (newParentId == movedId) return
+        if (newParentId != null && isDescendant(all, movedId, newParentId)) return
+
+        val newSiblings = all.filter { it.parentId == newParentId && it.id != movedId }
+            .sortedWith(compareBy({ it.sortOrder }, { it.id }))
+            .toMutableList()
+        val insertPos = if (targetPositionId != null) {
+            newSiblings.indexOfFirst { it.id == targetPositionId }.takeIf { it != -1 } ?: newSiblings.size
+        } else {
+            newSiblings.size
+        }
+        newSiblings.add(minOf(insertPos, newSiblings.size), moved)
+
+        if (oldParentId != newParentId) {
+            dao.updateById(movedId, moved.name, newParentId)
+            val oldSiblings = all.filter { it.parentId == oldParentId && it.id != movedId }
+                .sortedWith(compareBy({ it.sortOrder }, { it.id }))
+            oldSiblings.forEachIndexed { index, entity -> dao.updateSortOrder(entity.id, index) }
+        }
+        newSiblings.forEachIndexed { index, entity -> dao.updateSortOrder(entity.id, index) }
+    }
+
+    private fun isDescendant(all: List<CategoryEntity>, ancestor: Long, candidate: Long): Boolean {
+        var current: Long? = candidate
+        while (current != null) {
+            current = all.find { it.id == current }?.parentId
+            if (current == ancestor) return true
+        }
+        return false
+    }
 }

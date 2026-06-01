@@ -309,4 +309,105 @@ class CategoriesViewModelTest {
         val afterA = viewModel.uiState.value.categories.find { it.id == aId }?.sortOrder
         assertEquals(beforeA, afterA)
     }
+
+    // --- moveCategory ---
+
+    @Test
+    fun `moveCategory reparents to new parent`() {
+        viewModel.addCategory("Work")
+        viewModel.addCategory("Family")
+        val workId = viewModel.uiState.value.categories.first { it.name == "Work" }.id
+        val familyId = viewModel.uiState.value.categories.first { it.name == "Family" }.id
+        viewModel.addCategory("Engineering", workId)
+        val engineeringId = viewModel.uiState.value.categories.first { it.name == "Engineering" }.id
+
+        viewModel.moveCategory(engineeringId, familyId, null)
+
+        val engineering = viewModel.uiState.value.categories.find { it.id == engineeringId }
+        assertEquals(familyId, engineering?.parentId)
+    }
+
+    @Test
+    fun `moveCategory promotes child to root`() {
+        viewModel.addCategory("Work")
+        val workId = viewModel.uiState.value.categories.first { it.name == "Work" }.id
+        viewModel.addCategory("Engineering", workId)
+        val engineeringId = viewModel.uiState.value.categories.first { it.name == "Engineering" }.id
+
+        viewModel.moveCategory(engineeringId, null, null)
+
+        val engineering = viewModel.uiState.value.categories.find { it.id == engineeringId }
+        assertNull(engineering?.parentId)
+    }
+
+    @Test
+    fun `moveCategory respects targetPositionId among new siblings`() {
+        viewModel.addCategory("A")
+        viewModel.addCategory("B")
+        viewModel.addCategory("C")
+        viewModel.addCategory("Work")
+        val aId = viewModel.uiState.value.categories.first { it.name == "A" }.id
+        val bId = viewModel.uiState.value.categories.first { it.name == "B" }.id
+        val workId = viewModel.uiState.value.categories.first { it.name == "Work" }.id
+
+        viewModel.addCategory("Engineering", workId)
+        val engineeringId = viewModel.uiState.value.categories.first { it.name == "Engineering" }.id
+
+        // Move Engineering to root, inserting before B
+        viewModel.moveCategory(engineeringId, null, bId)
+
+        val rootCats = viewModel.uiState.value.categories
+            .filter { it.parentId == null }
+            .sortedWith(compareBy({ it.sortOrder }, { it.id }))
+            .map { it.name }
+        assertEquals(listOf("A", "Engineering", "B", "C", "Work"), rootCats)
+    }
+
+    @Test
+    fun `moveCategory does nothing when new parent is self`() {
+        viewModel.addCategory("Work")
+        val workId = viewModel.uiState.value.categories.first { it.name == "Work" }.id
+        val beforeParent = viewModel.uiState.value.categories.find { it.id == workId }?.parentId
+
+        viewModel.moveCategory(workId, workId, null)
+
+        val afterParent = viewModel.uiState.value.categories.find { it.id == workId }?.parentId
+        assertEquals(beforeParent, afterParent)
+    }
+
+    @Test
+    fun `moveCategory prevents cycle - cannot move parent under its own descendant`() {
+        viewModel.addCategory("Work")
+        val workId = viewModel.uiState.value.categories.first { it.name == "Work" }.id
+        viewModel.addCategory("Engineering", workId)
+        val engineeringId = viewModel.uiState.value.categories.first { it.name == "Engineering" }.id
+
+        viewModel.moveCategory(workId, engineeringId, null)
+
+        val work = viewModel.uiState.value.categories.find { it.id == workId }
+        assertNull(work?.parentId)
+    }
+
+    @Test
+    fun `moveCategory reorders old parent siblings after removal`() {
+        viewModel.addCategory("Work")
+        val workId = viewModel.uiState.value.categories.first { it.name == "Work" }.id
+        viewModel.addCategory("Family")
+        val familyId = viewModel.uiState.value.categories.first { it.name == "Family" }.id
+        viewModel.addCategory("Child1", workId)
+        viewModel.addCategory("Child2", workId)
+        viewModel.addCategory("Child3", workId)
+        val child1Id = viewModel.uiState.value.categories.first { it.name == "Child1" }.id
+
+        viewModel.moveCategory(child1Id, familyId, null)
+
+        val workChildren = viewModel.uiState.value.categories
+            .filter { it.parentId == workId }
+            .sortedWith(compareBy({ it.sortOrder }, { it.id }))
+            .map { it.name }
+        assertEquals(listOf("Child2", "Child3"), workChildren)
+        val child2 = viewModel.uiState.value.categories.first { it.name == "Child2" }
+        val child3 = viewModel.uiState.value.categories.first { it.name == "Child3" }
+        assertTrue(child2.sortOrder < child3.sortOrder)
+    }
 }
