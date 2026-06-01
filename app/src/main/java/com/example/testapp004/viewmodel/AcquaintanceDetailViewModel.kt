@@ -153,4 +153,11 @@ class AcquaintanceDetailViewModel @Inject constructor(
             acquaintanceRepository.updateAcquaintance(updated)
         }
     }
+
+    fun saveBio(bio: String) {
+        val acquaintance = _uiState.value.acquaintance ?: return
+        viewModelScope.launch {
+            acquaintanceRepository.updateAcquaintance(acquaintance.copy(bio = bio.trim()))
+        }
+    }
 }

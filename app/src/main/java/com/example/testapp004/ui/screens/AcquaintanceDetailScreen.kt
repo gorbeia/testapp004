@@ -124,6 +124,7 @@ fun AcquaintanceDetailScreen(
                         bio = acquaintance.bio,
                         categoryNames = uiState.categoryNames,
                         onCategoryClick = onCategoryClick,
+                        onSaveBio = viewModel::saveBio,
                     )
                 }
                 item {
@@ -193,7 +194,15 @@ fun AcquaintanceDetailScreen(
 }
 
 @Composable
-private fun BioSection(bio: String, categoryNames: List<String>, onCategoryClick: () -> Unit) {
+private fun BioSection(
+    bio: String,
+    categoryNames: List<String>,
+    onCategoryClick: () -> Unit,
+    onSaveBio: (String) -> Unit,
+) {
+    var isEditing by remember { mutableStateOf(false) }
+    var draft by remember(bio) { mutableStateOf(bio) }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
@@ -207,17 +216,52 @@ private fun BioSection(bio: String, categoryNames: List<String>, onCategoryClick
                 }
                 Spacer(modifier = Modifier.height(8.dp))
             }
-            if (bio.isNotBlank()) {
-                Text(
-                    text = bio,
-                    style = MaterialTheme.typography.bodyLarge,
+            if (isEditing) {
+                OutlinedTextField(
+                    value = draft,
+                    onValueChange = { draft = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Bio") },
+                    minLines = 3,
+                    maxLines = 8,
                 )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                ) {
+                    TextButton(onClick = {
+                        isEditing = false
+                        draft = bio
+                    }) { Text("Cancel") }
+                    Button(onClick = {
+                        onSaveBio(draft)
+                        isEditing = false
+                    }) { Text("Save") }
+                }
             } else {
-                Text(
-                    text = "No bio added",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    if (bio.isNotBlank()) {
+                        Text(
+                            text = bio,
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.weight(1f),
+                        )
+                    } else {
+                        Text(
+                            text = "No bio added",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    IconButton(onClick = { isEditing = true }) {
+                        Icon(Icons.Default.Edit, contentDescription = "Edit bio")
+                    }
+                }
             }
         }
     }
