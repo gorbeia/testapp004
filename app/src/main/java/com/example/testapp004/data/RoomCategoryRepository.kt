@@ -24,6 +24,10 @@ class RoomCategoryRepository @Inject constructor(
     override suspend fun addCategory(name: String, parentId: Long?): Long =
         dao.insert(CategoryEntity(name = name, parentId = parentId))
 
+    override suspend fun updateCategory(categoryId: Long, name: String, parentId: Long?) {
+        dao.updateById(categoryId, name, parentId)
+    }
+
     override suspend fun deleteCategory(categoryId: Long) {
         // ON DELETE SET NULL on the parent_id FK handles child categories automatically
         dao.deleteById(categoryId)

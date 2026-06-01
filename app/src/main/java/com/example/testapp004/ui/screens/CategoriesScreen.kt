@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -100,6 +101,7 @@ fun CategoriesScreen(
                     CategoryItem(
                         category = category,
                         depth = depth,
+                        onEdit = { viewModel.openEditDialog(category) },
                         onDelete = { viewModel.deleteCategory(category.id) },
                     )
                 }
@@ -114,12 +116,22 @@ fun CategoriesScreen(
             onDismiss = viewModel::closeAddDialog,
         )
     }
+
+    uiState.editingCategory?.let { editing ->
+        EditCategoryDialog(
+            category = editing,
+            allCategories = uiState.categories,
+            onConfirm = { name, parentId -> viewModel.updateCategory(editing.id, name, parentId) },
+            onDismiss = viewModel::closeEditDialog,
+        )
+    }
 }
 
 @Composable
 private fun CategoryItem(
     category: Category,
     depth: Int,
+    onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
     Card(
@@ -146,6 +158,12 @@ private fun CategoryItem(
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.weight(1f),
             )
+            IconButton(onClick = onEdit) {
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = "Edit category",
+                )
+            }
             IconButton(onClick = onDelete) {
                 Icon(
                     imageVector = Icons.Default.Delete,
@@ -235,6 +253,102 @@ private fun AddCategoryDialog(
             TextButton(onClick = onDismiss) { Text("Cancel") }
         },
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditCategoryDialog(
+    category: Category,
+    allCategories: List<Category>,
+    onConfirm: (name: String, parentId: Long?) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var name by remember { mutableStateOf(category.name) }
+    var selectedParentId by remember { mutableStateOf(category.parentId) }
+    var isParentDropdownExpanded by remember { mutableStateOf(false) }
+
+    val forbidden = descendantIds(allCategories, category.id) + category.id
+    val eligibleParents = allCategories.filter { it.id !in forbidden }
+    val selectedParentName = eligibleParents.find { it.id == selectedParentId }?.name ?: "None"
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Category") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Category name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                ExposedDropdownMenuBox(
+                    expanded = isParentDropdownExpanded,
+                    onExpandedChange = { isParentDropdownExpanded = !isParentDropdownExpanded },
+                ) {
+                    OutlinedTextField(
+                        value = selectedParentName,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Parent category (optional)") },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = isParentDropdownExpanded)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(),
+                    )
+                    ExposedDropdownMenu(
+                        expanded = isParentDropdownExpanded,
+                        onDismissRequest = { isParentDropdownExpanded = false },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("None (top level)") },
+                            onClick = {
+                                selectedParentId = null
+                                isParentDropdownExpanded = false
+                            },
+                        )
+                        eligibleParents.forEach { parent ->
+                            DropdownMenuItem(
+                                text = { Text(parent.name) },
+                                onClick = {
+                                    selectedParentId = parent.id
+                                    isParentDropdownExpanded = false
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(name, selectedParentId) },
+                enabled = name.isNotBlank(),
+            ) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
+}
+
+private fun descendantIds(categories: List<Category>, rootId: Long): Set<Long> {
+    val result = mutableSetOf<Long>()
+    val queue = ArrayDeque<Long>()
+    queue.add(rootId)
+    while (queue.isNotEmpty()) {
+        val current = queue.removeFirst()
+        categories.filter { it.parentId == current }.forEach { child ->
+            result.add(child.id)
+            queue.add(child.id)
+        }
+    }
+    return result
 }
 
 private fun buildCategoryTree(categories: List<Category>): List<Pair<Category, Int>> {

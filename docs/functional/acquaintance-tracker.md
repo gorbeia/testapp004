@@ -43,10 +43,13 @@ Accessible via the **People** tab in the bottom navigation bar.
 
 * **Top bar**: "Categories"; back button.
 * List of existing categories displayed in **tree order** with visual indentation (children indented under their parent, prefixed with `└`).
-* Delete icon per item. Deleting a parent **orphans** its children (their parent is cleared to `null`).
+* Each item has an **edit (pencil)** icon and a **delete (bin)** icon.
+  - Delete: deleting a parent **orphans** its children (their parent is cleared to `null`).
+  - Edit: opens Edit Category dialog pre-filled with the current name and parent.
 * **FAB (+)**: opens Add Category dialog.
   - Text field for the category name.
   - Optional parent-category dropdown (only shown when at least one category already exists); defaults to "None (top level)".
+* **Edit Category dialog**: pre-filled name field + parent dropdown. The category being edited and all its descendants are excluded from the parent dropdown to prevent cycles. "Save" button disabled when name is blank.
 * Empty state: "No categories yet".
 * Deleting a category does NOT automatically clear it from existing people (the removed `categoryId` is silently dropped from rendered chips).
 
