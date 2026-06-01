@@ -29,6 +29,7 @@ data class CanvasPersonNode(
     val x: Float,
     val y: Float,
     val dominantCategory: RelationCategory?,
+    val isDirectMember: Boolean,
 )
 
 data class CanvasRelationEdge(
@@ -108,6 +109,7 @@ class CategoryCanvasViewModel @Inject constructor(
                             x = x,
                             y = y,
                             dominantCategory = dominant,
+                            isDirectMember = person.categoryIds.contains(categoryId),
                         )
                     },
                     edges = intraRelations.map { rel ->

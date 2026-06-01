@@ -213,6 +213,7 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | Create related person from relation dialog | ✅ Done | [ADR-020](docs/decisions/ADR-020-create-related-person-from-detail.md) |
 | Canvas drag-drop to create relations | ✅ Done | [ADR-021](docs/decisions/ADR-021-canvas-drag-drop-relations.md) |
 | Canvas relation-based color scheme | ✅ Done | [ADR-022](docs/decisions/ADR-022-canvas-color-scheme.md) |
+| Canvas parent/child category color distinction | ✅ Done | [ADR-024](docs/decisions/ADR-024-canvas-parent-child-color-distinction.md) |
 
 ---
 
@@ -243,3 +244,4 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | [ADR-021](docs/decisions/ADR-021-canvas-drag-drop-relations.md) | Canvas drag-drop to create relations (long-press node, drag onto another) | 2026-06-01 |
 | [ADR-022](docs/decisions/ADR-022-canvas-color-scheme.md) | Canvas color scheme: nodes and edges colored by relation category (family/professional/social) | 2026-06-01 |
 | [ADR-023](docs/decisions/ADR-023-categories-management-updates.md) | Categories management: remove canvas link, add child button, drag-drop sort order | 2026-06-01 |
+| [ADR-024](docs/decisions/ADR-024-canvas-parent-child-color-distinction.md) | Canvas nodes for direct category members render at full color; child-only members use a lightened blend | 2026-06-01 |
