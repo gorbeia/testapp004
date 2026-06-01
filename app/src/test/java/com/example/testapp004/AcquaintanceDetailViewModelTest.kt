@@ -135,7 +135,11 @@ class AcquaintanceDetailViewModelTest {
     fun `incoming relation shows isOutgoing false`() {
         runBlocking {
             val bobId = fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet())
-            fakeRelationRepository.addRelation(fromId = bobId, toId = aliceId, typeKey = RelationTypes.MENTOR_MENTEE.key)
+            fakeRelationRepository.addRelation(
+                fromId = bobId,
+                toId = aliceId,
+                typeKey = RelationTypes.MENTOR_MENTEE.key,
+            )
         }
         assertFalse(buildViewModel().uiState.value.relations.first().isOutgoing)
     }

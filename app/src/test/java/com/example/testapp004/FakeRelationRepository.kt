@@ -14,7 +14,9 @@ class FakeRelationRepository : RelationRepository {
 
     override suspend fun addRelation(fromId: Long, toId: Long, typeKey: String, customLabel: String?) {
         val id = nextId++
-        _relations.update { it + Relation(id = id, fromId = fromId, toId = toId, typeKey = typeKey, customLabel = customLabel) }
+        _relations.update {
+            it + Relation(id = id, fromId = fromId, toId = toId, typeKey = typeKey, customLabel = customLabel)
+        }
     }
 
     override suspend fun deleteRelation(relationId: Long) {
