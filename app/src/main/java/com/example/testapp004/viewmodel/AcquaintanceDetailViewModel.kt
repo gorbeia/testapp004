@@ -36,6 +36,7 @@ data class AcquaintanceDetailUiState(
     val allOtherAcquaintances: List<Acquaintance> = emptyList(),
     val linkedContactInfo: ContactInfo? = null,
     val isAddRelationDialogOpen: Boolean = false,
+    val pendingNewRelationPersonId: Long? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
 )
@@ -106,11 +107,15 @@ class AcquaintanceDetailViewModel @Inject constructor(
     }
 
     fun openAddRelationDialog() {
-        _uiState.update { it.copy(isAddRelationDialogOpen = true) }
+        _uiState.update { it.copy(isAddRelationDialogOpen = true, pendingNewRelationPersonId = null) }
+    }
+
+    fun openAddRelationDialogWithPreselectedPerson(personId: Long) {
+        _uiState.update { it.copy(isAddRelationDialogOpen = true, pendingNewRelationPersonId = personId) }
     }
 
     fun closeAddRelationDialog() {
-        _uiState.update { it.copy(isAddRelationDialogOpen = false) }
+        _uiState.update { it.copy(isAddRelationDialogOpen = false, pendingNewRelationPersonId = null) }
     }
 
     fun addRelation(otherId: Long, typeKey: String, isCurrentPersonFrom: Boolean, customLabel: String?) {

@@ -72,6 +72,7 @@ fun AcquaintanceDetailScreen(
     onEditClick: (Long) -> Unit,
     onPersonClick: (Long) -> Unit,
     onCategoryClick: () -> Unit,
+    onCreateNewPersonClick: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val acquaintance = uiState.acquaintance
@@ -163,10 +164,15 @@ fun AcquaintanceDetailScreen(
     if (uiState.isAddRelationDialogOpen) {
         AddRelationDialog(
             allAcquaintances = uiState.allOtherAcquaintances,
+            preselectedPersonId = uiState.pendingNewRelationPersonId,
             onConfirm = { otherId, typeKey, isCurrentPersonFrom, customLabel ->
                 viewModel.addRelation(otherId, typeKey, isCurrentPersonFrom, customLabel)
             },
             onDismiss = viewModel::closeAddRelationDialog,
+            onCreateNewPerson = {
+                viewModel.closeAddRelationDialog()
+                onCreateNewPersonClick()
+            },
         )
     }
 
@@ -487,12 +493,14 @@ private fun RelationCard(
 @Composable
 private fun AddRelationDialog(
     allAcquaintances: List<Acquaintance>,
+    preselectedPersonId: Long?,
     onConfirm: (otherId: Long, typeKey: String, isCurrentPersonFrom: Boolean, customLabel: String?) -> Unit,
     onDismiss: () -> Unit,
+    onCreateNewPerson: () -> Unit,
 ) {
     val typeOptions = remember { RelationTypes.typeOptions() }
 
-    var selectedPersonId by remember { mutableStateOf<Long?>(null) }
+    var selectedPersonId by remember(preselectedPersonId) { mutableStateOf<Long?>(preselectedPersonId) }
     var selectedOption by remember { mutableStateOf<RelationTypeOption?>(null) }
     var customLabel by remember { mutableStateOf("") }
     var isPersonDropdownExpanded by remember { mutableStateOf(false) }
@@ -539,6 +547,16 @@ private fun AddRelationDialog(
                             )
                         }
                     }
+                }
+                TextButton(
+                    onClick = onCreateNewPerson,
+                    modifier = Modifier.align(Alignment.End),
+                ) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = null,
+                    )
+                    Text("Create new person")
                 }
 
                 ExposedDropdownMenuBox(
