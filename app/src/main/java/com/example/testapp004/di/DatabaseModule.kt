@@ -24,7 +24,9 @@ object DatabaseModule {
     fun provideAppDatabase(
         @ApplicationContext context: Context,
     ): AppDatabase =
-        Room.databaseBuilder(context, AppDatabase::class.java, "testapp004.db").build()
+        Room.databaseBuilder(context, AppDatabase::class.java, "testapp004.db")
+            .addMigrations(AppDatabase.MIGRATION_1_2)
+            .build()
 
     @Provides
     fun provideAcquaintanceDao(db: AppDatabase): AcquaintanceDao = db.acquaintanceDao()

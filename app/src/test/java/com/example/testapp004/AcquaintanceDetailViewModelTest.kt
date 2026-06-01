@@ -1,6 +1,7 @@
 package com.example.testapp004
 
 import androidx.lifecycle.SavedStateHandle
+import com.example.testapp004.model.RelationTypes
 import com.example.testapp004.util.MainDispatcherRule
 import com.example.testapp004.viewmodel.AcquaintanceDetailViewModel
 import kotlinx.coroutines.runBlocking
@@ -101,24 +102,32 @@ class AcquaintanceDetailViewModelTest {
         val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
         val vm = buildViewModel()
         vm.openAddRelationDialog()
-        vm.addRelation(bobId, "works with")
+        vm.addRelation(bobId, RelationTypes.CUSTOM_KEY, isCurrentPersonFrom = true, customLabel = "works with")
         assertEquals(1, vm.uiState.value.relations.size)
         assertFalse(vm.uiState.value.isAddRelationDialogOpen)
     }
 
     @Test
-    fun `addRelation with blank label does nothing`() {
+    fun `addRelation with blank custom label does nothing`() {
         val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
         val vm = buildViewModel()
-        vm.addRelation(bobId, "   ")
+        vm.addRelation(bobId, RelationTypes.CUSTOM_KEY, isCurrentPersonFrom = true, customLabel = "   ")
         assertTrue(vm.uiState.value.relations.isEmpty())
+    }
+
+    @Test
+    fun `addRelation with predefined type requires no label`() {
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
+        val vm = buildViewModel()
+        vm.addRelation(bobId, RelationTypes.FRIEND.key, isCurrentPersonFrom = true, customLabel = null)
+        assertEquals(1, vm.uiState.value.relations.size)
     }
 
     @Test
     fun `outgoing relation shows isOutgoing true`() {
         val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
         val vm = buildViewModel()
-        vm.addRelation(bobId, "mentors")
+        vm.addRelation(bobId, RelationTypes.MENTOR_MENTEE.key, isCurrentPersonFrom = true, customLabel = null)
         assertTrue(vm.uiState.value.relations.first().isOutgoing)
     }
 
@@ -126,16 +135,36 @@ class AcquaintanceDetailViewModelTest {
     fun `incoming relation shows isOutgoing false`() {
         runBlocking {
             val bobId = fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet())
-            fakeRelationRepository.addRelation(fromId = bobId, toId = aliceId, label = "mentors")
+            fakeRelationRepository.addRelation(fromId = bobId, toId = aliceId, typeKey = RelationTypes.MENTOR_MENTEE.key)
         }
         assertFalse(buildViewModel().uiState.value.relations.first().isOutgoing)
+    }
+
+    @Test
+    fun `predefined relation label reflects perspective`() {
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
+        val vm = buildViewModel()
+        // Alice is the parent of Bob: isCurrentPersonFrom = true → from=Alice, to=Bob
+        vm.addRelation(bobId, RelationTypes.PARENT_CHILD.key, isCurrentPersonFrom = true, customLabel = null)
+        assertEquals("Parent", vm.uiState.value.relations.first().label)
+    }
+
+    @Test
+    fun `predefined relation inverse label reflects perspective`() {
+        runBlocking {
+            val bobId = fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet())
+            // Bob is parent of Alice: from=Bob, to=Alice
+            fakeRelationRepository.addRelation(fromId = bobId, toId = aliceId, typeKey = RelationTypes.PARENT_CHILD.key)
+        }
+        // Alice's perspective: she is the child
+        assertEquals("Child", buildViewModel().uiState.value.relations.first().label)
     }
 
     @Test
     fun `deleteRelation removes the relation`() {
         val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
         val vm = buildViewModel()
-        vm.addRelation(bobId, "knows")
+        vm.addRelation(bobId, RelationTypes.FRIEND.key, isCurrentPersonFrom = true, customLabel = null)
         val relationId = vm.uiState.value.relations.first().relationId
         vm.deleteRelation(relationId)
         assertTrue(vm.uiState.value.relations.isEmpty())

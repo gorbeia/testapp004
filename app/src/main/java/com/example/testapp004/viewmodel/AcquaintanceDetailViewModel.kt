@@ -10,6 +10,8 @@ import com.example.testapp004.data.ContactRepository
 import com.example.testapp004.data.RelationRepository
 import com.example.testapp004.model.Acquaintance
 import com.example.testapp004.model.ContactInfo
+import com.example.testapp004.model.RelationTypes
+import com.example.testapp004.model.labelFor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -71,7 +73,7 @@ class AcquaintanceDetailViewModel @Inject constructor(
                     val other = acquaintances.find { it.id == otherId } ?: return@mapNotNull null
                     RelationDisplay(
                         relationId = relation.id,
-                        label = relation.label,
+                        label = relation.labelFor(acquaintanceId),
                         otherPersonId = other.id,
                         otherPersonName = other.name,
                         isOutgoing = isOutgoing,
@@ -111,10 +113,12 @@ class AcquaintanceDetailViewModel @Inject constructor(
         _uiState.update { it.copy(isAddRelationDialogOpen = false) }
     }
 
-    fun addRelation(toId: Long, label: String) {
-        if (label.isBlank()) return
+    fun addRelation(otherId: Long, typeKey: String, isCurrentPersonFrom: Boolean, customLabel: String?) {
+        if (typeKey == RelationTypes.CUSTOM_KEY && customLabel.isNullOrBlank()) return
+        val fromId = if (isCurrentPersonFrom) acquaintanceId else otherId
+        val toId = if (isCurrentPersonFrom) otherId else acquaintanceId
         viewModelScope.launch {
-            relationRepository.addRelation(fromId = acquaintanceId, toId = toId, label = label)
+            relationRepository.addRelation(fromId = fromId, toId = toId, typeKey = typeKey, customLabel = customLabel)
             _uiState.update { it.copy(isAddRelationDialogOpen = false) }
         }
     }

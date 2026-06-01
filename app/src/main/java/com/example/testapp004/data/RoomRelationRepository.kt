@@ -18,11 +18,21 @@ class RoomRelationRepository @Inject constructor(
     @ApplicationScope private val scope: CoroutineScope,
 ) : RelationRepository {
     override val relations: StateFlow<List<Relation>> = dao.getAll()
-        .map { list -> list.map { Relation(id = it.id, fromId = it.fromId, toId = it.toId, label = it.label) } }
+        .map { list ->
+            list.map {
+                Relation(
+                    id = it.id,
+                    fromId = it.fromId,
+                    toId = it.toId,
+                    typeKey = it.typeKey,
+                    customLabel = it.customLabel,
+                )
+            }
+        }
         .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
-    override suspend fun addRelation(fromId: Long, toId: Long, label: String) {
-        dao.insert(RelationEntity(fromId = fromId, toId = toId, label = label))
+    override suspend fun addRelation(fromId: Long, toId: Long, typeKey: String, customLabel: String?) {
+        dao.insert(RelationEntity(fromId = fromId, toId = toId, typeKey = typeKey, customLabel = customLabel))
     }
 
     override suspend fun deleteRelation(relationId: Long) {
