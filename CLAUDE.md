@@ -175,3 +175,4 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | [ADR-012](docs/decisions/ADR-012-android-contact-linking.md) | Android contact linking via ContactsContract lookup key | 2026-05-31 |
 | [ADR-013](docs/decisions/ADR-013-room-persistence.md) | Room SQLite persistence replacing in-memory storage | 2026-05-31 |
 | [ADR-014](docs/decisions/ADR-014-debug-prerelease-update-channel.md) | Debug pre-release update channel via GitHub pre-releases + shared debug keystore | 2026-05-31 |
+| [ADR-015](docs/decisions/ADR-015-room-gradle-plugin.md) | Room Gradle Plugin for variant-safe schema export (fixes KSP parallel-build race) | 2026-06-01 |
