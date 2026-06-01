@@ -15,10 +15,22 @@ Accessible via the **People** tab in the bottom navigation bar.
 * Shows all acquaintances as cards (name, bio preview, category chips — one per assigned category). Tapping a category chip navigates to the Categories screen.
 * **Category filter row**: horizontal scrollable `FilterChip` row — "All" + one chip per existing category. Selecting a chip shows people who have that category **or any of its descendants** assigned.
 * **FAB (+)**: navigates to Add Person screen.
-* **List icon (top-right)**: navigates to Categories screen.
+* **AccountTree icon (top-right)**: navigates to the Browse Categories screen.
+* **⋮ overflow menu**: "Manage categories" → Categories screen; "Check for updates" → update dialog.
 * Category chips on person cards navigate to the Categories screen.
 * Swipe-delete is not implemented; a delete icon is shown on each card.
 * Empty state: "No people yet" / "No people in this category".
+
+### Browse Categories (`CategoryBrowseScreen`)
+
+* Purpose: explore the category tree to locate a category and jump to its canvas. Designed for corpora with dozens of categories.
+* **Top bar**: "Browse Categories"; back button.
+* Root categories are shown alphabetically. Categories with children display a **chevron (›)** that rotates to **∨** when expanded.
+* Tapping a row with children **toggles** it expanded/collapsed. Only the visible subtree is shown at each moment (lazy expansion).
+* Expanded children are also listed alphabetically and indented 24 dp per depth level.
+* Each row — at any depth — has a **Hub icon** on the right; tapping it navigates directly to `CategoryCanvasScreen` for that category.
+* Leaf categories (no children) show a fixed 24 dp spacer instead of the chevron.
+* Empty state: "No categories yet".
 
 ### Person detail (`AcquaintanceDetailScreen`)
 

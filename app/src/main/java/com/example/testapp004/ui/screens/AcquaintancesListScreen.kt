@@ -14,9 +14,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
@@ -56,6 +56,7 @@ fun AcquaintancesListScreen(
     viewModel: AcquaintancesViewModel,
     onPersonClick: (Long) -> Unit,
     onAddPersonClick: () -> Unit,
+    onBrowseCategoriesClick: () -> Unit,
     onManageCategoriesClick: () -> Unit,
     onCheckForUpdatesClick: () -> Unit,
     onCategoryClick: () -> Unit,
@@ -72,8 +73,8 @@ fun AcquaintancesListScreen(
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 ),
                 actions = {
-                    IconButton(onClick = onManageCategoriesClick) {
-                        Icon(Icons.Default.List, contentDescription = "Manage categories")
+                    IconButton(onClick = onBrowseCategoriesClick) {
+                        Icon(Icons.Default.AccountTree, contentDescription = "Browse categories")
                     }
                     Box {
                         IconButton(onClick = { menuExpanded = true }) {
@@ -83,6 +84,13 @@ fun AcquaintancesListScreen(
                             expanded = menuExpanded,
                             onDismissRequest = { menuExpanded = false },
                         ) {
+                            DropdownMenuItem(
+                                text = { Text("Manage categories") },
+                                onClick = {
+                                    menuExpanded = false
+                                    onManageCategoriesClick()
+                                },
+                            )
                             DropdownMenuItem(
                                 text = { Text("Check for updates") },
                                 onClick = {

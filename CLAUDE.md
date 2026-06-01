@@ -157,6 +157,7 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | Self-update (GitHub Releases) | ✅ Done | [self-update.md](docs/functional/self-update.md) |
 | Android contact linking | ✅ Done | [android-contact-linking.md](docs/functional/android-contact-linking.md) |
 | Category canvas view | ✅ Done | [ADR-017](docs/decisions/ADR-017-category-canvas-view.md) |
+| Category tree browse | ✅ Done | [acquaintance-tracker.md](docs/functional/acquaintance-tracker.md) |
 
 ---
 

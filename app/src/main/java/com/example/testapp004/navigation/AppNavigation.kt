@@ -46,6 +46,7 @@ import com.example.testapp004.ui.screens.AcquaintanceDetailScreen
 import com.example.testapp004.ui.screens.AcquaintancesListScreen
 import com.example.testapp004.ui.screens.AddEditAcquaintanceScreen
 import com.example.testapp004.ui.screens.CategoriesScreen
+import com.example.testapp004.ui.screens.CategoryBrowseScreen
 import com.example.testapp004.ui.screens.CategoryCanvasScreen
 import com.example.testapp004.viewmodel.AcquaintanceDetailViewModel
 import com.example.testapp004.viewmodel.AcquaintancesViewModel
@@ -72,6 +73,8 @@ sealed class Screen(val route: String) {
     }
 
     object Categories : Screen("categories")
+
+    object CategoryBrowse : Screen("category_browse")
 
     object CategoryCanvas : Screen("category_canvas/{categoryId}") {
         const val ARG_CATEGORY_ID = "categoryId"
@@ -119,6 +122,7 @@ fun AppNavigation() {
                         viewModel = acquaintancesViewModel,
                         onPersonClick = { id -> navController.navigate(Screen.AcquaintanceDetail.createRoute(id)) },
                         onAddPersonClick = { navController.navigate(Screen.AddEditAcquaintance.ROUTE_NEW) },
+                        onBrowseCategoriesClick = { navController.navigate(Screen.CategoryBrowse.route) },
                         onManageCategoriesClick = { navController.navigate(Screen.Categories.route) },
                         onCheckForUpdatesClick = updateViewModel::openDebugDialog,
                         onCategoryClick = { navController.navigate(Screen.Categories.route) },
@@ -156,6 +160,15 @@ fun AppNavigation() {
                 }
                 composable(Screen.Categories.route) {
                     CategoriesScreen(
+                        viewModel = categoriesViewModel,
+                        onNavigateBack = { navController.popBackStack() },
+                        onCanvasClick = { id ->
+                            navController.navigate(Screen.CategoryCanvas.createRoute(id))
+                        },
+                    )
+                }
+                composable(Screen.CategoryBrowse.route) {
+                    CategoryBrowseScreen(
                         viewModel = categoriesViewModel,
                         onNavigateBack = { navController.popBackStack() },
                         onCanvasClick = { id ->
