@@ -156,6 +156,7 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | Acquaintance tracker — predefined relation types | ✅ Done | [acquaintance-tracker.md](docs/functional/acquaintance-tracker.md) |
 | Self-update (GitHub Releases) | ✅ Done | [self-update.md](docs/functional/self-update.md) |
 | Android contact linking | ✅ Done | [android-contact-linking.md](docs/functional/android-contact-linking.md) |
+| Category canvas view | ✅ Done | [ADR-017](docs/decisions/ADR-017-category-canvas-view.md) |
 
 ---
 
@@ -179,3 +180,4 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | [ADR-014](docs/decisions/ADR-014-debug-prerelease-update-channel.md) | Debug pre-release update channel via GitHub pre-releases + shared debug keystore | 2026-05-31 |
 | [ADR-015](docs/decisions/ADR-015-room-gradle-plugin.md) | Room Gradle Plugin for variant-safe schema export (fixes KSP parallel-build race) | 2026-06-01 |
 | [ADR-016](docs/decisions/ADR-016-predefined-relation-types.md) | Predefined relation types with perspective-aware labels (one row per relationship) | 2026-06-01 |
+| [ADR-017](docs/decisions/ADR-017-category-canvas-view.md) | Category canvas view: pan/zoom graph of people and relations per category | 2026-06-01 |
