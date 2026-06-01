@@ -40,11 +40,15 @@ import com.example.testapp004.viewmodel.AddEditAcquaintanceViewModel
 fun AddEditAcquaintanceScreen(
     viewModel: AddEditAcquaintanceViewModel,
     onNavigateBack: () -> Unit,
+    onPersonCreated: (Long) -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(uiState.isSaved) {
-        if (uiState.isSaved) onNavigateBack()
+        if (uiState.isSaved) {
+            val savedId = uiState.savedId
+            if (savedId != null) onPersonCreated(savedId) else onNavigateBack()
+        }
     }
 
     Scaffold(

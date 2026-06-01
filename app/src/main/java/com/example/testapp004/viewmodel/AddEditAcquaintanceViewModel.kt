@@ -22,6 +22,7 @@ data class AddEditAcquaintanceUiState(
     val categories: List<Category> = emptyList(),
     val isEditing: Boolean = false,
     val isSaved: Boolean = false,
+    val savedId: Long? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
 )
@@ -96,11 +97,12 @@ class AddEditAcquaintanceViewModel @Inject constructor(
         if (state.name.isBlank()) return
         viewModelScope.launch {
             if (acquaintanceId == null) {
-                acquaintanceRepository.addAcquaintance(
+                val newId = acquaintanceRepository.addAcquaintance(
                     name = state.name.trim(),
                     bio = state.bio.trim(),
                     categoryIds = state.selectedCategoryIds,
                 )
+                _uiState.update { it.copy(isSaved = true, savedId = newId) }
             } else {
                 acquaintanceRepository.updateAcquaintance(
                     Acquaintance(
@@ -110,8 +112,8 @@ class AddEditAcquaintanceViewModel @Inject constructor(
                         categoryIds = state.selectedCategoryIds,
                     ),
                 )
+                _uiState.update { it.copy(isSaved = true) }
             }
-            _uiState.update { it.copy(isSaved = true) }
         }
     }
 }
