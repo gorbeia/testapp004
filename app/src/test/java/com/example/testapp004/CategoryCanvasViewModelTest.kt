@@ -33,113 +33,90 @@ class CategoryCanvasViewModelTest {
         relationRepository = fakeRelationRepository,
     )
 
-    // --- Edge category ---
-
     @Test
-    fun `edge category is FAMILY for a family relation type`() = runBlocking {
-        val catId = fakeCategoryRepository.addCategory("Test", null)
-        val aliceId = fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId))
-        val bobId = fakeAcquaintanceRepository.addAcquaintance("Bob", "", setOf(catId))
-        fakeRelationRepository.addRelation(aliceId, bobId, "SIBLING", null)
-
-        val edge = createViewModel(catId).uiState.value.edges.first()
-        assertEquals(RelationCategory.FAMILY, edge.category)
+    fun `edge category is FAMILY for a family relation type`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", setOf(catId)) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "SIBLING", null) }
+        assertEquals(RelationCategory.FAMILY, createViewModel(catId).uiState.value.edges.first().category)
     }
 
     @Test
-    fun `edge category is PROFESSIONAL for a professional relation type`() = runBlocking {
-        val catId = fakeCategoryRepository.addCategory("Test", null)
-        val aliceId = fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId))
-        val bobId = fakeAcquaintanceRepository.addAcquaintance("Bob", "", setOf(catId))
-        fakeRelationRepository.addRelation(aliceId, bobId, "COLLEAGUE", null)
-
-        val edge = createViewModel(catId).uiState.value.edges.first()
-        assertEquals(RelationCategory.PROFESSIONAL, edge.category)
+    fun `edge category is PROFESSIONAL for a professional relation type`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", setOf(catId)) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "COLLEAGUE", null) }
+        assertEquals(RelationCategory.PROFESSIONAL, createViewModel(catId).uiState.value.edges.first().category)
     }
 
     @Test
-    fun `edge category is SOCIAL for a social relation type`() = runBlocking {
-        val catId = fakeCategoryRepository.addCategory("Test", null)
-        val aliceId = fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId))
-        val bobId = fakeAcquaintanceRepository.addAcquaintance("Bob", "", setOf(catId))
-        fakeRelationRepository.addRelation(aliceId, bobId, "FRIEND", null)
-
-        val edge = createViewModel(catId).uiState.value.edges.first()
-        assertEquals(RelationCategory.SOCIAL, edge.category)
+    fun `edge category is SOCIAL for a social relation type`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", setOf(catId)) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "FRIEND", null) }
+        assertEquals(RelationCategory.SOCIAL, createViewModel(catId).uiState.value.edges.first().category)
     }
 
     @Test
-    fun `edge category is null for a custom relation`() = runBlocking {
-        val catId = fakeCategoryRepository.addCategory("Test", null)
-        val aliceId = fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId))
-        val bobId = fakeAcquaintanceRepository.addAcquaintance("Bob", "", setOf(catId))
-        fakeRelationRepository.addRelation(aliceId, bobId, "CUSTOM", "mentor")
-
-        val edge = createViewModel(catId).uiState.value.edges.first()
-        assertNull(edge.category)
-    }
-
-    // --- Node dominant category ---
-
-    @Test
-    fun `node dominantCategory is null when person has no relations`() = runBlocking {
-        val catId = fakeCategoryRepository.addCategory("Test", null)
-        fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId))
-
-        val node = createViewModel(catId).uiState.value.nodes.first()
-        assertNull(node.dominantCategory)
+    fun `edge category is null for a custom relation`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", setOf(catId)) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "CUSTOM", "mentor") }
+        assertNull(createViewModel(catId).uiState.value.edges.first().category)
     }
 
     @Test
-    fun `node dominantCategory matches sole relation category`() = runBlocking {
-        val catId = fakeCategoryRepository.addCategory("Test", null)
-        val aliceId = fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId))
-        val bobId = fakeAcquaintanceRepository.addAcquaintance("Bob", "", setOf(catId))
-        fakeRelationRepository.addRelation(aliceId, bobId, "FRIEND", null)
+    fun `node dominantCategory is null when person has no relations`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        assertNull(createViewModel(catId).uiState.value.nodes.first().dominantCategory)
+    }
 
+    @Test
+    fun `node dominantCategory matches sole relation category`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", setOf(catId)) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "FRIEND", null) }
         val vm = createViewModel(catId)
-        val alice = vm.uiState.value.nodes.first { it.name == "Alice" }
-        assertEquals(RelationCategory.SOCIAL, alice.dominantCategory)
+        assertEquals(RelationCategory.SOCIAL, vm.uiState.value.nodes.first { it.name == "Alice" }.dominantCategory)
     }
 
     @Test
-    fun `node dominantCategory is most frequent category for mixed relations`() = runBlocking {
-        val catId = fakeCategoryRepository.addCategory("Test", null)
-        val aliceId = fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId))
-        val bobId = fakeAcquaintanceRepository.addAcquaintance("Bob", "", setOf(catId))
-        val carolId = fakeAcquaintanceRepository.addAcquaintance("Carol", "", setOf(catId))
-        val daveId = fakeAcquaintanceRepository.addAcquaintance("Dave", "", setOf(catId))
-        // Alice: 2 FAMILY edges, 1 PROFESSIONAL → FAMILY is dominant
-        fakeRelationRepository.addRelation(aliceId, bobId, "SIBLING", null)
-        fakeRelationRepository.addRelation(aliceId, carolId, "COUSIN", null)
-        fakeRelationRepository.addRelation(aliceId, daveId, "COLLEAGUE", null)
-
+    fun `node dominantCategory is most frequent category for mixed relations`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", setOf(catId)) }
+        val carolId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Carol", "", setOf(catId)) }
+        val daveId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Dave", "", setOf(catId)) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "SIBLING", null) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, carolId, "COUSIN", null) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, daveId, "COLLEAGUE", null) }
         val alice = createViewModel(catId).uiState.value.nodes.first { it.name == "Alice" }
         assertEquals(RelationCategory.FAMILY, alice.dominantCategory)
     }
 
     @Test
-    fun `both endpoints of a relation receive the same dominantCategory`() = runBlocking {
-        val catId = fakeCategoryRepository.addCategory("Test", null)
-        val aliceId = fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId))
-        val bobId = fakeAcquaintanceRepository.addAcquaintance("Bob", "", setOf(catId))
-        fakeRelationRepository.addRelation(aliceId, bobId, "SPOUSE", null)
-
+    fun `both endpoints of a relation receive the same dominantCategory`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", setOf(catId)) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "SPOUSE", null) }
         val vm = createViewModel(catId)
-        val alice = vm.uiState.value.nodes.first { it.name == "Alice" }
-        val bob = vm.uiState.value.nodes.first { it.name == "Bob" }
-        assertEquals(RelationCategory.FAMILY, alice.dominantCategory)
-        assertEquals(RelationCategory.FAMILY, bob.dominantCategory)
+        assertEquals(RelationCategory.FAMILY, vm.uiState.value.nodes.first { it.name == "Alice" }.dominantCategory)
+        assertEquals(RelationCategory.FAMILY, vm.uiState.value.nodes.first { it.name == "Bob" }.dominantCategory)
     }
 
     @Test
-    fun `custom-only relations leave node dominantCategory null`() = runBlocking {
-        val catId = fakeCategoryRepository.addCategory("Test", null)
-        val aliceId = fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId))
-        val bobId = fakeAcquaintanceRepository.addAcquaintance("Bob", "", setOf(catId))
-        fakeRelationRepository.addRelation(aliceId, bobId, "CUSTOM", "co-founder")
-
-        val alice = createViewModel(catId).uiState.value.nodes.first { it.name == "Alice" }
-        assertNull(alice.dominantCategory)
+    fun `custom-only relations leave node dominantCategory null`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", setOf(catId)) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "CUSTOM", "co-founder") }
+        assertNull(createViewModel(catId).uiState.value.nodes.first { it.name == "Alice" }.dominantCategory)
     }
 }

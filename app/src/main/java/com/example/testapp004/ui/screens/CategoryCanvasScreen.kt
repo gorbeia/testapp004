@@ -219,8 +219,11 @@ private fun CanvasGraph(
     val dropTargetHighlightColor = cs.tertiary
 
     fun nodeFill(cat: RelationCategory?) = categoryFill[cat] ?: defaultFill
+
     fun nodeStroke(cat: RelationCategory?) = categoryStroke[cat] ?: defaultStroke
+
     fun nodeText(cat: RelationCategory?) = categoryText[cat] ?: defaultText
+
     fun edgeColor(cat: RelationCategory?) = categoryStroke[cat] ?: cs.outline
 
     Canvas(
