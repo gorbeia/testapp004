@@ -119,4 +119,30 @@ class CategoryCanvasViewModelTest {
         runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "CUSTOM", "co-founder") }
         assertNull(createViewModel(catId).uiState.value.nodes.first { it.name == "Alice" }.dominantCategory)
     }
+
+    @Test
+    fun `node isDirectMember is true when person belongs directly to canvas category`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Parent") }
+        runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val alice = createViewModel(catId).uiState.value.nodes.first { it.name == "Alice" }
+        assertEquals(true, alice.isDirectMember)
+    }
+
+    @Test
+    fun `node isDirectMember is false when person belongs only to child category`() {
+        val parentId = runBlocking { fakeCategoryRepository.addCategory("Parent") }
+        val childId = runBlocking { fakeCategoryRepository.addCategory("Child", parentId) }
+        runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", setOf(childId)) }
+        val bob = createViewModel(parentId).uiState.value.nodes.first { it.name == "Bob" }
+        assertEquals(false, bob.isDirectMember)
+    }
+
+    @Test
+    fun `node isDirectMember is true when person belongs to both parent and child category`() {
+        val parentId = runBlocking { fakeCategoryRepository.addCategory("Parent") }
+        val childId = runBlocking { fakeCategoryRepository.addCategory("Child", parentId) }
+        runBlocking { fakeAcquaintanceRepository.addAcquaintance("Carol", "", setOf(parentId, childId)) }
+        val carol = createViewModel(parentId).uiState.value.nodes.first { it.name == "Carol" }
+        assertEquals(true, carol.isDirectMember)
+    }
 }

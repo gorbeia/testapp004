@@ -50,6 +50,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.TextMeasurer
@@ -218,9 +219,15 @@ private fun CanvasGraph(
     val labelColor = cs.onSurface
     val dropTargetHighlightColor = cs.tertiary
 
-    fun nodeFill(cat: RelationCategory?) = categoryFill[cat] ?: defaultFill
+    fun nodeFill(cat: RelationCategory?, direct: Boolean): Color {
+        val base = categoryFill[cat] ?: defaultFill
+        return if (direct) base else lerp(base, cs.surface, 0.45f)
+    }
 
-    fun nodeStroke(cat: RelationCategory?) = categoryStroke[cat] ?: defaultStroke
+    fun nodeStroke(cat: RelationCategory?, direct: Boolean): Color {
+        val base = categoryStroke[cat] ?: defaultStroke
+        return if (direct) base else lerp(base, cs.surface, 0.45f)
+    }
 
     fun nodeText(cat: RelationCategory?) = categoryText[cat] ?: defaultText
 
@@ -320,8 +327,8 @@ private fun CanvasGraph(
             nodes.forEach { node ->
                 val isDropTarget = isDragging && node.id == dropTargetId
                 val isDragSource = isDragging && node.id == draggedNodeId
-                val fill = nodeFill(node.dominantCategory)
-                val stroke = nodeStroke(node.dominantCategory)
+                val fill = nodeFill(node.dominantCategory, node.isDirectMember)
+                val stroke = nodeStroke(node.dominantCategory, node.isDirectMember)
                 val text = nodeText(node.dominantCategory)
                 drawNode(
                     center = Offset(node.x, node.y),
@@ -358,11 +365,11 @@ private fun CanvasGraph(
                         center = Offset(ghostCanvasX, ghostCanvasY),
                         halfW = nodeHalfWidths[ghostNode.id] ?: NODE_MAX_HALF_W,
                         name = ghostNode.name,
-                        nodeColor = nodeFill(ghostNode.dominantCategory),
+                        nodeColor = nodeFill(ghostNode.dominantCategory, ghostNode.isDirectMember),
                         strokeColor = if (dropTargetId != null) {
                             dropTargetHighlightColor
                         } else {
-                            nodeStroke(ghostNode.dominantCategory)
+                            nodeStroke(ghostNode.dominantCategory, ghostNode.isDirectMember)
                         },
                         textColor = nodeText(ghostNode.dominantCategory),
                         textMeasurer = textMeasurer,
