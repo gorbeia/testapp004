@@ -1,7 +1,11 @@
 package com.example.testapp004.ui.screens
 
 import android.Manifest
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.provider.ContactsContract
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -252,6 +256,59 @@ private fun LinkedContactSection(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(
+                            onClick = {
+                                val lookupUri = Uri.withAppendedPath(
+                                    ContactsContract.Contacts.CONTENT_LOOKUP_URI,
+                                    linkedContactInfo.lookupKey,
+                                )
+                                context.startActivity(Intent(Intent.ACTION_VIEW, lookupUri))
+                            },
+                        ) {
+                            Text("Open Contact")
+                        }
+                        if (linkedContactInfo.primaryPhone != null) {
+                            OutlinedButton(
+                                onClick = {
+                                    context.startActivity(
+                                        Intent(
+                                            Intent.ACTION_DIAL,
+                                            Uri.parse("tel:${linkedContactInfo.primaryPhone}"),
+                                        ),
+                                    )
+                                },
+                            ) {
+                                Text("Call")
+                            }
+                        }
+                    }
+                    if (linkedContactInfo.primaryPhone != null) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        OutlinedButton(
+                            onClick = {
+                                val phone = linkedContactInfo.primaryPhone.filter { it.isDigit() }
+                                try {
+                                    context.startActivity(
+                                        Intent(
+                                            Intent.ACTION_VIEW,
+                                            Uri.parse("whatsapp://send?phone=$phone"),
+                                        ),
+                                    )
+                                } catch (_: ActivityNotFoundException) {
+                                    context.startActivity(
+                                        Intent(
+                                            Intent.ACTION_VIEW,
+                                            Uri.parse("https://wa.me/$phone"),
+                                        ),
+                                    )
+                                }
+                            },
+                        ) {
+                            Text("WhatsApp")
+                        }
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
