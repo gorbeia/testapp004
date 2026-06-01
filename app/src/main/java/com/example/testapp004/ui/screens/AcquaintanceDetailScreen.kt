@@ -454,7 +454,9 @@ private fun AddRelationDialog(
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Person") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isPersonDropdownExpanded) },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = isPersonDropdownExpanded)
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .menuAnchor(),
