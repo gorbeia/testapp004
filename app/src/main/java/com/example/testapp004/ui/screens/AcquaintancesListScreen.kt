@@ -16,7 +16,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
@@ -145,7 +144,6 @@ fun AcquaintancesListScreen(
                     acquaintances = uiState.acquaintances,
                     categories = uiState.categories,
                     onPersonClick = onPersonClick,
-                    onDelete = viewModel::deleteAcquaintance,
                     onCategoryClick = onCategoryClick,
                     modifier = Modifier.weight(1f),
                 )
@@ -262,7 +260,6 @@ private fun AcquaintancesList(
     acquaintances: List<Acquaintance>,
     categories: List<Category>,
     onPersonClick: (Long) -> Unit,
-    onDelete: (Long) -> Unit,
     onCategoryClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -276,7 +273,6 @@ private fun AcquaintancesList(
                 acquaintance = person,
                 categoryNames = categories.filter { it.id in person.categoryIds }.map { it.name },
                 onClick = { onPersonClick(person.id) },
-                onDelete = { onDelete(person.id) },
                 onCategoryClick = onCategoryClick,
             )
         }
@@ -289,7 +285,6 @@ private fun AcquaintanceCard(
     acquaintance: Acquaintance,
     categoryNames: List<String>,
     onClick: () -> Unit,
-    onDelete: () -> Unit,
     onCategoryClick: () -> Unit,
 ) {
     Card(
@@ -297,47 +292,37 @@ private fun AcquaintanceCard(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = acquaintance.name,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (acquaintance.bio.isNotBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = acquaintance.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
+                    text = acquaintance.bio,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (acquaintance.bio.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = acquaintance.bio,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                if (categoryNames.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        categoryNames.forEach { name ->
-                            SuggestionChip(
-                                onClick = onCategoryClick,
-                                label = { Text(name, style = MaterialTheme.typography.labelSmall) },
-                            )
-                        }
+            }
+            if (categoryNames.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    categoryNames.forEach { name ->
+                        SuggestionChip(
+                            onClick = onCategoryClick,
+                            label = { Text(name, style = MaterialTheme.typography.labelSmall) },
+                        )
                     }
                 }
-            }
-            IconButton(onClick = onDelete) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete person",
-                    tint = MaterialTheme.colorScheme.error,
-                )
             }
         }
     }

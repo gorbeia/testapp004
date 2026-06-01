@@ -76,12 +76,6 @@ class AcquaintancesViewModel @Inject constructor(
         searchQueryFlow.value = query
     }
 
-    fun deleteAcquaintance(acquaintanceId: Long) {
-        viewModelScope.launch {
-            acquaintanceRepository.deleteAcquaintance(acquaintanceId)
-        }
-    }
-
     private fun descendantsAndSelf(categories: List<Category>, id: Long): Set<Long> {
         val result = mutableSetOf(id)
         categories.filter { it.parentId == id }.forEach { child ->

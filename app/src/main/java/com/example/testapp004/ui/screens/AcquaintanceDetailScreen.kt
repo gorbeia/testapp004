@@ -75,6 +75,7 @@ fun AcquaintanceDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val acquaintance = uiState.acquaintance
+    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     LaunchedEffect(acquaintance) {
         if (acquaintance == null && !uiState.isLoading) {
@@ -99,12 +100,7 @@ fun AcquaintanceDetailScreen(
                     IconButton(onClick = { acquaintance?.let { onEditClick(it.id) } }) {
                         Icon(Icons.Default.Edit, contentDescription = "Edit")
                     }
-                    IconButton(
-                        onClick = {
-                            viewModel.deleteAcquaintance()
-                            onNavigateBack()
-                        },
-                    ) {
+                    IconButton(onClick = { showDeleteConfirm = true }) {
                         Icon(
                             Icons.Default.Delete,
                             contentDescription = "Delete",
@@ -170,6 +166,28 @@ fun AcquaintanceDetailScreen(
                 viewModel.addRelation(otherId, typeKey, isCurrentPersonFrom, customLabel)
             },
             onDismiss = viewModel::closeAddRelationDialog,
+        )
+    }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("Delete ${acquaintance?.name ?: "person"}?") },
+            text = { Text("This will permanently delete this person and all their relations.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirm = false
+                        viewModel.deleteAcquaintance()
+                        onNavigateBack()
+                    },
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+            },
         )
     }
 }
