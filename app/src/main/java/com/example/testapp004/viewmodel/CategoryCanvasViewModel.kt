@@ -109,7 +109,7 @@ class CategoryCanvasViewModel @Inject constructor(
                             x = x,
                             y = y,
                             dominantCategory = dominant,
-                            isDirectMember = person.categoryIds.contains(categoryId),
+                            isDirectMember = categoryId in person.categoryIds,
                         )
                     },
                     edges = intraRelations.map { rel ->
