@@ -90,6 +90,40 @@ di/
 
 ---
 
+## Testing (for Claude)
+
+Every feature addition or behaviour change **must** ship with unit tests in the same commit. Tests are not optional and must not be deferred to a follow-up.
+
+### What to test
+
+| Change type | Required tests |
+|-------------|---------------|
+| New ViewModel method | Happy path + edge cases (blank input, no-op conditions) |
+| New UiState field | State transitions that set and clear the field |
+| New repository method | Core behaviour via the corresponding Fake*Repository |
+| Bug fix | Regression test that would have caught the bug |
+| Refactor / rename only | No new tests required, but existing tests must still pass |
+
+### How to test
+
+- **ViewModels**: instantiate directly with a `Fake*Repository`; use `MainDispatcherRule` to control coroutines; assert on `viewModel.uiState.value`
+- **Repository logic**: add the method to the relevant `Fake*Repository` and test it either via the ViewModel or directly
+- **Pure functions** (helpers, algorithms): test them directly with plain JUnit
+
+### What not to test
+
+- Composables (no UI tests in this project)
+- Hilt wiring / DI modules
+- Room DAOs (covered by Room's own test infrastructure)
+
+### Before opening a PR, verify
+
+- Every new public ViewModel method has at least one test
+- Every new UiState field has a test that confirms it is set and cleared correctly
+- Edge cases are covered: empty input, same-item no-ops, cross-group operations that should be ignored
+
+---
+
 ## Branch Workflow (for Claude)
 
 **Never commit directly to `main`.** All work goes through a feature branch and a PR.
