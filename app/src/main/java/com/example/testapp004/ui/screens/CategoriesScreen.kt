@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Hub
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -48,6 +49,7 @@ import com.example.testapp004.viewmodel.CategoriesViewModel
 fun CategoriesScreen(
     viewModel: CategoriesViewModel,
     onNavigateBack: () -> Unit,
+    onCanvasClick: (Long) -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -101,6 +103,7 @@ fun CategoriesScreen(
                         category = category,
                         depth = depth,
                         onDelete = { viewModel.deleteCategory(category.id) },
+                        onCanvasClick = { onCanvasClick(category.id) },
                     )
                 }
             }
@@ -121,6 +124,7 @@ private fun CategoryItem(
     category: Category,
     depth: Int,
     onDelete: () -> Unit,
+    onCanvasClick: () -> Unit = {},
 ) {
     Card(
         modifier = Modifier
@@ -146,6 +150,13 @@ private fun CategoryItem(
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.weight(1f),
             )
+            IconButton(onClick = onCanvasClick) {
+                Icon(
+                    imageVector = Icons.Default.Hub,
+                    contentDescription = "View canvas for ${category.name}",
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
             IconButton(onClick = onDelete) {
                 Icon(
                     imageVector = Icons.Default.Delete,
