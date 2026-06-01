@@ -72,6 +72,7 @@ sealed class Screen(val route: String) {
         const val ROUTE_NEW = "add_edit_acquaintance"
 
         fun createRoute(id: Long) = "add_edit_acquaintance?acquaintanceId=$id"
+
         fun createRouteWithCategory(categoryId: Long) =
             "add_edit_acquaintance?preselectedCategoryId=$categoryId"
     }
