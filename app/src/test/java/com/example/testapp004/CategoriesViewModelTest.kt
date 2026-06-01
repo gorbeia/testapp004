@@ -120,4 +120,70 @@ class CategoriesViewModelTest {
         val ids = viewModel.uiState.value.categories.map { it.id }
         assertEquals(ids.distinct(), ids)
     }
+
+    @Test
+    fun `openEditDialog sets editingCategory`() {
+        viewModel.addCategory("Work")
+        val category = viewModel.uiState.value.categories.first()
+        viewModel.openEditDialog(category)
+        assertEquals(category, viewModel.uiState.value.editingCategory)
+    }
+
+    @Test
+    fun `closeEditDialog clears editingCategory`() {
+        viewModel.addCategory("Work")
+        val category = viewModel.uiState.value.categories.first()
+        viewModel.openEditDialog(category)
+        viewModel.closeEditDialog()
+        assertNull(viewModel.uiState.value.editingCategory)
+    }
+
+    @Test
+    fun `updateCategory renames the category and closes dialog`() {
+        viewModel.addCategory("Work")
+        val id = viewModel.uiState.value.categories.first().id
+        viewModel.openEditDialog(viewModel.uiState.value.categories.first())
+        viewModel.updateCategory(id, "Work & Business", null)
+        val updated = viewModel.uiState.value.categories.find { it.id == id }
+        assertEquals("Work & Business", updated?.name)
+        assertNull(viewModel.uiState.value.editingCategory)
+    }
+
+    @Test
+    fun `updateCategory trims whitespace`() {
+        viewModel.addCategory("Work")
+        val id = viewModel.uiState.value.categories.first().id
+        viewModel.updateCategory(id, "  Family  ", null)
+        assertEquals("Family", viewModel.uiState.value.categories.find { it.id == id }?.name)
+    }
+
+    @Test
+    fun `updateCategory with blank name does nothing`() {
+        viewModel.addCategory("Work")
+        val id = viewModel.uiState.value.categories.first().id
+        viewModel.openEditDialog(viewModel.uiState.value.categories.first())
+        viewModel.updateCategory(id, "   ", null)
+        assertEquals("Work", viewModel.uiState.value.categories.find { it.id == id }?.name)
+        assertNotNull(viewModel.uiState.value.editingCategory)
+    }
+
+    @Test
+    fun `updateCategory can change parent`() {
+        viewModel.addCategory("Work")
+        viewModel.addCategory("Family")
+        val workId = viewModel.uiState.value.categories.first { it.name == "Work" }.id
+        val familyId = viewModel.uiState.value.categories.first { it.name == "Family" }.id
+        viewModel.updateCategory(workId, "Work", familyId)
+        assertEquals(familyId, viewModel.uiState.value.categories.find { it.id == workId }?.parentId)
+    }
+
+    @Test
+    fun `updateCategory can promote to root`() {
+        viewModel.addCategory("Work")
+        val parentId = viewModel.uiState.value.categories.first().id
+        viewModel.addCategory("Engineering", parentId)
+        val childId = viewModel.uiState.value.categories.first { it.name == "Engineering" }.id
+        viewModel.updateCategory(childId, "Engineering", null)
+        assertNull(viewModel.uiState.value.categories.find { it.id == childId }?.parentId)
+    }
 }
