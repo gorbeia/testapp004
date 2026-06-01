@@ -186,5 +186,4 @@ class CategoriesViewModelTest {
         viewModel.updateCategory(childId, "Engineering", null)
         assertNull(viewModel.uiState.value.categories.find { it.id == childId }?.parentId)
     }
-
 }
