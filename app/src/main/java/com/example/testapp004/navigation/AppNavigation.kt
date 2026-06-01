@@ -45,8 +45,8 @@ import com.example.testapp004.model.UpdateCheckOutcome
 import com.example.testapp004.ui.screens.AcquaintanceDetailScreen
 import com.example.testapp004.ui.screens.AcquaintancesListScreen
 import com.example.testapp004.ui.screens.AddEditAcquaintanceScreen
-import com.example.testapp004.ui.screens.CategoryBrowseScreen
 import com.example.testapp004.ui.screens.CategoriesScreen
+import com.example.testapp004.ui.screens.CategoryBrowseScreen
 import com.example.testapp004.ui.screens.CategoryCanvasScreen
 import com.example.testapp004.viewmodel.AcquaintanceDetailViewModel
 import com.example.testapp004.viewmodel.AcquaintancesViewModel

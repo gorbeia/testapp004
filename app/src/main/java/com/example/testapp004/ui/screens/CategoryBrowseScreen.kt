@@ -122,6 +122,7 @@ private fun buildBrowseTree(
     expandedIds: Set<Long>,
 ): List<BrowseTreeItem> {
     val result = mutableListOf<BrowseTreeItem>()
+
     fun visit(cats: List<Category>, depth: Int) {
         cats.forEach { cat ->
             result.add(BrowseTreeItem(cat, depth))
