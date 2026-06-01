@@ -196,15 +196,35 @@ private fun CanvasGraph(
             node.id to (m.size.width / 2f + NODE_H_PAD).coerceIn(NODE_HALF_H, NODE_MAX_HALF_W)
         }
     }
-    val nodeColor = MaterialTheme.colorScheme.primaryContainer
-    val nodeStrokeColor = MaterialTheme.colorScheme.primary
-    val textColor = MaterialTheme.colorScheme.onPrimaryContainer
-    val edgeColor = MaterialTheme.colorScheme.outline
-    val labelColor = MaterialTheme.colorScheme.onSurface
-    val dropTargetHighlightColor = MaterialTheme.colorScheme.tertiary
-    val dragGhostNodeColor = nodeColor.copy(alpha = 0.3f)
-    val dragGhostStrokeColor = nodeStrokeColor.copy(alpha = 0.3f)
-    val dragGhostTextColor = textColor.copy(alpha = 0.3f)
+    val cs = MaterialTheme.colorScheme
+    val categoryFill = mapOf(
+        RelationCategory.FAMILY to cs.tertiaryContainer,
+        RelationCategory.PROFESSIONAL to cs.primaryContainer,
+        RelationCategory.SOCIAL to cs.secondaryContainer,
+    )
+    val categoryStroke = mapOf(
+        RelationCategory.FAMILY to cs.tertiary,
+        RelationCategory.PROFESSIONAL to cs.primary,
+        RelationCategory.SOCIAL to cs.secondary,
+    )
+    val categoryText = mapOf(
+        RelationCategory.FAMILY to cs.onTertiaryContainer,
+        RelationCategory.PROFESSIONAL to cs.onPrimaryContainer,
+        RelationCategory.SOCIAL to cs.onSecondaryContainer,
+    )
+    val defaultFill = cs.primaryContainer
+    val defaultStroke = cs.primary
+    val defaultText = cs.onPrimaryContainer
+    val labelColor = cs.onSurface
+    val dropTargetHighlightColor = cs.tertiary
+
+    fun nodeFill(cat: RelationCategory?) = categoryFill[cat] ?: defaultFill
+
+    fun nodeStroke(cat: RelationCategory?) = categoryStroke[cat] ?: defaultStroke
+
+    fun nodeText(cat: RelationCategory?) = categoryText[cat] ?: defaultText
+
+    fun edgeColor(cat: RelationCategory?) = categoryStroke[cat] ?: cs.outline
 
     Canvas(
         modifier = Modifier
@@ -292,7 +312,7 @@ private fun CanvasGraph(
                     fromHalfW = nodeHalfWidths[edge.fromId] ?: NODE_MAX_HALF_W,
                     toHalfW = nodeHalfWidths[edge.toId] ?: NODE_MAX_HALF_W,
                     label = edge.label,
-                    edgeColor = edgeColor,
+                    edgeColor = edgeColor(edge.category),
                     labelColor = labelColor,
                     textMeasurer = textMeasurer,
                 )
@@ -300,17 +320,20 @@ private fun CanvasGraph(
             nodes.forEach { node ->
                 val isDropTarget = isDragging && node.id == dropTargetId
                 val isDragSource = isDragging && node.id == draggedNodeId
+                val fill = nodeFill(node.dominantCategory)
+                val stroke = nodeStroke(node.dominantCategory)
+                val text = nodeText(node.dominantCategory)
                 drawNode(
                     center = Offset(node.x, node.y),
                     halfW = nodeHalfWidths[node.id] ?: NODE_MAX_HALF_W,
                     name = node.name,
-                    nodeColor = if (isDragSource) dragGhostNodeColor else nodeColor,
+                    nodeColor = if (isDragSource) fill.copy(alpha = 0.3f) else fill,
                     strokeColor = when {
                         isDropTarget -> dropTargetHighlightColor
-                        isDragSource -> dragGhostStrokeColor
-                        else -> nodeStrokeColor
+                        isDragSource -> stroke.copy(alpha = 0.3f)
+                        else -> stroke
                     },
-                    textColor = if (isDragSource) dragGhostTextColor else textColor,
+                    textColor = if (isDragSource) text.copy(alpha = 0.3f) else text,
                     textMeasurer = textMeasurer,
                 )
                 if (isDropTarget) {
@@ -335,9 +358,13 @@ private fun CanvasGraph(
                         center = Offset(ghostCanvasX, ghostCanvasY),
                         halfW = nodeHalfWidths[ghostNode.id] ?: NODE_MAX_HALF_W,
                         name = ghostNode.name,
-                        nodeColor = nodeColor,
-                        strokeColor = if (dropTargetId != null) dropTargetHighlightColor else nodeStrokeColor,
-                        textColor = textColor,
+                        nodeColor = nodeFill(ghostNode.dominantCategory),
+                        strokeColor = if (dropTargetId != null) {
+                            dropTargetHighlightColor
+                        } else {
+                            nodeStroke(ghostNode.dominantCategory)
+                        },
+                        textColor = nodeText(ghostNode.dominantCategory),
                         textMeasurer = textMeasurer,
                     )
                 }

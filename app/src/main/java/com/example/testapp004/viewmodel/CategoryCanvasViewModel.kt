@@ -8,6 +8,7 @@ import com.example.testapp004.data.CategoryRepository
 import com.example.testapp004.data.RelationRepository
 import com.example.testapp004.model.Category
 import com.example.testapp004.model.Relation
+import com.example.testapp004.model.RelationCategory
 import com.example.testapp004.model.RelationTypes
 import com.example.testapp004.model.labelFor
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -27,6 +28,7 @@ data class CanvasPersonNode(
     val name: String,
     val x: Float,
     val y: Float,
+    val dominantCategory: RelationCategory?,
 )
 
 data class CanvasRelationEdge(
@@ -34,6 +36,7 @@ data class CanvasRelationEdge(
     val fromId: Long,
     val toId: Long,
     val label: String,
+    val category: RelationCategory?,
 )
 
 data class CategoryCanvasUiState(
@@ -83,11 +86,29 @@ class CategoryCanvasViewModel @Inject constructor(
                 val components = findConnectedComponents(people.map { it.id }, intraRelations)
                 val nodePositions = computeLayout(components)
 
+                val personCategoryLists = mutableMapOf<Long, MutableList<RelationCategory>>()
+                intraRelations.forEach { rel ->
+                    val cat = RelationTypes.findByKey(rel.typeKey)?.category ?: return@forEach
+                    personCategoryLists.getOrPut(rel.fromId) { mutableListOf() }.add(cat)
+                    personCategoryLists.getOrPut(rel.toId) { mutableListOf() }.add(cat)
+                }
+
                 CategoryCanvasUiState(
                     categoryName = categoryName,
                     nodes = people.map { person ->
                         val (x, y) = nodePositions[person.id] ?: (0f to 0f)
-                        CanvasPersonNode(id = person.id, name = person.name, x = x, y = y)
+                        val dominant = personCategoryLists[person.id]
+                            ?.groupingBy { it }
+                            ?.eachCount()
+                            ?.maxByOrNull { it.value }
+                            ?.key
+                        CanvasPersonNode(
+                            id = person.id,
+                            name = person.name,
+                            x = x,
+                            y = y,
+                            dominantCategory = dominant,
+                        )
                     },
                     edges = intraRelations.map { rel ->
                         CanvasRelationEdge(
@@ -95,6 +116,7 @@ class CategoryCanvasViewModel @Inject constructor(
                             fromId = rel.fromId,
                             toId = rel.toId,
                             label = rel.labelFor(rel.fromId),
+                            category = RelationTypes.findByKey(rel.typeKey)?.category,
                         )
                     },
                     isLoading = false,
