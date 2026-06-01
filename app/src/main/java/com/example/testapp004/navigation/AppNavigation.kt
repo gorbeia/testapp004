@@ -65,16 +65,22 @@ sealed class Screen(val route: String) {
     }
 
     object AddEditAcquaintance : Screen(
-        "add_edit_acquaintance?acquaintanceId={acquaintanceId}&preselectedCategoryId={preselectedCategoryId}",
+        "add_edit_acquaintance?acquaintanceId={acquaintanceId}" +
+            "&preselectedCategoryId={preselectedCategoryId}" +
+            "&returnToPersonId={returnToPersonId}",
     ) {
         const val ARG_ACQUAINTANCE_ID = "acquaintanceId"
         const val ARG_PRESELECTED_CATEGORY_ID = "preselectedCategoryId"
+        const val ARG_RETURN_TO_PERSON_ID = "returnToPersonId"
         const val ROUTE_NEW = "add_edit_acquaintance"
 
         fun createRoute(id: Long) = "add_edit_acquaintance?acquaintanceId=$id"
 
         fun createRouteWithCategory(categoryId: Long) =
             "add_edit_acquaintance?preselectedCategoryId=$categoryId"
+
+        fun createRouteForRelatedPerson(returnToPersonId: Long) =
+            "add_edit_acquaintance?returnToPersonId=$returnToPersonId"
     }
 
     object Categories : Screen("categories")
@@ -141,14 +147,34 @@ fun AppNavigation() {
                     arguments = listOf(
                         navArgument(Screen.AcquaintanceDetail.ARG_ACQUAINTANCE_ID) { type = NavType.LongType },
                     ),
-                ) {
+                ) { backStackEntry ->
                     val detailViewModel: AcquaintanceDetailViewModel = hiltViewModel()
+
+                    val pendingRelationWithId by backStackEntry.savedStateHandle
+                        .getStateFlow<Long?>("pendingRelationWithId", null)
+                        .collectAsState()
+
+                    LaunchedEffect(pendingRelationWithId) {
+                        val pendingId = pendingRelationWithId
+                        if (pendingId != null) {
+                            detailViewModel.openAddRelationDialogWithPreselectedPerson(pendingId)
+                            backStackEntry.savedStateHandle.remove<Long>("pendingRelationWithId")
+                        }
+                    }
+
                     AcquaintanceDetailScreen(
                         viewModel = detailViewModel,
                         onNavigateBack = { navController.popBackStack() },
                         onEditClick = { id -> navController.navigate(Screen.AddEditAcquaintance.createRoute(id)) },
                         onPersonClick = { id -> navController.navigate(Screen.AcquaintanceDetail.createRoute(id)) },
                         onCategoryClick = { navController.navigate(Screen.Categories.route) },
+                        onCreateNewPersonClick = {
+                            navController.navigate(
+                                Screen.AddEditAcquaintance.createRouteForRelatedPerson(
+                                    detailViewModel.acquaintanceId,
+                                ),
+                            )
+                        },
                     )
                 }
                 composable(
@@ -162,15 +188,27 @@ fun AppNavigation() {
                             type = NavType.LongType
                             defaultValue = -1L
                         },
+                        navArgument(Screen.AddEditAcquaintance.ARG_RETURN_TO_PERSON_ID) {
+                            type = NavType.LongType
+                            defaultValue = -1L
+                        },
                     ),
-                ) {
+                ) { backStackEntry ->
+                    val returnToPersonId = backStackEntry.arguments
+                        ?.getLong(Screen.AddEditAcquaintance.ARG_RETURN_TO_PERSON_ID) ?: -1L
                     val addEditViewModel: AddEditAcquaintanceViewModel = hiltViewModel()
                     AddEditAcquaintanceScreen(
                         viewModel = addEditViewModel,
                         onNavigateBack = { navController.popBackStack() },
-                        onPersonCreated = { id ->
-                            navController.navigate(Screen.AcquaintanceDetail.createRoute(id)) {
-                                popUpTo(Screen.AddEditAcquaintance.route) { inclusive = true }
+                        onPersonCreated = { newId ->
+                            if (returnToPersonId != -1L) {
+                                navController.previousBackStackEntry?.savedStateHandle
+                                    ?.set("pendingRelationWithId", newId)
+                                navController.popBackStack()
+                            } else {
+                                navController.navigate(Screen.AcquaintanceDetail.createRoute(newId)) {
+                                    popUpTo(Screen.AddEditAcquaintance.route) { inclusive = true }
+                                }
                             }
                         },
                     )

@@ -42,6 +42,9 @@ Accessible via the **People** tab in the bottom navigation bar.
   - Incoming (other → this person): shows `← label ←` + tappable name of other person.
   - Delete icon on each relation card.
   - (+) icon next to "Relations" header opens the Add Relation dialog.
+  - Inside the Add Relation dialog a **"Create new person"** button navigates to the New Person
+    screen. After saving, the app returns automatically to the detail screen with the relation
+    dialog reopened and the newly created person pre-selected.
 * Deleting the person navigates back automatically.
 * Tapping another person's name in a relation navigates to their detail screen.
 
