@@ -163,6 +163,7 @@ fun AcquaintanceDetailScreen(
 
     if (uiState.isAddRelationDialogOpen) {
         AddRelationDialog(
+            currentPersonName = uiState.acquaintance?.name ?: "",
             allAcquaintances = uiState.allOtherAcquaintances,
             preselectedPersonId = uiState.pendingNewRelationPersonId,
             onConfirm = { otherId, typeKey, isCurrentPersonFrom, customLabel ->
@@ -492,6 +493,7 @@ private fun RelationCard(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AddRelationDialog(
+    currentPersonName: String,
     allAcquaintances: List<Acquaintance>,
     preselectedPersonId: Long?,
     onConfirm: (otherId: Long, typeKey: String, isCurrentPersonFrom: Boolean, customLabel: String?) -> Unit,
@@ -511,6 +513,12 @@ private fun AddRelationDialog(
     val isConfirmEnabled = selectedPersonId != null &&
         selectedOption != null &&
         (!isCustom || customLabel.isNotBlank())
+    val counterpartLabel: String? = selectedOption?.takeIf { !isCustom }?.let { opt ->
+        RelationTypes.findByKey(opt.typeKey)?.let { type ->
+            if (opt.isCurrentPersonFrom) type.toLabel else type.fromLabel
+        }
+    }
+    val roleLabel = if (currentPersonName.isNotEmpty()) "${currentPersonName}'s role" else "Relation type"
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -567,7 +575,7 @@ private fun AddRelationDialog(
                         value = selectedOption?.displayLabel ?: "",
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Relation type") },
+                        label = { Text(roleLabel) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isTypeDropdownExpanded) },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -608,6 +616,13 @@ private fun AddRelationDialog(
                             )
                         }
                     }
+                }
+                if (counterpartLabel != null && selectedPersonName.isNotEmpty()) {
+                    Text(
+                        text = "→ $selectedPersonName will appear as: $counterpartLabel",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.secondary,
+                    )
                 }
 
                 if (isCustom) {

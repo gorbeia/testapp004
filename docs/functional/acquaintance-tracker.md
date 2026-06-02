@@ -107,8 +107,15 @@ Spatial overview of the people in a category and their relationships.
 ### Add Relation dialog (inline in detail screen)
 
 * Dropdown to select the target person (all other people in the system).
-* Text field for the relation label (e.g. "works with", "mentors", "met at conference").
-* "Add" button disabled until both a person and a non-blank label are selected.
+* Relation type dropdown labeled **"[Current person]'s role"** — options describe the role the
+  current person plays (e.g. "Child", "Parent", "Manager"). This makes the direction unambiguous
+  without requiring the user to reason about from/to semantics.
+* After both a person and a role are selected a confirmation hint is shown:
+  **"→ [Other person] will appear as: [counterpart role]"** (e.g. "→ Bob will appear as: Parent").
+* Custom type shows a free-text label field instead of the hint.
+* "Add" button disabled until both a person and a non-blank role are selected.
+* The canvas drag-drop relation dialog uses the same "[drag-source]'s role" label and counterpart
+  hint pattern.
 
 ---
 
