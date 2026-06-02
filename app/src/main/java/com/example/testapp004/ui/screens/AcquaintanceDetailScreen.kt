@@ -56,6 +56,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.testapp004.model.Acquaintance
+import com.example.testapp004.model.Category
 import com.example.testapp004.model.ContactInfo
 import com.example.testapp004.model.RelationCategory
 import com.example.testapp004.model.RelationTypeOption
@@ -150,7 +151,9 @@ fun AcquaintanceDetailScreen(
     if (uiState.isAddRelationDialogOpen) {
         AddRelationDialog(
             currentPersonName = uiState.acquaintance?.name ?: "",
+            currentPersonCategoryIds = uiState.acquaintance?.categoryIds ?: emptySet(),
             allAcquaintances = uiState.allOtherAcquaintances,
+            allCategories = uiState.allCategories,
             preselectedPersonId = uiState.pendingNewRelationPersonId,
             onConfirm = { otherId, typeKey, isCurrentPersonFrom, customLabel ->
                 viewModel.addRelation(otherId, typeKey, isCurrentPersonFrom, customLabel)
@@ -512,7 +515,9 @@ private fun RelationRow(
 @Composable
 private fun AddRelationDialog(
     currentPersonName: String,
+    currentPersonCategoryIds: Set<Long>,
     allAcquaintances: List<Acquaintance>,
+    allCategories: List<Category>,
     preselectedPersonId: Long?,
     onConfirm: (otherId: Long, typeKey: String, isCurrentPersonFrom: Boolean, customLabel: String?) -> Unit,
     onDismiss: () -> Unit,
@@ -523,6 +528,7 @@ private fun AddRelationDialog(
     var selectedPersonId by remember(preselectedPersonId) { mutableStateOf<Long?>(preselectedPersonId) }
     var selectedOption by remember { mutableStateOf<RelationTypeOption?>(null) }
     var customLabel by remember { mutableStateOf("") }
+    var filterText by remember { mutableStateOf("") }
     var isPersonDropdownExpanded by remember { mutableStateOf(false) }
     var isTypeDropdownExpanded by remember { mutableStateOf(false) }
 
@@ -538,6 +544,30 @@ private fun AddRelationDialog(
     }
     val roleLabel = if (currentPersonName.isNotEmpty()) "$currentPersonName's role" else "Relation type"
 
+    val filteredSorted = remember(allAcquaintances, filterText, currentPersonCategoryIds) {
+        val base = if (filterText.isBlank()) {
+            allAcquaintances
+        } else {
+            allAcquaintances.filter { it.name.contains(filterText, ignoreCase = true) }
+        }
+        base.sortedWith(
+            compareByDescending<Acquaintance> { p ->
+                currentPersonCategoryIds.isNotEmpty() && p.categoryIds.any { it in currentPersonCategoryIds }
+            }.thenBy { it.name },
+        )
+    }
+
+    val sharedPersons = remember(filteredSorted, currentPersonCategoryIds) {
+        filteredSorted.filter { p ->
+            currentPersonCategoryIds.isNotEmpty() && p.categoryIds.any { it in currentPersonCategoryIds }
+        }
+    }
+    val otherPersons = remember(filteredSorted, currentPersonCategoryIds) {
+        filteredSorted.filter { p ->
+            currentPersonCategoryIds.isEmpty() || p.categoryIds.none { it in currentPersonCategoryIds }
+        }
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add Relation") },
@@ -545,32 +575,93 @@ private fun AddRelationDialog(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 ExposedDropdownMenuBox(
                     expanded = isPersonDropdownExpanded,
-                    onExpandedChange = { isPersonDropdownExpanded = !isPersonDropdownExpanded },
+                    onExpandedChange = { expanded ->
+                        isPersonDropdownExpanded = expanded
+                        if (!expanded) filterText = ""
+                    },
                 ) {
                     OutlinedTextField(
-                        value = selectedPersonName,
-                        onValueChange = {},
-                        readOnly = true,
+                        value = if (isPersonDropdownExpanded) filterText else selectedPersonName,
+                        onValueChange = { filterText = it; isPersonDropdownExpanded = true },
                         label = { Text("Person") },
+                        placeholder = { Text("Search…") },
                         trailingIcon = {
                             ExposedDropdownMenuDefaults.TrailingIcon(expanded = isPersonDropdownExpanded)
                         },
+                        singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
                             .menuAnchor(),
                     )
                     ExposedDropdownMenu(
                         expanded = isPersonDropdownExpanded,
-                        onDismissRequest = { isPersonDropdownExpanded = false },
+                        onDismissRequest = { isPersonDropdownExpanded = false; filterText = "" },
                     ) {
-                        allAcquaintances.forEach { person ->
+                        if (sharedPersons.isNotEmpty()) {
                             DropdownMenuItem(
-                                text = { Text(person.name) },
-                                onClick = {
-                                    selectedPersonId = person.id
-                                    isPersonDropdownExpanded = false
+                                text = {
+                                    Text(
+                                        text = "Same groups",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
                                 },
+                                onClick = {},
+                                enabled = false,
                             )
+                            sharedPersons.forEach { person ->
+                                val categoryNames = person.categoryIds
+                                    .mapNotNull { cId -> allCategories.find { it.id == cId }?.name }
+                                    .sorted()
+                                DropdownMenuItem(
+                                    text = {
+                                        Column {
+                                            Text(person.name)
+                                            if (categoryNames.isNotEmpty()) {
+                                                Text(
+                                                    text = categoryNames.joinToString(", "),
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                )
+                                            }
+                                        }
+                                    },
+                                    onClick = {
+                                        selectedPersonId = person.id
+                                        isPersonDropdownExpanded = false
+                                        filterText = ""
+                                    },
+                                )
+                            }
+                        }
+                        if (otherPersons.isNotEmpty()) {
+                            if (sharedPersons.isNotEmpty()) {
+                                HorizontalDivider()
+                            }
+                            otherPersons.forEach { person ->
+                                val categoryNames = person.categoryIds
+                                    .mapNotNull { cId -> allCategories.find { it.id == cId }?.name }
+                                    .sorted()
+                                DropdownMenuItem(
+                                    text = {
+                                        Column {
+                                            Text(person.name)
+                                            if (categoryNames.isNotEmpty()) {
+                                                Text(
+                                                    text = categoryNames.joinToString(", "),
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                )
+                                            }
+                                        }
+                                    },
+                                    onClick = {
+                                        selectedPersonId = person.id
+                                        isPersonDropdownExpanded = false
+                                        filterText = ""
+                                    },
+                                )
+                            }
                         }
                     }
                 }

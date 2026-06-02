@@ -9,6 +9,7 @@ import com.example.testapp004.data.CategoryRepository
 import com.example.testapp004.data.ContactRepository
 import com.example.testapp004.data.RelationRepository
 import com.example.testapp004.model.Acquaintance
+import com.example.testapp004.model.Category
 import com.example.testapp004.model.ContactInfo
 import com.example.testapp004.model.RelationTypes
 import com.example.testapp004.model.labelFor
@@ -35,6 +36,7 @@ data class AcquaintanceDetailUiState(
     val categoryNames: List<String> = emptyList(),
     val relations: List<RelationDisplay> = emptyList(),
     val allOtherAcquaintances: List<Acquaintance> = emptyList(),
+    val allCategories: List<Category> = emptyList(),
     val linkedContactInfo: ContactInfo? = null,
     val isAddRelationDialogOpen: Boolean = false,
     val pendingNewRelationPersonId: Long? = null,
@@ -94,6 +96,7 @@ class AcquaintanceDetailViewModel @Inject constructor(
                     categoryNames = categoryNames,
                     relations = relationDisplays,
                     allOtherAcquaintances = acquaintances.filter { it.id != acquaintanceId },
+                    allCategories = categories,
                 )
             }.collect { baseState ->
                 _uiState.update { current ->
