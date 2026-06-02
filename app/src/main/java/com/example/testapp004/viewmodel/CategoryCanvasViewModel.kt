@@ -31,6 +31,7 @@ data class CanvasPersonNode(
     val dominantCategory: RelationCategory?,
     val isDirectMember: Boolean,
     val isNetSource: Boolean?,
+    val distanceFromCategory: Int,
 )
 
 data class CanvasRelationEdge(
@@ -47,6 +48,7 @@ data class CategoryCanvasUiState(
     val edges: List<CanvasRelationEdge> = emptyList(),
     val isLoading: Boolean = true,
     val error: String? = null,
+    val relationDistance: Int = 0,
     val isRelationDialogOpen: Boolean = false,
     val pendingRelationFromId: Long? = null,
     val pendingRelationToId: Long? = null,
@@ -66,32 +68,70 @@ class CategoryCanvasViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(CategoryCanvasUiState())
     val uiState: StateFlow<CategoryCanvasUiState> = _uiState.asStateFlow()
 
+    private val relationDistanceFlow = MutableStateFlow(0)
+
     init {
         viewModelScope.launch {
             combine(
                 acquaintanceRepository.acquaintances,
                 categoryRepository.categories,
                 relationRepository.relations,
-            ) { acquaintances, categories, relations ->
+                relationDistanceFlow,
+            ) { acquaintances, categories, relations, distance ->
                 val categoryName = categories.find { it.id == categoryId }?.name ?: ""
-                val categoryIds = descendantsAndSelf(categoryId, categories)
+                val categoryTreeIds = descendantsAndSelf(categoryId, categories)
 
-                val people = acquaintances.filter { person ->
-                    person.categoryIds.any { it in categoryIds }
+                val categoryPersonIds = acquaintances
+                    .filter { person -> person.categoryIds.any { it in categoryTreeIds } }
+                    .map { it.id }
+                    .toSet()
+
+                val distanceOneIds: Set<Long> = if (distance >= 1) {
+                    relations
+                        .filter { rel ->
+                            (rel.fromId in categoryPersonIds) != (rel.toId in categoryPersonIds)
+                        }
+                        .flatMap { listOf(it.fromId, it.toId) }
+                        .filter { it !in categoryPersonIds }
+                        .toSet()
+                } else {
+                    emptySet()
                 }
-                val peopleIds = people.map { it.id }.toSet()
 
-                val intraRelations = relations.filter { rel ->
-                    rel.fromId in peopleIds && rel.toId in peopleIds
+                val reachedSoFar = categoryPersonIds + distanceOneIds
+                val distanceTwoIds: Set<Long> = if (distance >= 2) {
+                    relations
+                        .filter { rel ->
+                            (rel.fromId in distanceOneIds && rel.toId !in reachedSoFar) ||
+                                (rel.toId in distanceOneIds && rel.fromId !in reachedSoFar)
+                        }
+                        .flatMap { listOf(it.fromId, it.toId) }
+                        .filter { it !in reachedSoFar }
+                        .toSet()
+                } else {
+                    emptySet()
                 }
 
-                val components = findConnectedComponents(people.map { it.id }, intraRelations)
+                val distanceMap = buildMap<Long, Int> {
+                    categoryPersonIds.forEach { put(it, 0) }
+                    distanceOneIds.forEach { put(it, 1) }
+                    distanceTwoIds.forEach { put(it, 2) }
+                }
+                val allPersonIds = distanceMap.keys
+
+                val people = acquaintances.filter { it.id in allPersonIds }
+
+                val visibleRelations = relations.filter { rel ->
+                    rel.fromId in allPersonIds && rel.toId in allPersonIds
+                }
+
+                val components = findConnectedComponents(people.map { it.id }, visibleRelations)
                 val nodePositions = computeLayout(components)
 
                 val personCategoryLists = mutableMapOf<Long, MutableList<RelationCategory>>()
                 val fromCounts = mutableMapOf<Long, Int>()
                 val toCounts = mutableMapOf<Long, Int>()
-                intraRelations.forEach { rel ->
+                visibleRelations.forEach { rel ->
                     val cat = RelationTypes.findByKey(rel.typeKey)?.category ?: return@forEach
                     personCategoryLists.getOrPut(rel.fromId) { mutableListOf() }.add(cat)
                     personCategoryLists.getOrPut(rel.toId) { mutableListOf() }.add(cat)
@@ -101,6 +141,7 @@ class CategoryCanvasViewModel @Inject constructor(
 
                 CategoryCanvasUiState(
                     categoryName = categoryName,
+                    relationDistance = distance,
                     nodes = people.map { person ->
                         val (x, y) = nodePositions[person.id] ?: (0f to 0f)
                         val dominant = personCategoryLists[person.id]
@@ -123,9 +164,10 @@ class CategoryCanvasViewModel @Inject constructor(
                             dominantCategory = dominant,
                             isDirectMember = categoryId in person.categoryIds,
                             isNetSource = isNetSource,
+                            distanceFromCategory = distanceMap[person.id] ?: 0,
                         )
                     },
-                    edges = intraRelations.map { rel ->
+                    edges = visibleRelations.map { rel ->
                         CanvasRelationEdge(
                             id = rel.id,
                             fromId = rel.fromId,
@@ -148,6 +190,10 @@ class CategoryCanvasViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun setRelationDistance(d: Int) {
+        relationDistanceFlow.value = d.coerceIn(0, 2)
     }
 
     fun openRelationDialog(fromId: Long, toId: Long) {
