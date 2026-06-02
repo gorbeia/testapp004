@@ -165,6 +165,25 @@ class AcquaintanceDetailViewModelTest {
     }
 
     @Test
+    fun `counterpartLabel for outgoing relation is the other person role`() {
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
+        val vm = buildViewModel()
+        // Alice is the parent: from=Alice, to=Bob → Alice's label="Parent", Bob's label="Child"
+        vm.addRelation(bobId, RelationTypes.PARENT_CHILD.key, isCurrentPersonFrom = true, customLabel = null)
+        assertEquals("Child", vm.uiState.value.relations.first().counterpartLabel)
+    }
+
+    @Test
+    fun `counterpartLabel for incoming relation is the other person role`() {
+        runBlocking {
+            val bobId = fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet())
+            // Bob is the parent: from=Bob, to=Alice → Alice's label="Child", Bob's label="Parent"
+            fakeRelationRepository.addRelation(fromId = bobId, toId = aliceId, typeKey = RelationTypes.PARENT_CHILD.key)
+        }
+        assertEquals("Parent", buildViewModel().uiState.value.relations.first().counterpartLabel)
+    }
+
+    @Test
     fun `deleteRelation removes the relation`() {
         val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
         val vm = buildViewModel()

@@ -11,7 +11,8 @@ display name and primary phone number.
 ### Linking a contact
 
 1. Open an acquaintance's detail screen.
-2. In the **Linked Contact** card, tap **Link Contact**.
+2. In the **Linked Contact** row, tap **Link Contact**.
+   (When no contact is linked this row is compact; when linked it expands to a full card.)
 3. If the app does not yet have `READ_CONTACTS` permission, the OS permission
    dialog is shown. On deny, nothing happens; the acquaintance remains unlinked.
 4. On grant (or if already granted), the system contact picker opens.

@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
@@ -137,25 +136,12 @@ fun AcquaintanceDetailScreen(
                     )
                 }
                 item {
-                    RelationsHeader(onAddClick = viewModel::openAddRelationDialog)
-                }
-                if (uiState.relations.isEmpty()) {
-                    item {
-                        Text(
-                            text = "No relations yet",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(vertical = 8.dp),
-                        )
-                    }
-                } else {
-                    items(uiState.relations, key = { it.relationId }) { relation ->
-                        RelationCard(
-                            relation = relation,
-                            onDelete = { viewModel.deleteRelation(relation.relationId) },
-                            onPersonClick = { onPersonClick(relation.otherPersonId) },
-                        )
-                    }
+                    RelationsSection(
+                        relations = uiState.relations,
+                        onAddClick = viewModel::openAddRelationDialog,
+                        onDelete = viewModel::deleteRelation,
+                        onPersonClick = onPersonClick,
+                    )
                 }
             }
         }
@@ -311,15 +297,36 @@ private fun LinkedContactSection(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Linked Contact",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            if (isLinked) {
+        if (!isLinked) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column {
+                    Text(
+                        text = "Linked Contact",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = "None",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                TextButton(onClick = { launchPicker() }) { Text("Link Contact") }
+            }
+        } else {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Linked Contact",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
                 if (linkedContactInfo != null) {
                     Text(
                         text = linkedContactInfo.displayName,
@@ -413,15 +420,50 @@ private fun LinkedContactSection(
                         )
                     }
                 }
-            } else {
-                Text(
-                    text = "No contact linked",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = { launchPicker() }) {
-                    Text("Link Contact")
+            }
+        }
+    }
+}
+
+@Composable
+private fun RelationsSection(
+    relations: List<RelationDisplay>,
+    onAddClick: () -> Unit,
+    onDelete: (Long) -> Unit,
+    onPersonClick: (Long) -> Unit,
+) {
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("Relations", style = MaterialTheme.typography.titleMedium)
+            IconButton(onClick = onAddClick) {
+                Icon(Icons.Default.Add, contentDescription = "Add relation")
+            }
+        }
+        HorizontalDivider()
+        if (relations.isEmpty()) {
+            Text(
+                text = "No relations yet",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(vertical = 8.dp),
+            )
+        } else {
+            Spacer(modifier = Modifier.height(8.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+            ) {
+                relations.forEachIndexed { index, relation ->
+                    if (index > 0) HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                    RelationRow(
+                        relation = relation,
+                        onDelete = { onDelete(relation.relationId) },
+                        onPersonClick = { onPersonClick(relation.otherPersonId) },
+                    )
                 }
             }
         }
@@ -429,63 +471,39 @@ private fun LinkedContactSection(
 }
 
 @Composable
-private fun RelationsHeader(onAddClick: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = "Relations",
-            style = MaterialTheme.typography.titleMedium,
-        )
-        IconButton(onClick = onAddClick) {
-            Icon(Icons.Default.Add, contentDescription = "Add relation")
-        }
-    }
-    HorizontalDivider()
-}
-
-@Composable
-private fun RelationCard(
+private fun RelationRow(
     relation: RelationDisplay,
     onDelete: () -> Unit,
     onPersonClick: () -> Unit,
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
+        Column(modifier = Modifier.weight(1f)) {
+            TextButton(
+                onClick = onPersonClick,
+                contentPadding = PaddingValues(0.dp),
+            ) {
                 Text(
-                    text = relation.label,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                TextButton(
-                    onClick = onPersonClick,
-                    contentPadding = PaddingValues(0.dp),
-                ) {
-                    Text(
-                        text = relation.otherPersonName,
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                }
-            }
-            IconButton(onClick = onDelete) {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = "Remove relation",
-                    tint = MaterialTheme.colorScheme.error,
+                    text = relation.otherPersonName,
+                    style = MaterialTheme.typography.bodyLarge,
                 )
             }
+            Text(
+                text = relation.counterpartLabel,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        IconButton(onClick = onDelete) {
+            Icon(
+                Icons.Default.Delete,
+                contentDescription = "Remove relation",
+                tint = MaterialTheme.colorScheme.error,
+            )
         }
     }
 }
