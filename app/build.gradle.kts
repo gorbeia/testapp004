@@ -76,6 +76,7 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
+    implementation(libs.reorderable)
     ksp(libs.hilt.compiler)
     ksp(libs.androidx.room.compiler)
 
