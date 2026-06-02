@@ -518,7 +518,7 @@ private fun AddRelationDialog(
             if (opt.isCurrentPersonFrom) type.toLabel else type.fromLabel
         }
     }
-    val roleLabel = if (currentPersonName.isNotEmpty()) "${currentPersonName}'s role" else "Relation type"
+    val roleLabel = if (currentPersonName.isNotEmpty()) "$currentPersonName's role" else "Relation type"
 
     AlertDialog(
         onDismissRequest = onDismiss,

@@ -633,7 +633,7 @@ private fun CanvasAddRelationDialog(
                         value = selectedOption?.displayLabel ?: "",
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("${fromPersonName}'s role") },
+                        label = { Text("$fromPersonName's role") },
                         trailingIcon = {
                             ExposedDropdownMenuDefaults.TrailingIcon(expanded = isTypeDropdownExpanded)
                         },
