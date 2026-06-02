@@ -46,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -102,7 +103,42 @@ fun CategoriesScreen(
             val listState = rememberLazyListState()
             var draggingId by remember { mutableStateOf<Long?>(null) }
             var dragOffset by remember { mutableStateOf(0f) }
+            var dragXOffset by remember { mutableStateOf(0f) }
             var dropTargetId by remember { mutableStateOf<Long?>(null) }
+
+            val density = LocalDensity.current
+            val indentThresholdPx = with(density) { 72.dp.toPx() }
+
+            // Compute proposed parent from X offset for visual feedback during drag.
+            val proposedParentId: Long? = run {
+                val dragging = draggingId ?: return@run null
+                val draggedCat = treeOrder.find { it.first.id == dragging }?.first ?: return@run null
+                val candidate = dropTargetId?.let { id -> treeOrder.find { it.first.id == id }?.first }
+                    ?: run {
+                        val idx = treeOrder.indexOfFirst { it.first.id == dragging }
+                        if (idx > 0) treeOrder[idx - 1].first else null
+                    }
+                when {
+                    dragXOffset > indentThresholdPx -> {
+                        if (candidate != null && candidate.id != dragging) {
+                            val forbidden = descendantIds(uiState.categories, dragging) + dragging
+                            if (candidate.id !in forbidden) candidate.id else draggedCat.parentId
+                        } else {
+                            draggedCat.parentId
+                        }
+                    }
+                    dragXOffset < -indentThresholdPx -> draggedCat.parentId?.let { pid ->
+                        treeOrder.find { it.first.id == pid }?.first?.parentId
+                    }
+                    else -> draggedCat.parentId
+                }
+            }
+
+            val proposedDepth: Int = if (draggingId == null) {
+                0
+            } else {
+                (proposedParentId?.let { pid -> treeOrder.find { it.first.id == pid }?.second } ?: -1) + 1
+            }
 
             LazyColumn(
                 state = listState,
@@ -114,12 +150,15 @@ fun CategoriesScreen(
             ) {
                 itemsIndexed(treeOrder, key = { _, (cat, _) -> cat.id }) { index, (category, depth) ->
                     val isDragging = draggingId == category.id
-                    val isDropTarget = dropTargetId == category.id
+                    val isDropTarget = dropTargetId == category.id && !isDragging
+                    val isProposedParent = proposedParentId == category.id && !isDragging
+                    val displayDepth = if (isDragging) proposedDepth else depth
                     CategoryItem(
                         category = category,
-                        depth = depth,
+                        depth = displayDepth,
                         isDragging = isDragging,
                         isDropTarget = isDropTarget,
+                        isProposedParent = isProposedParent,
                         dragOffsetPx = if (isDragging) dragOffset else 0f,
                         onAddChild = { viewModel.openAddChildDialog(category) },
                         onEdit = { viewModel.openEditDialog(category) },
@@ -127,10 +166,12 @@ fun CategoriesScreen(
                         onDragStart = {
                             draggingId = category.id
                             dragOffset = 0f
+                            dragXOffset = 0f
                             dropTargetId = null
                         },
-                        onDrag = { delta ->
-                            dragOffset += delta
+                        onDrag = { dy, dx ->
+                            dragOffset += dy
+                            dragXOffset += dx
                             val draggedInfo = listState.layoutInfo.visibleItemsInfo
                                 .find { it.index == index }
                             if (draggedInfo != null) {
@@ -142,26 +183,60 @@ fun CategoriesScreen(
                                             dragCenter >= info.offset &&
                                             dragCenter < info.offset + info.size
                                     }
-                                    ?.let { info ->
-                                        treeOrder.getOrNull(info.index)?.first
-                                            ?.takeIf { it.parentId == category.parentId }
-                                            ?.id
-                                    }
+                                    ?.let { info -> treeOrder.getOrNull(info.index)?.first?.id }
                             }
                         },
                         onDragEnd = {
                             val from = draggingId
                             val to = dropTargetId
+                            val draggedCat = treeOrder.find { it.first.id == from }?.first
+                            val candidate = to?.let { id ->
+                                treeOrder.find { it.first.id == id }?.first
+                            } ?: run {
+                                val idx = treeOrder.indexOfFirst { it.first.id == from }
+                                if (idx > 0) treeOrder[idx - 1].first else null
+                            }
+                            val effectiveParentId: Long? = when {
+                                from == null || draggedCat == null -> null
+                                dragXOffset > indentThresholdPx -> {
+                                    if (candidate != null && candidate.id != from) {
+                                        val forbidden = descendantIds(
+                                            treeOrder.map { it.first },
+                                            from,
+                                        ) + from
+                                        if (candidate.id !in forbidden) candidate.id else draggedCat.parentId
+                                    } else {
+                                        draggedCat.parentId
+                                    }
+                                }
+                                dragXOffset < -indentThresholdPx -> draggedCat.parentId?.let { pid ->
+                                    treeOrder.find { it.first.id == pid }?.first?.parentId
+                                }
+                                else -> draggedCat.parentId
+                            }
                             draggingId = null
                             dragOffset = 0f
+                            dragXOffset = 0f
                             dropTargetId = null
-                            if (from != null && to != null) {
-                                viewModel.reorderCategory(from, to)
+                            if (from != null && draggedCat != null) {
+                                if (effectiveParentId != draggedCat.parentId) {
+                                    val targetPos = to?.let { toId ->
+                                        treeOrder.find { it.first.id == toId }?.first
+                                            ?.takeIf { it.parentId == effectiveParentId }?.id
+                                    }
+                                    viewModel.moveCategory(from, effectiveParentId, targetPos)
+                                } else if (to != null) {
+                                    val toCat = treeOrder.find { it.first.id == to }?.first
+                                    if (toCat?.parentId == draggedCat.parentId) {
+                                        viewModel.reorderCategory(from, to)
+                                    }
+                                }
                             }
                         },
                         onDragCancel = {
                             draggingId = null
                             dragOffset = 0f
+                            dragXOffset = 0f
                             dropTargetId = null
                         },
                     )
@@ -204,12 +279,13 @@ private fun CategoryItem(
     depth: Int,
     isDragging: Boolean,
     isDropTarget: Boolean,
+    isProposedParent: Boolean,
     dragOffsetPx: Float,
     onAddChild: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onDragStart: () -> Unit,
-    onDrag: (Float) -> Unit,
+    onDrag: (dy: Float, dx: Float) -> Unit,
     onDragEnd: () -> Unit,
     onDragCancel: () -> Unit,
 ) {
@@ -225,7 +301,7 @@ private fun CategoryItem(
                     onDragStart = { onDragStart() },
                     onDrag = { change, dragAmount ->
                         change.consume()
-                        onDrag(dragAmount.y)
+                        onDrag(dragAmount.y, dragAmount.x)
                     },
                     onDragEnd = { onDragEnd() },
                     onDragCancel = { onDragCancel() },
@@ -234,10 +310,14 @@ private fun CategoryItem(
         elevation = CardDefaults.cardElevation(
             defaultElevation = if (isDragging) 8.dp else 2.dp,
         ),
-        colors = if (isDropTarget) {
-            CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-        } else {
-            CardDefaults.cardColors()
+        colors = when {
+            isProposedParent -> CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+            )
+            isDropTarget -> CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+            )
+            else -> CardDefaults.cardColors()
         },
     ) {
         Row(

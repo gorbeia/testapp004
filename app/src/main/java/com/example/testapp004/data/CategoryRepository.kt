@@ -13,4 +13,6 @@ interface CategoryRepository {
     suspend fun deleteCategory(categoryId: Long)
 
     suspend fun reorderCategory(movedId: Long, targetId: Long)
+
+    suspend fun moveCategory(movedId: Long, newParentId: Long?, targetPositionId: Long?)
 }

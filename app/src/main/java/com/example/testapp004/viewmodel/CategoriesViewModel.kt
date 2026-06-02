@@ -87,4 +87,10 @@ class CategoriesViewModel @Inject constructor(
             categoryRepository.reorderCategory(movedId, targetId)
         }
     }
+
+    fun moveCategory(movedId: Long, newParentId: Long?, targetPositionId: Long?) {
+        viewModelScope.launch {
+            categoryRepository.moveCategory(movedId, newParentId, targetPositionId)
+        }
+    }
 }

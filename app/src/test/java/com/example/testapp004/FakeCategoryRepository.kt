@@ -55,4 +55,45 @@ class FakeCategoryRepository : CategoryRepository {
             list.map { cat -> reordered.find { it.id == cat.id } ?: cat }
         }
     }
+
+    override suspend fun moveCategory(movedId: Long, newParentId: Long?, targetPositionId: Long?) {
+        val all = _categories.value
+        val moved = all.find { it.id == movedId } ?: return
+        val oldParentId = moved.parentId
+        if (newParentId == movedId) return
+        if (newParentId != null && isDescendant(all, movedId, newParentId)) return
+
+        val newSiblings = all.filter { it.parentId == newParentId && it.id != movedId }
+            .sortedWith(compareBy({ it.sortOrder }, { it.id }))
+            .toMutableList()
+        val insertPos = if (targetPositionId != null) {
+            newSiblings.indexOfFirst { it.id == targetPositionId }.takeIf { it != -1 } ?: newSiblings.size
+        } else {
+            newSiblings.size
+        }
+        newSiblings.add(minOf(insertPos, newSiblings.size), moved)
+
+        val reorderedNew = newSiblings.mapIndexed { i, cat ->
+            if (cat.id == movedId) cat.copy(parentId = newParentId, sortOrder = i) else cat.copy(sortOrder = i)
+        }
+        val reorderedOld = if (oldParentId != newParentId) {
+            all.filter { it.parentId == oldParentId && it.id != movedId }
+                .sortedWith(compareBy({ it.sortOrder }, { it.id }))
+                .mapIndexed { i, cat -> cat.copy(sortOrder = i) }
+        } else {
+            emptyList()
+        }
+
+        val updates = (reorderedNew + reorderedOld).associateBy { it.id }
+        _categories.update { list -> list.map { cat -> updates[cat.id] ?: cat } }
+    }
+
+    private fun isDescendant(all: List<Category>, ancestor: Long, candidate: Long): Boolean {
+        var current: Long? = candidate
+        while (current != null) {
+            current = all.find { it.id == current }?.parentId
+            if (current == ancestor) return true
+        }
+        return false
+    }
 }
