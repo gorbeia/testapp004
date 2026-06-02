@@ -37,10 +37,10 @@ Accessible via the **People** tab in the bottom navigation bar.
 * **Top bar**: person's name; back, edit (pencil), delete (bin) actions.
 * **Bio card**: shows the bio text; or "No bio added" placeholder. All assigned categories are shown as chips above the bio. Tapping a category chip navigates to the Categories screen.
   - A pencil icon in the top-right of the card enters **inline edit mode**: the bio is replaced by a multi-line text field with Save and Cancel buttons. Saving persists immediately; Cancel restores the previous text. No navigation required.
-* **Relations section**: list of directed relations.
-  - Outgoing (this person → other): shows `→ label →` + tappable name of other person.
-  - Incoming (other → this person): shows `← label ←` + tappable name of other person.
-  - Delete icon on each relation card.
+* **Relations section**: compact list of directed relations inside a single card.
+  - Each row shows the **other person's name** (tappable, primary) and their **role relative to the
+    current person** below it (e.g., "Parent", "Spouse") — making direction unambiguous at a glance.
+  - Delete icon on the right of each row.
   - (+) icon next to "Relations" header opens the Add Relation dialog.
   - Inside the Add Relation dialog a **"Create new person"** button navigates to the New Person
     screen. After saving, the app returns automatically to the detail screen with the relation

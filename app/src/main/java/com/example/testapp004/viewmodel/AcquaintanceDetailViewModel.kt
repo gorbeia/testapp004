@@ -24,6 +24,7 @@ import javax.inject.Inject
 data class RelationDisplay(
     val relationId: Long,
     val label: String,
+    val counterpartLabel: String,
     val otherPersonId: Long,
     val otherPersonName: String,
     val isOutgoing: Boolean,
@@ -72,9 +73,17 @@ class AcquaintanceDetailViewModel @Inject constructor(
                     val isOutgoing = relation.fromId == acquaintanceId
                     val otherId = if (isOutgoing) relation.toId else relation.fromId
                     val other = acquaintances.find { it.id == otherId } ?: return@mapNotNull null
+                    val counterpartLabel = if (relation.typeKey == RelationTypes.CUSTOM_KEY) {
+                        relation.customLabel.orEmpty()
+                    } else {
+                        RelationTypes.findByKey(relation.typeKey)?.let { type ->
+                            if (isOutgoing) type.toLabel else type.fromLabel
+                        } ?: relation.customLabel.orEmpty()
+                    }
                     RelationDisplay(
                         relationId = relation.id,
                         label = relation.labelFor(acquaintanceId),
+                        counterpartLabel = counterpartLabel,
                         otherPersonId = other.id,
                         otherPersonName = other.name,
                         isOutgoing = isOutgoing,
