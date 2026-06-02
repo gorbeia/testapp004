@@ -224,10 +224,12 @@ private fun CanvasGraph(
         }
     }
     val cs = MaterialTheme.colorScheme
+    // Blend 25% toward the accent color so non-source fills have enough luminance to be visible
+    // against both dark and light canvas backgrounds (pure container colors are too dark in dark theme).
     val categoryFill = mapOf(
-        RelationCategory.FAMILY to cs.tertiaryContainer,
-        RelationCategory.PROFESSIONAL to cs.primaryContainer,
-        RelationCategory.SOCIAL to cs.secondaryContainer,
+        RelationCategory.FAMILY to lerp(cs.tertiaryContainer, cs.tertiary, 0.25f),
+        RelationCategory.PROFESSIONAL to lerp(cs.primaryContainer, cs.primary, 0.25f),
+        RelationCategory.SOCIAL to lerp(cs.secondaryContainer, cs.secondary, 0.25f),
     )
     val categoryFillSource = mapOf(
         RelationCategory.FAMILY to cs.tertiary,
@@ -249,7 +251,7 @@ private fun CanvasGraph(
         RelationCategory.PROFESSIONAL to cs.onPrimary,
         RelationCategory.SOCIAL to cs.onSecondary,
     )
-    val defaultFill = cs.primaryContainer
+    val defaultFill = lerp(cs.primaryContainer, cs.primary, 0.25f)
     val defaultFillSource = cs.primary
     val defaultStroke = cs.primary
     val defaultText = cs.onPrimaryContainer
@@ -263,21 +265,23 @@ private fun CanvasGraph(
         } else {
             categoryFill[cat] ?: defaultFill
         }
+        // Use surfaceContainerHighest (slightly elevated, not pitch-black) to avoid nodes
+        // disappearing into the canvas background when blending for distance.
         return when {
-            distanceFromCategory == 1 -> lerp(base, cs.surface, 0.60f)
-            distanceFromCategory == 2 -> lerp(base, cs.surface, 0.75f)
+            distanceFromCategory == 1 -> lerp(base, cs.surfaceContainerHighest, 0.40f)
+            distanceFromCategory == 2 -> lerp(base, cs.surfaceContainerHighest, 0.60f)
             direct -> base
-            else -> lerp(base, cs.surface, 0.45f)
+            else -> lerp(base, cs.surfaceContainerHighest, 0.25f)
         }
     }
 
     fun nodeStroke(cat: RelationCategory?, direct: Boolean, distanceFromCategory: Int): Color {
         val base = categoryStroke[cat] ?: defaultStroke
         return when {
-            distanceFromCategory == 1 -> lerp(base, cs.surface, 0.50f)
-            distanceFromCategory == 2 -> lerp(base, cs.surface, 0.65f)
+            distanceFromCategory == 1 -> lerp(base, cs.surfaceContainerHighest, 0.30f)
+            distanceFromCategory == 2 -> lerp(base, cs.surfaceContainerHighest, 0.45f)
             direct -> base
-            else -> lerp(base, cs.surface, 0.45f)
+            else -> lerp(base, cs.surfaceContainerHighest, 0.20f)
         }
     }
 
@@ -288,10 +292,10 @@ private fun CanvasGraph(
             categoryText[cat] ?: defaultText
         }
         return when {
-            distanceFromCategory == 1 -> lerp(base, cs.onSurfaceVariant, 0.45f)
-            distanceFromCategory == 2 -> lerp(base, cs.onSurfaceVariant, 0.60f)
+            distanceFromCategory == 1 -> lerp(base, cs.onSurfaceVariant, 0.15f)
+            distanceFromCategory == 2 -> lerp(base, cs.onSurfaceVariant, 0.30f)
             direct -> base
-            else -> lerp(base, cs.onSurfaceVariant, 0.35f)
+            else -> lerp(base, cs.onSurfaceVariant, 0.10f)
         }
     }
 
