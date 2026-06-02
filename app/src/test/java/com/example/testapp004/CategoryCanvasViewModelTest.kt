@@ -128,6 +128,29 @@ class CategoryCanvasViewModelTest {
     }
 
     @Test
+    fun `node isNetSource is null for both sides of a symmetric relation`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", setOf(catId)) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "SPOUSE", null) }
+        val vm = createViewModel(catId)
+        assertNull(vm.uiState.value.nodes.first { it.name == "Alice" }.isNetSource)
+        assertNull(vm.uiState.value.nodes.first { it.name == "Bob" }.isNetSource)
+    }
+
+    @Test
+    fun `node isNetSource ignores symmetric relations when mixed with asymmetric`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", setOf(catId)) }
+        val carolId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Carol", "", setOf(catId)) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "SPOUSE", null) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, carolId, "PARENT_CHILD", null) }
+        val vm = createViewModel(catId)
+        assertEquals(true, vm.uiState.value.nodes.first { it.name == "Alice" }.isNetSource)
+    }
+
+    @Test
     fun `node isNetSource is true for the from-side of a directed relation`() {
         val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
         val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
@@ -298,5 +321,32 @@ class CategoryCanvasViewModelTest {
         val vm = createViewModel(catId)
         vm.setRelationDistance(1)
         assert(vm.uiState.value.edges.any { it.fromId == aliceId && it.toId == charlieId })
+    }
+
+    @Test
+    fun `symmetric relation type produces edge with isSymmetric true`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", setOf(catId)) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "SPOUSE", null) }
+        assertEquals(true, createViewModel(catId).uiState.value.edges.first().isSymmetric)
+    }
+
+    @Test
+    fun `asymmetric relation type produces edge with isSymmetric false`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", setOf(catId)) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "PARENT_CHILD", null) }
+        assertEquals(false, createViewModel(catId).uiState.value.edges.first().isSymmetric)
+    }
+
+    @Test
+    fun `custom relation type produces edge with isSymmetric false`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", setOf(catId)) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "CUSTOM", "co-founder") }
+        assertEquals(false, createViewModel(catId).uiState.value.edges.first().isSymmetric)
     }
 }

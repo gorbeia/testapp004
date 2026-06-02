@@ -40,6 +40,7 @@ data class CanvasRelationEdge(
     val toId: Long,
     val label: String,
     val category: RelationCategory?,
+    val isSymmetric: Boolean = false,
 )
 
 data class CategoryCanvasUiState(
@@ -132,11 +133,14 @@ class CategoryCanvasViewModel @Inject constructor(
                 val fromCounts = mutableMapOf<Long, Int>()
                 val toCounts = mutableMapOf<Long, Int>()
                 visibleRelations.forEach { rel ->
-                    val cat = RelationTypes.findByKey(rel.typeKey)?.category ?: return@forEach
+                    val relType = RelationTypes.findByKey(rel.typeKey)
+                    val cat = relType?.category ?: return@forEach
                     personCategoryLists.getOrPut(rel.fromId) { mutableListOf() }.add(cat)
                     personCategoryLists.getOrPut(rel.toId) { mutableListOf() }.add(cat)
-                    fromCounts[rel.fromId] = (fromCounts[rel.fromId] ?: 0) + 1
-                    toCounts[rel.toId] = (toCounts[rel.toId] ?: 0) + 1
+                    if (!relType.isSymmetric) {
+                        fromCounts[rel.fromId] = (fromCounts[rel.fromId] ?: 0) + 1
+                        toCounts[rel.toId] = (toCounts[rel.toId] ?: 0) + 1
+                    }
                 }
 
                 CategoryCanvasUiState(
@@ -168,12 +172,14 @@ class CategoryCanvasViewModel @Inject constructor(
                         )
                     },
                     edges = visibleRelations.map { rel ->
+                        val relType = RelationTypes.findByKey(rel.typeKey)
                         CanvasRelationEdge(
                             id = rel.id,
                             fromId = rel.fromId,
                             toId = rel.toId,
                             label = rel.labelFor(rel.fromId),
-                            category = RelationTypes.findByKey(rel.typeKey)?.category,
+                            category = relType?.category,
+                            isSymmetric = relType?.isSymmetric ?: false,
                         )
                     },
                     isLoading = false,
