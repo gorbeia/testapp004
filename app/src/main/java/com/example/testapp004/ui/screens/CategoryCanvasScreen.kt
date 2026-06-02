@@ -594,6 +594,11 @@ private fun CanvasAddRelationDialog(
 
     val isCustom = selectedOption?.typeKey == RelationTypes.CUSTOM_KEY
     val isConfirmEnabled = selectedOption != null && (!isCustom || customLabel.isNotBlank())
+    val counterpartLabel: String? = selectedOption?.takeIf { !isCustom }?.let { opt ->
+        RelationTypes.findByKey(opt.typeKey)?.let { type ->
+            if (opt.isCurrentPersonFrom) type.toLabel else type.fromLabel
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -628,7 +633,7 @@ private fun CanvasAddRelationDialog(
                         value = selectedOption?.displayLabel ?: "",
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Relation type") },
+                        label = { Text("$fromPersonName's role") },
                         trailingIcon = {
                             ExposedDropdownMenuDefaults.TrailingIcon(expanded = isTypeDropdownExpanded)
                         },
@@ -671,6 +676,13 @@ private fun CanvasAddRelationDialog(
                             )
                         }
                     }
+                }
+                if (counterpartLabel != null) {
+                    Text(
+                        text = "→ $toPersonName will appear as: $counterpartLabel",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.secondary,
+                    )
                 }
                 if (isCustom) {
                     OutlinedTextField(
