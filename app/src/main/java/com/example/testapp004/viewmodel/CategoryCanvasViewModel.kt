@@ -133,11 +133,14 @@ class CategoryCanvasViewModel @Inject constructor(
                 val fromCounts = mutableMapOf<Long, Int>()
                 val toCounts = mutableMapOf<Long, Int>()
                 visibleRelations.forEach { rel ->
-                    val cat = RelationTypes.findByKey(rel.typeKey)?.category ?: return@forEach
+                    val relType = RelationTypes.findByKey(rel.typeKey)
+                    val cat = relType?.category ?: return@forEach
                     personCategoryLists.getOrPut(rel.fromId) { mutableListOf() }.add(cat)
                     personCategoryLists.getOrPut(rel.toId) { mutableListOf() }.add(cat)
-                    fromCounts[rel.fromId] = (fromCounts[rel.fromId] ?: 0) + 1
-                    toCounts[rel.toId] = (toCounts[rel.toId] ?: 0) + 1
+                    if (!relType.isSymmetric) {
+                        fromCounts[rel.fromId] = (fromCounts[rel.fromId] ?: 0) + 1
+                        toCounts[rel.toId] = (toCounts[rel.toId] ?: 0) + 1
+                    }
                 }
 
                 CategoryCanvasUiState(
