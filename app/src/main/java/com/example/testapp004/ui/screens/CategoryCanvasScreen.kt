@@ -390,6 +390,7 @@ private fun CanvasGraph(
                     edgeColor = edgeColor(edge.category),
                     labelColor = labelColor,
                     textMeasurer = textMeasurer,
+                    drawArrow = !edge.isSymmetric,
                 )
             }
             nodes.forEach { node ->
@@ -490,6 +491,7 @@ private fun DrawScope.drawEdge(
     edgeColor: Color,
     labelColor: Color,
     textMeasurer: TextMeasurer,
+    drawArrow: Boolean = true,
 ) {
     val dx = to.x - from.x
     val dy = to.y - from.y
@@ -504,24 +506,26 @@ private fun DrawScope.drawEdge(
 
     drawLine(color = edgeColor, start = start, end = end, strokeWidth = 2.5f, cap = StrokeCap.Round)
 
-    val angle = atan2(uy, ux)
-    val a1 = Offset(
-        end.x - ARROW_LEN * cos(angle - ARROW_HALF_ANGLE),
-        end.y - ARROW_LEN * sin(angle - ARROW_HALF_ANGLE),
-    )
-    val a2 = Offset(
-        end.x - ARROW_LEN * cos(angle + ARROW_HALF_ANGLE),
-        end.y - ARROW_LEN * sin(angle + ARROW_HALF_ANGLE),
-    )
-    drawPath(
-        path = Path().apply {
-            moveTo(end.x, end.y)
-            lineTo(a1.x, a1.y)
-            lineTo(a2.x, a2.y)
-            close()
-        },
-        color = edgeColor,
-    )
+    if (drawArrow) {
+        val angle = atan2(uy, ux)
+        val a1 = Offset(
+            end.x - ARROW_LEN * cos(angle - ARROW_HALF_ANGLE),
+            end.y - ARROW_LEN * sin(angle - ARROW_HALF_ANGLE),
+        )
+        val a2 = Offset(
+            end.x - ARROW_LEN * cos(angle + ARROW_HALF_ANGLE),
+            end.y - ARROW_LEN * sin(angle + ARROW_HALF_ANGLE),
+        )
+        drawPath(
+            path = Path().apply {
+                moveTo(end.x, end.y)
+                lineTo(a1.x, a1.y)
+                lineTo(a2.x, a2.y)
+                close()
+            },
+            color = edgeColor,
+        )
+    }
 
     if (label.isNotBlank()) {
         val mid = Offset((start.x + end.x) / 2f, (start.y + end.y) / 2f)

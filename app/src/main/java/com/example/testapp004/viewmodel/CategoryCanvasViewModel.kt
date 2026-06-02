@@ -40,6 +40,7 @@ data class CanvasRelationEdge(
     val toId: Long,
     val label: String,
     val category: RelationCategory?,
+    val isSymmetric: Boolean = false,
 )
 
 data class CategoryCanvasUiState(
@@ -168,12 +169,14 @@ class CategoryCanvasViewModel @Inject constructor(
                         )
                     },
                     edges = visibleRelations.map { rel ->
+                        val relType = RelationTypes.findByKey(rel.typeKey)
                         CanvasRelationEdge(
                             id = rel.id,
                             fromId = rel.fromId,
                             toId = rel.toId,
                             label = rel.labelFor(rel.fromId),
-                            category = RelationTypes.findByKey(rel.typeKey)?.category,
+                            category = relType?.category,
+                            isSymmetric = relType?.isSymmetric ?: false,
                         )
                     },
                     isLoading = false,

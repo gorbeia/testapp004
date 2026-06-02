@@ -57,7 +57,7 @@ Spatial overview of the people in a category and their relationships.
 
 **Layout:**
 * People are rendered as circular nodes labelled with their name.
-* Directed relations between people in the category are drawn as arrowed lines; the label sits at the midpoint of the edge and is perspective-aware (uses `Relation.labelFor(fromId)`).
+* Relations between people in the category are drawn as lines with a label at the midpoint (perspective-aware via `Relation.labelFor(fromId)`). Asymmetric (directed) relations render with an arrowhead at the target; symmetric (equal-level) relations such as Spouse or Friend render as plain lines with no arrowhead.
 * Only relations where **both** endpoints belong to the category (or its descendants) are drawn; cross-category relations are invisible from the canvas.
 * Nodes are grouped by connected component (Union-Find). Each component's nodes are arranged in a circle. Components are placed in a left-to-right grid (max 3 per row), sorted largest first.
 * Isolated people (no intra-category relations) appear as single-node clusters.
