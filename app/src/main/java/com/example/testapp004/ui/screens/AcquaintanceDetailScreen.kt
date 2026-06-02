@@ -582,7 +582,10 @@ private fun AddRelationDialog(
                 ) {
                     OutlinedTextField(
                         value = if (isPersonDropdownExpanded) filterText else selectedPersonName,
-                        onValueChange = { filterText = it; isPersonDropdownExpanded = true },
+                        onValueChange = {
+                            filterText = it
+                            isPersonDropdownExpanded = true
+                        },
                         label = { Text("Person") },
                         placeholder = { Text("Search…") },
                         trailingIcon = {
@@ -595,7 +598,10 @@ private fun AddRelationDialog(
                     )
                     ExposedDropdownMenu(
                         expanded = isPersonDropdownExpanded,
-                        onDismissRequest = { isPersonDropdownExpanded = false; filterText = "" },
+                        onDismissRequest = {
+                            isPersonDropdownExpanded = false
+                            filterText = ""
+                        },
                     ) {
                         if (sharedPersons.isNotEmpty()) {
                             DropdownMenuItem(
