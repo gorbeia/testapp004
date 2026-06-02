@@ -50,7 +50,6 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.TextMeasurer
@@ -221,15 +220,18 @@ private fun CanvasGraph(
 
     fun nodeFill(cat: RelationCategory?, direct: Boolean): Color {
         val base = categoryFill[cat] ?: defaultFill
-        return if (direct) base else lerp(base, cs.surface, 0.45f)
+        return if (direct) base else base.copy(alpha = 0.35f)
     }
 
     fun nodeStroke(cat: RelationCategory?, direct: Boolean): Color {
         val base = categoryStroke[cat] ?: defaultStroke
-        return if (direct) base else lerp(base, cs.surface, 0.45f)
+        return if (direct) base else base.copy(alpha = 0.35f)
     }
 
-    fun nodeText(cat: RelationCategory?) = categoryText[cat] ?: defaultText
+    fun nodeText(cat: RelationCategory?, direct: Boolean): Color {
+        val base = categoryText[cat] ?: defaultText
+        return if (direct) base else base.copy(alpha = 0.35f)
+    }
 
     fun edgeColor(cat: RelationCategory?) = categoryStroke[cat] ?: cs.outline
 
@@ -329,7 +331,7 @@ private fun CanvasGraph(
                 val isDragSource = isDragging && node.id == draggedNodeId
                 val fill = nodeFill(node.dominantCategory, node.isDirectMember)
                 val stroke = nodeStroke(node.dominantCategory, node.isDirectMember)
-                val text = nodeText(node.dominantCategory)
+                val text = nodeText(node.dominantCategory, node.isDirectMember)
                 drawNode(
                     center = Offset(node.x, node.y),
                     halfW = nodeHalfWidths[node.id] ?: NODE_MAX_HALF_W,
@@ -371,7 +373,7 @@ private fun CanvasGraph(
                         } else {
                             nodeStroke(ghostNode.dominantCategory, ghostNode.isDirectMember)
                         },
-                        textColor = nodeText(ghostNode.dominantCategory),
+                        textColor = nodeText(ghostNode.dominantCategory, ghostNode.isDirectMember),
                         textMeasurer = textMeasurer,
                     )
                 }
