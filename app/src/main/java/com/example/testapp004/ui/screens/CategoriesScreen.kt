@@ -1,6 +1,5 @@
 package com.example.testapp004.ui.screens
 
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,7 +7,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -45,13 +43,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.example.testapp004.model.Category
 import com.example.testapp004.viewmodel.CategoriesViewModel
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -99,45 +99,44 @@ fun CategoriesScreen(
                 }
             }
         } else {
-            val treeOrder = buildCategoryTree(uiState.categories)
-            val listState = rememberLazyListState()
-            var draggingId by remember { mutableStateOf<Long?>(null) }
-            var dragOffset by remember { mutableStateOf(0f) }
-            var dragXOffset by remember { mutableStateOf(0f) }
-            var dropTargetId by remember { mutableStateOf<Long?>(null) }
-
             val density = LocalDensity.current
-            val indentThresholdPx = with(density) { 72.dp.toPx() }
+            val indentStepPx = with(density) { 24.dp.toPx() }
 
-            // Compute proposed parent from X offset for visual feedback during drag.
-            val proposedParentId: Long? = run {
-                val dragging = draggingId ?: return@run null
-                val draggedCat = treeOrder.find { it.first.id == dragging }?.first ?: return@run null
-                val candidate = dropTargetId?.let { id -> treeOrder.find { it.first.id == id }?.first }
-                    ?: run {
-                        val idx = treeOrder.indexOfFirst { it.first.id == dragging }
-                        if (idx > 0) treeOrder[idx - 1].first else null
-                    }
-                when {
-                    dragXOffset > indentThresholdPx -> {
-                        if (candidate != null && candidate.id != dragging) {
-                            val forbidden = descendantIds(uiState.categories, dragging) + dragging
-                            if (candidate.id !in forbidden) candidate.id else draggedCat.parentId
-                        } else {
-                            draggedCat.parentId
-                        }
-                    }
-                    dragXOffset < -indentThresholdPx -> draggedCat.parentId?.let { pid ->
-                        treeOrder.find { it.first.id == pid }?.first?.parentId
-                    }
-                    else -> draggedCat.parentId
-                }
+            // Working copy of the tree for live drag animation; resets when ViewModel emits.
+            var localTree by remember(uiState.categories) {
+                mutableStateOf(buildCategoryTree(uiState.categories))
             }
 
-            val proposedDepth: Int = if (draggingId == null) {
-                0
+            // Drag state
+            var draggingId by remember { mutableStateOf<Long?>(null) }
+            var dragXOffset by remember { mutableStateOf(0f) }
+            var dragStartDepth by remember { mutableStateOf(0) }
+
+            // Derived: position of dragging item in the live tree.
+            val draggingIdx = if (draggingId != null) {
+                localTree.indexOfFirst { it.first.id == draggingId }
             } else {
-                (proposedParentId?.let { pid -> treeOrder.find { it.first.id == pid }?.second } ?: -1) + 1
+                -1
+            }
+            val itemAboveDepth = if (draggingIdx > 0) localTree[draggingIdx - 1].second else -1
+            val maxAllowedDepth = (itemAboveDepth + 1).coerceAtLeast(0)
+            val proposedDepth = if (draggingId != null) {
+                (dragStartDepth + (dragXOffset / indentStepPx).roundToInt())
+                    .coerceIn(0, maxAllowedDepth)
+            } else {
+                0
+            }
+            val proposedParentId: Long? = if (draggingId == null || proposedDepth == 0) {
+                null
+            } else {
+                findParentIdAtDepth(localTree, draggingIdx, proposedDepth)
+            }
+
+            val listState = rememberLazyListState()
+            val reorderState = rememberReorderableLazyListState(listState) { from, to ->
+                localTree = localTree.toMutableList().apply {
+                    add(to.index, removeAt(from.index))
+                }
             }
 
             LazyColumn(
@@ -148,98 +147,69 @@ fun CategoriesScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                itemsIndexed(treeOrder, key = { _, (cat, _) -> cat.id }) { index, (category, depth) ->
-                    val isDragging = draggingId == category.id
-                    val isDropTarget = dropTargetId == category.id && !isDragging
-                    val isProposedParent = proposedParentId == category.id && !isDragging
-                    val displayDepth = if (isDragging) proposedDepth else depth
-                    CategoryItem(
-                        category = category,
-                        depth = displayDepth,
-                        isDragging = isDragging,
-                        isDropTarget = isDropTarget,
-                        isProposedParent = isProposedParent,
-                        dragOffsetPx = if (isDragging) dragOffset else 0f,
-                        onAddChild = { viewModel.openAddChildDialog(category) },
-                        onEdit = { viewModel.openEditDialog(category) },
-                        onDelete = { viewModel.deleteCategory(category.id) },
-                        onDragStart = {
-                            draggingId = category.id
-                            dragOffset = 0f
-                            dragXOffset = 0f
-                            dropTargetId = null
-                        },
-                        onDrag = { dy, dx ->
-                            dragOffset += dy
-                            dragXOffset += dx
-                            val draggedInfo = listState.layoutInfo.visibleItemsInfo
-                                .find { it.index == index }
-                            if (draggedInfo != null) {
-                                val dragCenter = draggedInfo.offset + draggedInfo.size / 2 +
-                                    dragOffset.roundToInt()
-                                dropTargetId = listState.layoutInfo.visibleItemsInfo
-                                    .firstOrNull { info ->
-                                        info.index != index &&
-                                            dragCenter >= info.offset &&
-                                            dragCenter < info.offset + info.size
-                                    }
-                                    ?.let { info -> treeOrder.getOrNull(info.index)?.first?.id }
-                            }
-                        },
-                        onDragEnd = {
-                            val from = draggingId
-                            val to = dropTargetId
-                            val draggedCat = treeOrder.find { it.first.id == from }?.first
-                            val candidate = to?.let { id ->
-                                treeOrder.find { it.first.id == id }?.first
-                            } ?: run {
-                                val idx = treeOrder.indexOfFirst { it.first.id == from }
-                                if (idx > 0) treeOrder[idx - 1].first else null
-                            }
-                            val effectiveParentId: Long? = when {
-                                from == null || draggedCat == null -> null
-                                dragXOffset > indentThresholdPx -> {
-                                    if (candidate != null && candidate.id != from) {
-                                        val forbidden = descendantIds(
-                                            treeOrder.map { it.first },
-                                            from,
-                                        ) + from
-                                        if (candidate.id !in forbidden) candidate.id else draggedCat.parentId
-                                    } else {
-                                        draggedCat.parentId
-                                    }
-                                }
-                                dragXOffset < -indentThresholdPx -> draggedCat.parentId?.let { pid ->
-                                    treeOrder.find { it.first.id == pid }?.first?.parentId
-                                }
-                                else -> draggedCat.parentId
-                            }
-                            draggingId = null
-                            dragOffset = 0f
-                            dragXOffset = 0f
-                            dropTargetId = null
-                            if (from != null && draggedCat != null) {
-                                if (effectiveParentId != draggedCat.parentId) {
-                                    val targetPos = to?.let { toId ->
-                                        treeOrder.find { it.first.id == toId }?.first
-                                            ?.takeIf { it.parentId == effectiveParentId }?.id
-                                    }
-                                    viewModel.moveCategory(from, effectiveParentId, targetPos)
-                                } else if (to != null) {
-                                    val toCat = treeOrder.find { it.first.id == to }?.first
-                                    if (toCat?.parentId == draggedCat.parentId) {
-                                        viewModel.reorderCategory(from, to)
+                itemsIndexed(localTree, key = { _, (cat, _) -> cat.id }) { _, (category, depth) ->
+                    ReorderableItem(reorderState, key = category.id) { isDragging ->
+                        val isThisDragging = isDragging
+                        val isProposedParent = proposedParentId == category.id && !isThisDragging
+                        val displayDepth = if (isThisDragging) proposedDepth else depth
+
+                        // Build the handle modifier here so draggableHandle is in scope.
+                        val handleModifier = Modifier
+                            .pointerInput(category.id) {
+                                // Initial pass: read X before the library's Main-pass consumes events.
+                                awaitPointerEventScope {
+                                    while (true) {
+                                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                                        val change = event.changes.firstOrNull() ?: continue
+                                        if (change.pressed && draggingId == category.id) {
+                                            dragXOffset += (change.position - change.previousPosition).x
+                                        }
                                     }
                                 }
                             }
-                        },
-                        onDragCancel = {
-                            draggingId = null
-                            dragOffset = 0f
-                            dragXOffset = 0f
-                            dropTargetId = null
-                        },
-                    )
+                            .draggableHandle(
+                                onDragStarted = {
+                                    draggingId = category.id
+                                    dragStartDepth = depth
+                                    dragXOffset = 0f
+                                },
+                                onDragStopped = {
+                                    val fromId = draggingId ?: return@draggableHandle
+                                    val tree = localTree
+                                    val fromIdx = tree.indexOfFirst { it.first.id == fromId }
+                                    if (fromIdx != -1) {
+                                        val aboveDepth =
+                                            if (fromIdx > 0) tree[fromIdx - 1].second else -1
+                                        val maxDepth = (aboveDepth + 1).coerceAtLeast(0)
+                                        val depthDelta = (dragXOffset / indentStepPx).roundToInt()
+                                        val finalDepth =
+                                            (dragStartDepth + depthDelta).coerceIn(0, maxDepth)
+                                        val newParentId =
+                                            findParentIdAtDepth(tree, fromIdx, finalDepth)
+                                        // First existing child of newParentId after the drop
+                                        // position becomes the insert-before anchor.
+                                        val targetPositionId = tree.drop(fromIdx + 1)
+                                            .map { it.first }
+                                            .firstOrNull { it.parentId == newParentId }
+                                            ?.id
+                                        viewModel.moveCategory(fromId, newParentId, targetPositionId)
+                                    }
+                                    draggingId = null
+                                    dragXOffset = 0f
+                                },
+                            )
+
+                        CategoryItem(
+                            category = category,
+                            depth = displayDepth,
+                            isDragging = isThisDragging,
+                            isProposedParent = isProposedParent,
+                            handleModifier = handleModifier,
+                            onAddChild = { viewModel.openAddChildDialog(category) },
+                            onEdit = { viewModel.openEditDialog(category) },
+                            onDelete = { viewModel.deleteCategory(category.id) },
+                        )
+                    }
                 }
             }
         }
@@ -278,44 +248,24 @@ private fun CategoryItem(
     category: Category,
     depth: Int,
     isDragging: Boolean,
-    isDropTarget: Boolean,
     isProposedParent: Boolean,
-    dragOffsetPx: Float,
+    handleModifier: Modifier,
     onAddChild: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-    onDragStart: () -> Unit,
-    onDrag: (dy: Float, dx: Float) -> Unit,
-    onDragEnd: () -> Unit,
-    onDragCancel: () -> Unit,
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(start = (depth * 24).dp)
             .zIndex(if (isDragging) 1f else 0f)
-            .offset { IntOffset(0, dragOffsetPx.roundToInt()) }
-            .alpha(if (isDragging) 0.85f else 1f)
-            .pointerInput(category.id) {
-                detectDragGesturesAfterLongPress(
-                    onDragStart = { onDragStart() },
-                    onDrag = { change, dragAmount ->
-                        change.consume()
-                        onDrag(dragAmount.y, dragAmount.x)
-                    },
-                    onDragEnd = { onDragEnd() },
-                    onDragCancel = { onDragCancel() },
-                )
-            },
+            .alpha(if (isDragging) 0.85f else 1f),
         elevation = CardDefaults.cardElevation(
             defaultElevation = if (isDragging) 8.dp else 2.dp,
         ),
         colors = when {
             isProposedParent -> CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-            )
-            isDropTarget -> CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
             )
             else -> CardDefaults.cardColors()
         },
@@ -330,7 +280,7 @@ private fun CategoryItem(
                 imageVector = Icons.Default.DragHandle,
                 contentDescription = "Drag to reorder",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                modifier = Modifier.padding(horizontal = 4.dp),
+                modifier = handleModifier.padding(horizontal = 4.dp),
             )
             if (depth > 0) {
                 Text(
@@ -404,7 +354,9 @@ private fun AddCategoryDialog(
                             readOnly = true,
                             label = { Text("Parent category (optional)") },
                             trailingIcon = {
-                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = isParentDropdownExpanded)
+                                ExposedDropdownMenuDefaults.TrailingIcon(
+                                    expanded = isParentDropdownExpanded,
+                                )
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -487,7 +439,9 @@ private fun EditCategoryDialog(
                         readOnly = true,
                         label = { Text("Parent category (optional)") },
                         trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = isParentDropdownExpanded)
+                            ExposedDropdownMenuDefaults.TrailingIcon(
+                                expanded = isParentDropdownExpanded,
+                            )
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -529,6 +483,25 @@ private fun EditCategoryDialog(
             TextButton(onClick = onDismiss) { Text("Cancel") }
         },
     )
+}
+
+/**
+ * Walk backward from [insertionIdx]-1 to find the nearest ancestor at depth [depth]-1.
+ * Returns null if [depth] == 0 (root) or no ancestor found (capped by a shallower item).
+ */
+private fun findParentIdAtDepth(
+    tree: List<Pair<Category, Int>>,
+    insertionIdx: Int,
+    depth: Int,
+): Long? {
+    if (depth == 0) return null
+    val targetDepth = depth - 1
+    for (i in (insertionIdx - 1) downTo 0) {
+        val (cat, d) = tree[i]
+        if (d == targetDepth) return cat.id
+        if (d < targetDepth) return null
+    }
+    return null
 }
 
 private fun descendantIds(categories: List<Category>, rootId: Long): Set<Long> {

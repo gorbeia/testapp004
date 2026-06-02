@@ -247,3 +247,4 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | [ADR-023](docs/decisions/ADR-023-categories-management-updates.md) | Categories management: remove canvas link, add child button, drag-drop sort order | 2026-06-01 |
 | [ADR-024](docs/decisions/ADR-024-canvas-parent-child-color-distinction.md) | Canvas nodes for direct category members render at full color; child-only members use a lightened blend | 2026-06-01 |
 | [ADR-025](docs/decisions/ADR-025-category-reorder-hierarchy.md) | Category drag-drop extended with X-axis indent/promote to change parent hierarchy | 2026-06-01 |
+| [ADR-026](docs/decisions/ADR-026-reorderable-library.md) | sh.calvin.reorderable for category drag-drop Y-axis mechanics | 2026-06-02 |
