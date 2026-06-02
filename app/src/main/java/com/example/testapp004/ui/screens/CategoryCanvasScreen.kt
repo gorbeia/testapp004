@@ -50,6 +50,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.TextMeasurer
@@ -202,6 +203,11 @@ private fun CanvasGraph(
         RelationCategory.PROFESSIONAL to cs.primaryContainer,
         RelationCategory.SOCIAL to cs.secondaryContainer,
     )
+    val categoryFillSource = mapOf(
+        RelationCategory.FAMILY to cs.tertiary,
+        RelationCategory.PROFESSIONAL to cs.primary,
+        RelationCategory.SOCIAL to cs.secondary,
+    )
     val categoryStroke = mapOf(
         RelationCategory.FAMILY to cs.tertiary,
         RelationCategory.PROFESSIONAL to cs.primary,
@@ -212,25 +218,40 @@ private fun CanvasGraph(
         RelationCategory.PROFESSIONAL to cs.onPrimaryContainer,
         RelationCategory.SOCIAL to cs.onSecondaryContainer,
     )
+    val categoryTextSource = mapOf(
+        RelationCategory.FAMILY to cs.onTertiary,
+        RelationCategory.PROFESSIONAL to cs.onPrimary,
+        RelationCategory.SOCIAL to cs.onSecondary,
+    )
     val defaultFill = cs.primaryContainer
+    val defaultFillSource = cs.primary
     val defaultStroke = cs.primary
     val defaultText = cs.onPrimaryContainer
+    val defaultTextSource = cs.onPrimary
     val labelColor = cs.onSurface
     val dropTargetHighlightColor = cs.tertiary
 
-    fun nodeFill(cat: RelationCategory?, direct: Boolean): Color {
-        val base = categoryFill[cat] ?: defaultFill
-        return if (direct) base else base.copy(alpha = 0.35f)
+    fun nodeFill(cat: RelationCategory?, direct: Boolean, isNetSource: Boolean?): Color {
+        val base = if (isNetSource == true) {
+            categoryFillSource[cat] ?: defaultFillSource
+        } else {
+            categoryFill[cat] ?: defaultFill
+        }
+        return if (direct) base else lerp(base, cs.surface, 0.45f)
     }
 
     fun nodeStroke(cat: RelationCategory?, direct: Boolean): Color {
         val base = categoryStroke[cat] ?: defaultStroke
-        return if (direct) base else base.copy(alpha = 0.35f)
+        return if (direct) base else lerp(base, cs.surface, 0.45f)
     }
 
-    fun nodeText(cat: RelationCategory?, direct: Boolean): Color {
-        val base = categoryText[cat] ?: defaultText
-        return if (direct) base else base.copy(alpha = 0.35f)
+    fun nodeText(cat: RelationCategory?, direct: Boolean, isNetSource: Boolean?): Color {
+        val base = if (isNetSource == true) {
+            categoryTextSource[cat] ?: defaultTextSource
+        } else {
+            categoryText[cat] ?: defaultText
+        }
+        return if (direct) base else lerp(base, cs.onSurfaceVariant, 0.35f)
     }
 
     fun edgeColor(cat: RelationCategory?) = categoryStroke[cat] ?: cs.outline
@@ -329,9 +350,9 @@ private fun CanvasGraph(
             nodes.forEach { node ->
                 val isDropTarget = isDragging && node.id == dropTargetId
                 val isDragSource = isDragging && node.id == draggedNodeId
-                val fill = nodeFill(node.dominantCategory, node.isDirectMember)
+                val fill = nodeFill(node.dominantCategory, node.isDirectMember, node.isNetSource)
                 val stroke = nodeStroke(node.dominantCategory, node.isDirectMember)
-                val text = nodeText(node.dominantCategory, node.isDirectMember)
+                val text = nodeText(node.dominantCategory, node.isDirectMember, node.isNetSource)
                 drawNode(
                     center = Offset(node.x, node.y),
                     halfW = nodeHalfWidths[node.id] ?: NODE_MAX_HALF_W,
@@ -367,13 +388,21 @@ private fun CanvasGraph(
                         center = Offset(ghostCanvasX, ghostCanvasY),
                         halfW = nodeHalfWidths[ghostNode.id] ?: NODE_MAX_HALF_W,
                         name = ghostNode.name,
-                        nodeColor = nodeFill(ghostNode.dominantCategory, ghostNode.isDirectMember),
+                        nodeColor = nodeFill(
+                            ghostNode.dominantCategory,
+                            ghostNode.isDirectMember,
+                            ghostNode.isNetSource,
+                        ),
                         strokeColor = if (dropTargetId != null) {
                             dropTargetHighlightColor
                         } else {
                             nodeStroke(ghostNode.dominantCategory, ghostNode.isDirectMember)
                         },
-                        textColor = nodeText(ghostNode.dominantCategory, ghostNode.isDirectMember),
+                        textColor = nodeText(
+                            ghostNode.dominantCategory,
+                            ghostNode.isDirectMember,
+                            ghostNode.isNetSource,
+                        ),
                         textMeasurer = textMeasurer,
                     )
                 }

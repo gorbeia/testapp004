@@ -121,6 +121,59 @@ class CategoryCanvasViewModelTest {
     }
 
     @Test
+    fun `node isNetSource is null when person has no relations`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        assertNull(createViewModel(catId).uiState.value.nodes.first { it.name == "Alice" }.isNetSource)
+    }
+
+    @Test
+    fun `node isNetSource is true for the from-side of a directed relation`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", setOf(catId)) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "PARENT_CHILD", null) }
+        val vm = createViewModel(catId)
+        assertEquals(true, vm.uiState.value.nodes.first { it.name == "Alice" }.isNetSource)
+    }
+
+    @Test
+    fun `node isNetSource is false for the to-side of a directed relation`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", setOf(catId)) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "PARENT_CHILD", null) }
+        val vm = createViewModel(catId)
+        assertEquals(false, vm.uiState.value.nodes.first { it.name == "Bob" }.isNetSource)
+    }
+
+    @Test
+    fun `node isNetSource is null when from and to counts are equal`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", setOf(catId)) }
+        val carolId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Carol", "", setOf(catId)) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "PARENT_CHILD", null) }
+        runBlocking { fakeRelationRepository.addRelation(carolId, aliceId, "PARENT_CHILD", null) }
+        val vm = createViewModel(catId)
+        assertNull(vm.uiState.value.nodes.first { it.name == "Alice" }.isNetSource)
+    }
+
+    @Test
+    fun `node isNetSource reflects net direction when mixed from and to relations`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", setOf(catId)) }
+        val carolId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Carol", "", setOf(catId)) }
+        val daveId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Dave", "", setOf(catId)) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "PARENT_CHILD", null) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, carolId, "PARENT_CHILD", null) }
+        runBlocking { fakeRelationRepository.addRelation(daveId, aliceId, "PARENT_CHILD", null) }
+        val vm = createViewModel(catId)
+        assertEquals(true, vm.uiState.value.nodes.first { it.name == "Alice" }.isNetSource)
+    }
+
+    @Test
     fun `node isDirectMember is true when person belongs directly to canvas category`() {
         val catId = runBlocking { fakeCategoryRepository.addCategory("Parent") }
         runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }

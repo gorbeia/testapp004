@@ -30,6 +30,7 @@ data class CanvasPersonNode(
     val y: Float,
     val dominantCategory: RelationCategory?,
     val isDirectMember: Boolean,
+    val isNetSource: Boolean?,
 )
 
 data class CanvasRelationEdge(
@@ -88,10 +89,14 @@ class CategoryCanvasViewModel @Inject constructor(
                 val nodePositions = computeLayout(components)
 
                 val personCategoryLists = mutableMapOf<Long, MutableList<RelationCategory>>()
+                val fromCounts = mutableMapOf<Long, Int>()
+                val toCounts = mutableMapOf<Long, Int>()
                 intraRelations.forEach { rel ->
                     val cat = RelationTypes.findByKey(rel.typeKey)?.category ?: return@forEach
                     personCategoryLists.getOrPut(rel.fromId) { mutableListOf() }.add(cat)
                     personCategoryLists.getOrPut(rel.toId) { mutableListOf() }.add(cat)
+                    fromCounts[rel.fromId] = (fromCounts[rel.fromId] ?: 0) + 1
+                    toCounts[rel.toId] = (toCounts[rel.toId] ?: 0) + 1
                 }
 
                 CategoryCanvasUiState(
@@ -103,6 +108,13 @@ class CategoryCanvasViewModel @Inject constructor(
                             ?.eachCount()
                             ?.maxByOrNull { it.value }
                             ?.key
+                        val outDegree = fromCounts[person.id] ?: 0
+                        val inDegree = toCounts[person.id] ?: 0
+                        val isNetSource = when {
+                            outDegree > inDegree -> true
+                            inDegree > outDegree -> false
+                            else -> null
+                        }
                         CanvasPersonNode(
                             id = person.id,
                             name = person.name,
@@ -110,6 +122,7 @@ class CategoryCanvasViewModel @Inject constructor(
                             y = y,
                             dominantCategory = dominant,
                             isDirectMember = categoryId in person.categoryIds,
+                            isNetSource = isNetSource,
                         )
                     },
                     edges = intraRelations.map { rel ->
