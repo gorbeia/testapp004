@@ -21,6 +21,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -46,6 +47,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -111,25 +113,49 @@ fun CategoryCanvasScreen(
             }
         },
     ) { paddingValues ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
-            contentAlignment = Alignment.Center,
         ) {
-            when {
-                uiState.isLoading -> CircularProgressIndicator()
-                uiState.nodes.isEmpty() -> Text(
-                    text = "No people in this category",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = "Distance",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
-                else -> CanvasGraph(
-                    nodes = uiState.nodes,
-                    edges = uiState.edges,
-                    onPersonClick = onPersonClick,
-                    onRelationDrop = viewModel::openRelationDialog,
-                )
+                (0..2).forEach { d ->
+                    FilterChip(
+                        selected = uiState.relationDistance == d,
+                        onClick = { viewModel.setRelationDistance(d) },
+                        label = { Text(d.toString()) },
+                    )
+                }
+            }
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.Center,
+            ) {
+                when {
+                    uiState.isLoading -> CircularProgressIndicator()
+                    uiState.nodes.isEmpty() -> Text(
+                        text = "No people in this category",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    else -> CanvasGraph(
+                        nodes = uiState.nodes,
+                        edges = uiState.edges,
+                        onPersonClick = onPersonClick,
+                        onRelationDrop = viewModel::openRelationDialog,
+                    )
+                }
             }
         }
     }
@@ -231,27 +257,42 @@ private fun CanvasGraph(
     val labelColor = cs.onSurface
     val dropTargetHighlightColor = cs.tertiary
 
-    fun nodeFill(cat: RelationCategory?, direct: Boolean, isNetSource: Boolean?): Color {
+    fun nodeFill(cat: RelationCategory?, direct: Boolean, isNetSource: Boolean?, distanceFromCategory: Int): Color {
         val base = if (isNetSource == true) {
             categoryFillSource[cat] ?: defaultFillSource
         } else {
             categoryFill[cat] ?: defaultFill
         }
-        return if (direct) base else lerp(base, cs.surface, 0.45f)
+        return when {
+            distanceFromCategory == 1 -> lerp(base, cs.surface, 0.60f)
+            distanceFromCategory == 2 -> lerp(base, cs.surface, 0.75f)
+            direct -> base
+            else -> lerp(base, cs.surface, 0.45f)
+        }
     }
 
-    fun nodeStroke(cat: RelationCategory?, direct: Boolean): Color {
+    fun nodeStroke(cat: RelationCategory?, direct: Boolean, distanceFromCategory: Int): Color {
         val base = categoryStroke[cat] ?: defaultStroke
-        return if (direct) base else lerp(base, cs.surface, 0.45f)
+        return when {
+            distanceFromCategory == 1 -> lerp(base, cs.surface, 0.50f)
+            distanceFromCategory == 2 -> lerp(base, cs.surface, 0.65f)
+            direct -> base
+            else -> lerp(base, cs.surface, 0.45f)
+        }
     }
 
-    fun nodeText(cat: RelationCategory?, direct: Boolean, isNetSource: Boolean?): Color {
+    fun nodeText(cat: RelationCategory?, direct: Boolean, isNetSource: Boolean?, distanceFromCategory: Int): Color {
         val base = if (isNetSource == true) {
             categoryTextSource[cat] ?: defaultTextSource
         } else {
             categoryText[cat] ?: defaultText
         }
-        return if (direct) base else lerp(base, cs.onSurfaceVariant, 0.35f)
+        return when {
+            distanceFromCategory == 1 -> lerp(base, cs.onSurfaceVariant, 0.45f)
+            distanceFromCategory == 2 -> lerp(base, cs.onSurfaceVariant, 0.60f)
+            direct -> base
+            else -> lerp(base, cs.onSurfaceVariant, 0.35f)
+        }
     }
 
     fun edgeColor(cat: RelationCategory?) = categoryStroke[cat] ?: cs.outline
@@ -350,9 +391,13 @@ private fun CanvasGraph(
             nodes.forEach { node ->
                 val isDropTarget = isDragging && node.id == dropTargetId
                 val isDragSource = isDragging && node.id == draggedNodeId
-                val fill = nodeFill(node.dominantCategory, node.isDirectMember, node.isNetSource)
-                val stroke = nodeStroke(node.dominantCategory, node.isDirectMember)
-                val text = nodeText(node.dominantCategory, node.isDirectMember, node.isNetSource)
+                val fill = nodeFill(
+                    node.dominantCategory, node.isDirectMember, node.isNetSource, node.distanceFromCategory,
+                )
+                val stroke = nodeStroke(node.dominantCategory, node.isDirectMember, node.distanceFromCategory)
+                val text = nodeText(
+                    node.dominantCategory, node.isDirectMember, node.isNetSource, node.distanceFromCategory,
+                )
                 drawNode(
                     center = Offset(node.x, node.y),
                     halfW = nodeHalfWidths[node.id] ?: NODE_MAX_HALF_W,
@@ -365,6 +410,7 @@ private fun CanvasGraph(
                     },
                     textColor = if (isDragSource) text.copy(alpha = 0.3f) else text,
                     textMeasurer = textMeasurer,
+                    useDashedBorder = node.distanceFromCategory > 0,
                 )
                 if (isDropTarget) {
                     val hw = nodeHalfWidths[node.id] ?: NODE_MAX_HALF_W
@@ -392,18 +438,25 @@ private fun CanvasGraph(
                             ghostNode.dominantCategory,
                             ghostNode.isDirectMember,
                             ghostNode.isNetSource,
+                            ghostNode.distanceFromCategory,
                         ),
                         strokeColor = if (dropTargetId != null) {
                             dropTargetHighlightColor
                         } else {
-                            nodeStroke(ghostNode.dominantCategory, ghostNode.isDirectMember)
+                            nodeStroke(
+                                ghostNode.dominantCategory,
+                                ghostNode.isDirectMember,
+                                ghostNode.distanceFromCategory,
+                            )
                         },
                         textColor = nodeText(
                             ghostNode.dominantCategory,
                             ghostNode.isDirectMember,
                             ghostNode.isNetSource,
+                            ghostNode.distanceFromCategory,
                         ),
                         textMeasurer = textMeasurer,
+                        useDashedBorder = ghostNode.distanceFromCategory > 0,
                     )
                 }
             }
@@ -483,17 +536,23 @@ private fun DrawScope.drawNode(
     strokeColor: Color,
     textColor: Color,
     textMeasurer: TextMeasurer,
+    useDashedBorder: Boolean = false,
 ) {
     val topLeft = Offset(center.x - halfW, center.y - NODE_HALF_H)
     val size = Size(halfW * 2, NODE_HALF_H * 2)
     val corner = CornerRadius(NODE_HALF_H, NODE_HALF_H)
     drawRoundRect(color = nodeColor, topLeft = topLeft, size = size, cornerRadius = corner)
+    val strokeStyle = if (useDashedBorder) {
+        Stroke(width = 2.5f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 4f)))
+    } else {
+        Stroke(width = 2.5f)
+    }
     drawRoundRect(
         color = strokeColor,
         topLeft = topLeft,
         size = size,
         cornerRadius = corner,
-        style = Stroke(width = 2.5f),
+        style = strokeStyle,
     )
 
     val measured = textMeasurer.measure(

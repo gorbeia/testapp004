@@ -215,6 +215,7 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | Canvas relation-based color scheme | ✅ Done | [ADR-022](docs/decisions/ADR-022-canvas-color-scheme.md) |
 | Canvas parent/child category color distinction | ✅ Done | [ADR-024](docs/decisions/ADR-024-canvas-parent-child-color-distinction.md) |
 | Category drag-drop hierarchy reordering | ✅ Done | [ADR-025](docs/decisions/ADR-025-category-reorder-hierarchy.md) |
+| Canvas relation-distance expansion (0/1/2) | ✅ Done | [ADR-028](docs/decisions/ADR-028-canvas-distance-feature.md) |
 
 ---
 
@@ -249,3 +250,4 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | [ADR-025](docs/decisions/ADR-025-category-reorder-hierarchy.md) | Category drag-drop extended with X-axis indent/promote to change parent hierarchy | 2026-06-01 |
 | [ADR-026](docs/decisions/ADR-026-reorderable-library.md) | sh.calvin.reorderable for category drag-drop Y-axis mechanics | 2026-06-02 |
 | [ADR-027](docs/decisions/ADR-027-canvas-source-target-node-colors.md) | Canvas node fill distinguishes relation source (bright accent) from target (soft container) | 2026-06-02 |
+| [ADR-028](docs/decisions/ADR-028-canvas-distance-feature.md) | Canvas distance selector (0/1/2) expands visible nodes to relation neighbours | 2026-06-02 |

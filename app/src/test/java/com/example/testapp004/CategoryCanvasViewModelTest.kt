@@ -198,4 +198,105 @@ class CategoryCanvasViewModelTest {
         val carol = createViewModel(parentId).uiState.value.nodes.first { it.name == "Carol" }
         assertEquals(true, carol.isDirectMember)
     }
+
+    @Test
+    fun `category member node has distanceFromCategory of 0`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val alice = createViewModel(catId).uiState.value.nodes.first { it.name == "Alice" }
+        assertEquals(0, alice.distanceFromCategory)
+    }
+
+    @Test
+    fun `at distance 0 person related to category member but outside category is excluded`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val charlieId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Charlie", "", emptySet()) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, charlieId, "FRIEND", null) }
+        val vm = createViewModel(catId)
+        assert(vm.uiState.value.nodes.none { it.name == "Charlie" })
+    }
+
+    @Test
+    fun `setRelationDistance updates uiState relationDistance`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val vm = createViewModel(catId)
+        vm.setRelationDistance(1)
+        assertEquals(1, vm.uiState.value.relationDistance)
+    }
+
+    @Test
+    fun `at distance 1 person related to category member is included`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val charlieId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Charlie", "", emptySet()) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, charlieId, "FRIEND", null) }
+        val vm = createViewModel(catId)
+        vm.setRelationDistance(1)
+        assert(vm.uiState.value.nodes.any { it.name == "Charlie" })
+    }
+
+    @Test
+    fun `at distance 1 included person has distanceFromCategory of 1`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val charlieId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Charlie", "", emptySet()) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, charlieId, "FRIEND", null) }
+        val vm = createViewModel(catId)
+        vm.setRelationDistance(1)
+        val charlie = vm.uiState.value.nodes.first { it.name == "Charlie" }
+        assertEquals(1, charlie.distanceFromCategory)
+    }
+
+    @Test
+    fun `at distance 1 person two hops from category is not included`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val charlieId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Charlie", "", emptySet()) }
+        val daveId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Dave", "", emptySet()) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, charlieId, "FRIEND", null) }
+        runBlocking { fakeRelationRepository.addRelation(charlieId, daveId, "FRIEND", null) }
+        val vm = createViewModel(catId)
+        vm.setRelationDistance(1)
+        assert(vm.uiState.value.nodes.none { it.name == "Dave" })
+    }
+
+    @Test
+    fun `at distance 2 person two hops from category is included`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val charlieId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Charlie", "", emptySet()) }
+        val daveId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Dave", "", emptySet()) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, charlieId, "FRIEND", null) }
+        runBlocking { fakeRelationRepository.addRelation(charlieId, daveId, "FRIEND", null) }
+        val vm = createViewModel(catId)
+        vm.setRelationDistance(2)
+        assert(vm.uiState.value.nodes.any { it.name == "Dave" })
+    }
+
+    @Test
+    fun `at distance 2 two-hop node has distanceFromCategory of 2`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val charlieId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Charlie", "", emptySet()) }
+        val daveId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Dave", "", emptySet()) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, charlieId, "FRIEND", null) }
+        runBlocking { fakeRelationRepository.addRelation(charlieId, daveId, "FRIEND", null) }
+        val vm = createViewModel(catId)
+        vm.setRelationDistance(2)
+        val dave = vm.uiState.value.nodes.first { it.name == "Dave" }
+        assertEquals(2, dave.distanceFromCategory)
+    }
+
+    @Test
+    fun `at distance 1 edges between category member and distance-1 node are shown`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val charlieId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Charlie", "", emptySet()) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, charlieId, "FRIEND", null) }
+        val vm = createViewModel(catId)
+        vm.setRelationDistance(1)
+        assert(vm.uiState.value.edges.any { it.fromId == aliceId && it.toId == charlieId })
+    }
 }
