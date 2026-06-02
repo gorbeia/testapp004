@@ -106,7 +106,11 @@ Spatial overview of the people in a category and their relationships.
 
 ### Add Relation dialog (inline in detail screen)
 
-* Dropdown to select the target person (all other people in the system).
+* **Person picker**: filterable dropdown over all other people in the system.
+  * The field is editable — typing filters the list in real time (case-insensitive name match).
+  * People who share at least one category with the current person are listed first under a
+    **"Same groups"** section header; the rest follow after a divider.
+  * Each person row shows their name and, on a second line, the names of their categories.
 * Relation type dropdown labeled **"[Current person]'s role"** — options describe the role the
   current person plays (e.g. "Child", "Parent", "Manager"). This makes the direction unambiguous
   without requiring the user to reason about from/to semantics.

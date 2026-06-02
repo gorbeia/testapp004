@@ -194,6 +194,19 @@ class AcquaintanceDetailViewModelTest {
     }
 
     @Test
+    fun `allCategories is populated from category repository`() {
+        runBlocking { fakeCategoryRepository.addCategory("Work") }
+        val vm = buildViewModel()
+        assertEquals(1, vm.uiState.value.allCategories.size)
+        assertEquals("Work", vm.uiState.value.allCategories.first().name)
+    }
+
+    @Test
+    fun `allCategories is empty when no categories exist`() {
+        assertTrue(buildViewModel().uiState.value.allCategories.isEmpty())
+    }
+
+    @Test
     fun `allOtherAcquaintances excludes the current person`() {
         runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
         val vm = buildViewModel()
