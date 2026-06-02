@@ -46,8 +46,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
@@ -232,8 +232,11 @@ private fun CanvasGraph(
     val dropTargetHighlightColor = cs.tertiary
 
     fun nodeFill(cat: RelationCategory?, direct: Boolean, isNetSource: Boolean?): Color {
-        val base = if (isNetSource == true) categoryFillSource[cat] ?: defaultFillSource
-                   else categoryFill[cat] ?: defaultFill
+        val base = if (isNetSource == true) {
+            categoryFillSource[cat] ?: defaultFillSource
+        } else {
+            categoryFill[cat] ?: defaultFill
+        }
         return if (direct) base else lerp(base, cs.surface, 0.45f)
     }
 
@@ -243,8 +246,11 @@ private fun CanvasGraph(
     }
 
     fun nodeText(cat: RelationCategory?, direct: Boolean, isNetSource: Boolean?): Color {
-        val base = if (isNetSource == true) categoryTextSource[cat] ?: defaultTextSource
-                   else categoryText[cat] ?: defaultText
+        val base = if (isNetSource == true) {
+            categoryTextSource[cat] ?: defaultTextSource
+        } else {
+            categoryText[cat] ?: defaultText
+        }
         return if (direct) base else lerp(base, cs.onSurfaceVariant, 0.35f)
     }
 
@@ -383,7 +389,9 @@ private fun CanvasGraph(
                         halfW = nodeHalfWidths[ghostNode.id] ?: NODE_MAX_HALF_W,
                         name = ghostNode.name,
                         nodeColor = nodeFill(
-                            ghostNode.dominantCategory, ghostNode.isDirectMember, ghostNode.isNetSource,
+                            ghostNode.dominantCategory,
+                            ghostNode.isDirectMember,
+                            ghostNode.isNetSource,
                         ),
                         strokeColor = if (dropTargetId != null) {
                             dropTargetHighlightColor
@@ -391,7 +399,9 @@ private fun CanvasGraph(
                             nodeStroke(ghostNode.dominantCategory, ghostNode.isDirectMember)
                         },
                         textColor = nodeText(
-                            ghostNode.dominantCategory, ghostNode.isDirectMember, ghostNode.isNetSource,
+                            ghostNode.dominantCategory,
+                            ghostNode.isDirectMember,
+                            ghostNode.isNetSource,
                         ),
                         textMeasurer = textMeasurer,
                     )
