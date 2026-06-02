@@ -68,7 +68,7 @@ class CategoryCanvasViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(CategoryCanvasUiState())
     val uiState: StateFlow<CategoryCanvasUiState> = _uiState.asStateFlow()
 
-    private val _relationDistance = MutableStateFlow(0)
+    private val relationDistanceFlow = MutableStateFlow(0)
 
     init {
         viewModelScope.launch {
@@ -76,7 +76,7 @@ class CategoryCanvasViewModel @Inject constructor(
                 acquaintanceRepository.acquaintances,
                 categoryRepository.categories,
                 relationRepository.relations,
-                _relationDistance,
+                relationDistanceFlow,
             ) { acquaintances, categories, relations, distance ->
                 val categoryName = categories.find { it.id == categoryId }?.name ?: ""
                 val categoryTreeIds = descendantsAndSelf(categoryId, categories)
@@ -193,7 +193,7 @@ class CategoryCanvasViewModel @Inject constructor(
     }
 
     fun setRelationDistance(d: Int) {
-        _relationDistance.value = d.coerceIn(0, 2)
+        relationDistanceFlow.value = d.coerceIn(0, 2)
     }
 
     fun openRelationDialog(fromId: Long, toId: Long) {

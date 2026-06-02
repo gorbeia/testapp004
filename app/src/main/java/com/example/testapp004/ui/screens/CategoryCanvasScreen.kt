@@ -392,11 +392,17 @@ private fun CanvasGraph(
                 val isDropTarget = isDragging && node.id == dropTargetId
                 val isDragSource = isDragging && node.id == draggedNodeId
                 val fill = nodeFill(
-                    node.dominantCategory, node.isDirectMember, node.isNetSource, node.distanceFromCategory,
+                    node.dominantCategory,
+                    node.isDirectMember,
+                    node.isNetSource,
+                    node.distanceFromCategory,
                 )
                 val stroke = nodeStroke(node.dominantCategory, node.isDirectMember, node.distanceFromCategory)
                 val text = nodeText(
-                    node.dominantCategory, node.isDirectMember, node.isNetSource, node.distanceFromCategory,
+                    node.dominantCategory,
+                    node.isDirectMember,
+                    node.isNetSource,
+                    node.distanceFromCategory,
                 )
                 drawNode(
                     center = Offset(node.x, node.y),
