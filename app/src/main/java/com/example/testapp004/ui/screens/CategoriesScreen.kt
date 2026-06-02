@@ -162,7 +162,7 @@ fun CategoriesScreen(
                                         val event = awaitPointerEvent(PointerEventPass.Initial)
                                         val change = event.changes.firstOrNull() ?: continue
                                         if (change.pressed && draggingId == category.id) {
-                                            dragXOffset += change.positionChange().x
+                                            dragXOffset += (change.position - change.previousPosition).x
                                         }
                                     }
                                 }
@@ -181,9 +181,9 @@ fun CategoriesScreen(
                                         val aboveDepth =
                                             if (fromIdx > 0) tree[fromIdx - 1].second else -1
                                         val maxDepth = (aboveDepth + 1).coerceAtLeast(0)
+                                        val depthDelta = (dragXOffset / indentStepPx).roundToInt()
                                         val finalDepth =
-                                            (dragStartDepth + (dragXOffset / indentStepPx)
-                                                .roundToInt()).coerceIn(0, maxDepth)
+                                            (dragStartDepth + depthDelta).coerceIn(0, maxDepth)
                                         val newParentId =
                                             findParentIdAtDepth(tree, fromIdx, finalDepth)
                                         // First existing child of newParentId after the drop
