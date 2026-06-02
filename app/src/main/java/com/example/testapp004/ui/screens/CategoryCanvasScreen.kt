@@ -46,6 +46,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -220,17 +221,17 @@ private fun CanvasGraph(
 
     fun nodeFill(cat: RelationCategory?, direct: Boolean): Color {
         val base = categoryFill[cat] ?: defaultFill
-        return if (direct) base else base.copy(alpha = 0.35f)
+        return if (direct) base else lerp(base, cs.surface, 0.45f)
     }
 
     fun nodeStroke(cat: RelationCategory?, direct: Boolean): Color {
         val base = categoryStroke[cat] ?: defaultStroke
-        return if (direct) base else base.copy(alpha = 0.35f)
+        return if (direct) base else lerp(base, cs.surface, 0.45f)
     }
 
     fun nodeText(cat: RelationCategory?, direct: Boolean): Color {
         val base = categoryText[cat] ?: defaultText
-        return if (direct) base else base.copy(alpha = 0.35f)
+        return if (direct) base else lerp(base, cs.onSurfaceVariant, 0.35f)
     }
 
     fun edgeColor(cat: RelationCategory?) = categoryStroke[cat] ?: cs.outline
