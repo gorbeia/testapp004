@@ -134,7 +134,9 @@ fun CategoriesScreen(
                 }
             }
 
-            val proposedDepth: Int = if (draggingId == null) 0 else {
+            val proposedDepth: Int = if (draggingId == null) {
+                0
+            } else {
                 (proposedParentId?.let { pid -> treeOrder.find { it.first.id == pid }?.second } ?: -1) + 1
             }
 
