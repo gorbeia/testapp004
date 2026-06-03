@@ -17,10 +17,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Cake
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
@@ -124,6 +127,7 @@ fun AcquaintanceDetailScreen(
                 item {
                     BioSection(
                         bio = acquaintance.bio,
+                        birthday = acquaintance.birthday,
                         categoryNames = uiState.categoryNames,
                         onCategoryClick = onCategoryClick,
                         onSaveBio = viewModel::saveBio,
@@ -193,6 +197,7 @@ fun AcquaintanceDetailScreen(
 @Composable
 private fun BioSection(
     bio: String,
+    birthday: String?,
     categoryNames: List<String>,
     onCategoryClick: () -> Unit,
     onSaveBio: (String) -> Unit,
@@ -210,6 +215,23 @@ private fun BioSection(
                     categoryNames.forEach { name ->
                         SuggestionChip(onClick = onCategoryClick, label = { Text(name) })
                     }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+            if (birthday != null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Cake,
+                        contentDescription = "Birthday",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = formatBirthday(birthday),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
                 Spacer(modifier = Modifier.height(8.dp))
             }
@@ -769,4 +791,20 @@ private fun AddRelationDialog(
             TextButton(onClick = onDismiss) { Text("Cancel") }
         },
     )
+}
+
+private fun formatBirthday(birthday: String): String {
+    return try {
+        if (birthday.startsWith("--")) {
+            val sdf = java.text.SimpleDateFormat("MM-dd", java.util.Locale.getDefault())
+            val out = java.text.SimpleDateFormat("MMMM d", java.util.Locale.getDefault())
+            out.format(sdf.parse(birthday.substring(2)) ?: return birthday)
+        } else {
+            val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+            val out = java.text.SimpleDateFormat("MMMM d, yyyy", java.util.Locale.getDefault())
+            out.format(sdf.parse(birthday) ?: return birthday)
+        }
+    } catch (e: Exception) {
+        birthday
+    }
 }

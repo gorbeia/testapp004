@@ -47,11 +47,13 @@ import com.example.testapp004.ui.screens.AcquaintancesListScreen
 import com.example.testapp004.ui.screens.AddEditAcquaintanceScreen
 import com.example.testapp004.ui.screens.CategoriesScreen
 import com.example.testapp004.ui.screens.CategoryCanvasScreen
+import com.example.testapp004.ui.screens.ImportContactsScreen
 import com.example.testapp004.viewmodel.AcquaintanceDetailViewModel
 import com.example.testapp004.viewmodel.AcquaintancesViewModel
 import com.example.testapp004.viewmodel.AddEditAcquaintanceViewModel
 import com.example.testapp004.viewmodel.CategoriesViewModel
 import com.example.testapp004.viewmodel.CategoryCanvasViewModel
+import com.example.testapp004.viewmodel.ImportContactsViewModel
 import com.example.testapp004.viewmodel.UpdateUiState
 import com.example.testapp004.viewmodel.UpdateViewModel
 
@@ -90,6 +92,8 @@ sealed class Screen(val route: String) {
 
         fun createRoute(id: Long) = "category_canvas/$id"
     }
+
+    object ImportContacts : Screen("import_contacts")
 }
 
 @Composable
@@ -134,6 +138,9 @@ fun AppNavigation() {
                             navController.navigate(Screen.AcquaintanceDetail.createRoute(id))
                         },
                         onAddPersonClick = { navController.navigate(Screen.AddEditAcquaintance.ROUTE_NEW) },
+                        onImportFromContactsClick = {
+                            navController.navigate(Screen.ImportContacts.route)
+                        },
                         onManageCategoriesClick = { navController.navigate(Screen.Categories.route) },
                         onCheckForUpdatesClick = updateViewModel::openDebugDialog,
                         onCategoryClick = { navController.navigate(Screen.Categories.route) },
@@ -217,6 +224,14 @@ fun AppNavigation() {
                     CategoriesScreen(
                         viewModel = categoriesViewModel,
                         onNavigateBack = { navController.popBackStack() },
+                    )
+                }
+                composable(Screen.ImportContacts.route) {
+                    val importViewModel: ImportContactsViewModel = hiltViewModel()
+                    ImportContactsScreen(
+                        viewModel = importViewModel,
+                        onNavigateBack = { navController.popBackStack() },
+                        onImportDone = { navController.popBackStack() },
                     )
                 }
                 composable(

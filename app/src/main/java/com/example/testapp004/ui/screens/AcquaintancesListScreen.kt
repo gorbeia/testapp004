@@ -69,6 +69,7 @@ fun AcquaintancesListScreen(
     categoriesViewModel: CategoriesViewModel,
     onPersonClick: (Long) -> Unit,
     onAddPersonClick: () -> Unit,
+    onImportFromContactsClick: () -> Unit,
     onManageCategoriesClick: () -> Unit,
     onCheckForUpdatesClick: () -> Unit,
     onCategoryClick: () -> Unit,
@@ -107,6 +108,13 @@ fun AcquaintancesListScreen(
                                 expanded = menuExpanded,
                                 onDismissRequest = { menuExpanded = false },
                             ) {
+                                DropdownMenuItem(
+                                    text = { Text("Import from contacts") },
+                                    onClick = {
+                                        menuExpanded = false
+                                        onImportFromContactsClick()
+                                    },
+                                )
                                 DropdownMenuItem(
                                     text = { Text("Manage categories") },
                                     onClick = {

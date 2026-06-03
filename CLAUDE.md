@@ -206,6 +206,7 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | Acquaintance tracker — predefined relation types | ✅ Done | [acquaintance-tracker.md](docs/functional/acquaintance-tracker.md) |
 | Self-update (GitHub Releases) | ✅ Done | [self-update.md](docs/functional/self-update.md) |
 | Android contact linking | ✅ Done | [android-contact-linking.md](docs/functional/android-contact-linking.md) |
+| Contact import (birthday, bio, category assignment) | ✅ Done | [contact-import.md](docs/functional/contact-import.md) |
 | Category canvas view | ✅ Done | [ADR-017](docs/decisions/ADR-017-category-canvas-view.md) |
 | Category tree browse | ✅ Done | [acquaintance-tracker.md](docs/functional/acquaintance-tracker.md) |
 | Combined main screen (category browser + people search tabs) | ✅ Done | [ADR-018](docs/decisions/ADR-018-main-screen-tabs.md) |
@@ -251,3 +252,4 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | [ADR-026](docs/decisions/ADR-026-reorderable-library.md) | sh.calvin.reorderable for category drag-drop Y-axis mechanics | 2026-06-02 |
 | [ADR-027](docs/decisions/ADR-027-canvas-source-target-node-colors.md) | Canvas node fill distinguishes relation source (bright accent) from target (soft container) | 2026-06-02 |
 | [ADR-028](docs/decisions/ADR-028-canvas-distance-feature.md) | Canvas distance selector (0/1/2) expands visible nodes to relation neighbours | 2026-06-02 |
+| [ADR-029](docs/decisions/ADR-029-contact-import.md) | Contact import: batch create people from Android contacts with birthday and bio | 2026-06-03 |
