@@ -25,6 +25,7 @@ data class AddEditAcquaintanceUiState(
     val savedId: Long? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
+    val birthday: String? = null,
 )
 
 @HiltViewModel
@@ -66,6 +67,7 @@ class AddEditAcquaintanceViewModel @Inject constructor(
                             name = acquaintance.name,
                             bio = acquaintance.bio,
                             selectedCategoryIds = acquaintance.categoryIds,
+                            birthday = acquaintance.birthday,
                         )
                     }
                 }
@@ -110,6 +112,7 @@ class AddEditAcquaintanceViewModel @Inject constructor(
                         name = state.name.trim(),
                         bio = state.bio.trim(),
                         categoryIds = state.selectedCategoryIds,
+                        birthday = state.birthday,
                     ),
                 )
                 _uiState.update { it.copy(isSaved = true) }

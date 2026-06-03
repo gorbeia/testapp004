@@ -12,9 +12,24 @@ class FakeAcquaintanceRepository : AcquaintanceRepository {
     override val acquaintances: StateFlow<List<Acquaintance>> = _acquaintances.asStateFlow()
     private var nextId = 3000L
 
-    override suspend fun addAcquaintance(name: String, bio: String, categoryIds: Set<Long>): Long {
+    override suspend fun addAcquaintance(
+        name: String,
+        bio: String,
+        categoryIds: Set<Long>,
+        birthday: String?,
+        androidContactLookupKey: String?,
+    ): Long {
         val id = nextId++
-        _acquaintances.update { it + Acquaintance(id = id, name = name, bio = bio, categoryIds = categoryIds) }
+        _acquaintances.update {
+            it + Acquaintance(
+                id = id,
+                name = name,
+                bio = bio,
+                categoryIds = categoryIds,
+                birthday = birthday,
+                androidContactLookupKey = androidContactLookupKey,
+            )
+        }
         return id
     }
 

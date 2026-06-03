@@ -26,9 +26,22 @@ class RoomAcquaintanceRepository @Inject constructor(
         .map { list -> list.map(AcquaintanceWithCategories::toDomain) }
         .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
-    override suspend fun addAcquaintance(name: String, bio: String, categoryIds: Set<Long>): Long =
+    override suspend fun addAcquaintance(
+        name: String,
+        bio: String,
+        categoryIds: Set<Long>,
+        birthday: String?,
+        androidContactLookupKey: String?,
+    ): Long =
         db.withTransaction {
-            val id = dao.insert(AcquaintanceEntity(name = name, bio = bio, androidContactLookupKey = null))
+            val id = dao.insert(
+                AcquaintanceEntity(
+                    name = name,
+                    bio = bio,
+                    androidContactLookupKey = androidContactLookupKey,
+                    birthday = birthday,
+                ),
+            )
             dao.insertCrossRefs(categoryIds.map { AcquaintanceCategoryCrossRef(id, it) })
             id
         }
@@ -54,6 +67,7 @@ private fun AcquaintanceWithCategories.toDomain() = Acquaintance(
     bio = acquaintance.bio,
     categoryIds = categories.map { it.id }.toSet(),
     androidContactLookupKey = acquaintance.androidContactLookupKey,
+    birthday = acquaintance.birthday,
 )
 
 private fun Acquaintance.toEntity() = AcquaintanceEntity(
@@ -61,4 +75,5 @@ private fun Acquaintance.toEntity() = AcquaintanceEntity(
     name = name,
     bio = bio,
     androidContactLookupKey = androidContactLookupKey,
+    birthday = birthday,
 )

@@ -6,4 +6,5 @@ data class Acquaintance(
     val bio: String = "",
     val categoryIds: Set<Long> = emptySet(),
     val androidContactLookupKey: String? = null,
+    val birthday: String? = null,
 )
