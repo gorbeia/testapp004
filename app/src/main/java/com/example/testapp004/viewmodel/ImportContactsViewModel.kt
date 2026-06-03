@@ -38,7 +38,6 @@ class ImportContactsViewModel @Inject constructor(
     private val acquaintanceRepository: AcquaintanceRepository,
     private val categoryRepository: CategoryRepository,
 ) : ViewModel() {
-
     private val _uiState = MutableStateFlow(ImportContactsUiState(isLoading = true))
     val uiState: StateFlow<ImportContactsUiState> = _uiState.asStateFlow()
 
