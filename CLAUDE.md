@@ -163,6 +163,7 @@ Fix every failure before the push. For ktlint violations, run `./gradlew ktlintF
 2. Open a GitHub PR targeting `main` using the MCP GitHub tools (`mcp__github__create_pull_request`).
 3. Subscribe to the PR with `mcp__github__subscribe_pr_activity` and monitor CI results — the four jobs (`ktlint`, `unit-tests`, `lint`, `assemble`) run in GitHub Actions where the full network is available.
 4. Fix any CI failures reported via webhook and push the fix to the same branch.
+5. When all four CI jobs pass, post a clear message in the conversation confirming that ktlint, unit-tests, lint, and assemble are all green and the PR is ready for review.
 
 ---
 
