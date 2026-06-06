@@ -50,12 +50,15 @@ data class CategoryCanvasUiState(
     val isLoading: Boolean = true,
     val error: String? = null,
     val relationDistance: Int = 0,
+    val relationCategoryFilter: Set<RelationCategory> = emptySet(),
     val isRelationDialogOpen: Boolean = false,
     val pendingRelationFromId: Long? = null,
     val pendingRelationToId: Long? = null,
     val pendingRelationFromName: String = "",
     val pendingRelationToName: String = "",
 )
+
+private data class CanvasFilters(val distance: Int, val categoryFilter: Set<RelationCategory>)
 
 @HiltViewModel
 class CategoryCanvasViewModel @Inject constructor(
@@ -70,6 +73,11 @@ class CategoryCanvasViewModel @Inject constructor(
     val uiState: StateFlow<CategoryCanvasUiState> = _uiState.asStateFlow()
 
     private val relationDistanceFlow = MutableStateFlow(0)
+    private val relationCategoryFilterFlow = MutableStateFlow(emptySet<RelationCategory>())
+    private val filtersFlow = combine(
+        relationDistanceFlow,
+        relationCategoryFilterFlow,
+    ) { distance, categoryFilter -> CanvasFilters(distance, categoryFilter) }
 
     init {
         viewModelScope.launch {
@@ -77,8 +85,10 @@ class CategoryCanvasViewModel @Inject constructor(
                 acquaintanceRepository.acquaintances,
                 categoryRepository.categories,
                 relationRepository.relations,
-                relationDistanceFlow,
-            ) { acquaintances, categories, relations, distance ->
+                filtersFlow,
+            ) { acquaintances, categories, relations, filters ->
+                val distance = filters.distance
+                val categoryFilter = filters.categoryFilter
                 val categoryName = categories.find { it.id == categoryId }?.name ?: ""
                 val categoryTreeIds = descendantsAndSelf(categoryId, categories)
 
@@ -87,8 +97,14 @@ class CategoryCanvasViewModel @Inject constructor(
                     .map { it.id }
                     .toSet()
 
-                val distanceOneIds: Set<Long> = if (distance >= 1) {
+                val filteredRelations = if (categoryFilter.isEmpty()) {
                     relations
+                } else {
+                    relations.filter { rel -> RelationTypes.findByKey(rel.typeKey)?.category in categoryFilter }
+                }
+
+                val distanceOneIds: Set<Long> = if (distance >= 1) {
+                    filteredRelations
                         .filter { rel ->
                             (rel.fromId in categoryPersonIds) != (rel.toId in categoryPersonIds)
                         }
@@ -101,7 +117,7 @@ class CategoryCanvasViewModel @Inject constructor(
 
                 val reachedSoFar = categoryPersonIds + distanceOneIds
                 val distanceTwoIds: Set<Long> = if (distance >= 2) {
-                    relations
+                    filteredRelations
                         .filter { rel ->
                             (rel.fromId in distanceOneIds && rel.toId !in reachedSoFar) ||
                                 (rel.toId in distanceOneIds && rel.fromId !in reachedSoFar)
@@ -122,7 +138,7 @@ class CategoryCanvasViewModel @Inject constructor(
 
                 val people = acquaintances.filter { it.id in allPersonIds }
 
-                val visibleRelations = relations.filter { rel ->
+                val visibleRelations = filteredRelations.filter { rel ->
                     rel.fromId in allPersonIds && rel.toId in allPersonIds
                 }
 
@@ -146,6 +162,7 @@ class CategoryCanvasViewModel @Inject constructor(
                 CategoryCanvasUiState(
                     categoryName = categoryName,
                     relationDistance = distance,
+                    relationCategoryFilter = categoryFilter,
                     nodes = people.map { person ->
                         val (x, y) = nodePositions[person.id] ?: (0f to 0f)
                         val dominant = personCategoryLists[person.id]
@@ -200,6 +217,11 @@ class CategoryCanvasViewModel @Inject constructor(
 
     fun setRelationDistance(d: Int) {
         relationDistanceFlow.value = d.coerceIn(0, 2)
+    }
+
+    fun toggleRelationCategoryFilter(category: RelationCategory) {
+        val current = relationCategoryFilterFlow.value
+        relationCategoryFilterFlow.value = if (category in current) current - category else current + category
     }
 
     fun openRelationDialog(fromId: Long, toId: Long) {

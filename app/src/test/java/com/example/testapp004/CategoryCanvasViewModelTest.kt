@@ -349,4 +349,91 @@ class CategoryCanvasViewModelTest {
         runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "CUSTOM", "co-founder") }
         assertEquals(false, createViewModel(catId).uiState.value.edges.first().isSymmetric)
     }
+
+    @Test
+    fun `toggleRelationCategoryFilter adds category to empty filter`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val vm = createViewModel(catId)
+        vm.toggleRelationCategoryFilter(RelationCategory.FAMILY)
+        assertEquals(setOf(RelationCategory.FAMILY), vm.uiState.value.relationCategoryFilter)
+    }
+
+    @Test
+    fun `toggleRelationCategoryFilter removes category when already active`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val vm = createViewModel(catId)
+        vm.toggleRelationCategoryFilter(RelationCategory.FAMILY)
+        vm.toggleRelationCategoryFilter(RelationCategory.FAMILY)
+        assertEquals(emptySet<RelationCategory>(), vm.uiState.value.relationCategoryFilter)
+    }
+
+    @Test
+    fun `toggleRelationCategoryFilter allows multiple categories to be active simultaneously`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val vm = createViewModel(catId)
+        vm.toggleRelationCategoryFilter(RelationCategory.FAMILY)
+        vm.toggleRelationCategoryFilter(RelationCategory.SOCIAL)
+        assertEquals(
+            setOf(RelationCategory.FAMILY, RelationCategory.SOCIAL),
+            vm.uiState.value.relationCategoryFilter,
+        )
+    }
+
+    @Test
+    fun `with FAMILY filter active, FAMILY relation edges are shown`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", setOf(catId)) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "SIBLING", null) }
+        val vm = createViewModel(catId)
+        vm.toggleRelationCategoryFilter(RelationCategory.FAMILY)
+        assert(vm.uiState.value.edges.any { it.fromId == aliceId && it.toId == bobId })
+    }
+
+    @Test
+    fun `with FAMILY filter active, SOCIAL relation edges are hidden`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", setOf(catId)) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "FRIEND", null) }
+        val vm = createViewModel(catId)
+        vm.toggleRelationCategoryFilter(RelationCategory.FAMILY)
+        assert(vm.uiState.value.edges.none { it.fromId == aliceId && it.toId == bobId })
+    }
+
+    @Test
+    fun `with FAMILY filter active, direct category members are always shown`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val vm = createViewModel(catId)
+        vm.toggleRelationCategoryFilter(RelationCategory.FAMILY)
+        assert(vm.uiState.value.nodes.any { it.name == "Alice" })
+    }
+
+    @Test
+    fun `with FAMILY filter active, distance-1 node reachable only via SOCIAL is excluded`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val charlieId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Charlie", "", emptySet()) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, charlieId, "FRIEND", null) }
+        val vm = createViewModel(catId)
+        vm.setRelationDistance(1)
+        vm.toggleRelationCategoryFilter(RelationCategory.FAMILY)
+        assert(vm.uiState.value.nodes.none { it.name == "Charlie" })
+    }
+
+    @Test
+    fun `with FAMILY filter active, distance-1 node reachable via FAMILY is included`() {
+        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", setOf(catId)) }
+        val charlieId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Charlie", "", emptySet()) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, charlieId, "SIBLING", null) }
+        val vm = createViewModel(catId)
+        vm.setRelationDistance(1)
+        vm.toggleRelationCategoryFilter(RelationCategory.FAMILY)
+        assert(vm.uiState.value.nodes.any { it.name == "Charlie" })
+    }
 }
