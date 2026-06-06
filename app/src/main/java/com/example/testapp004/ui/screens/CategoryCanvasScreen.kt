@@ -15,7 +15,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -26,12 +29,14 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -91,6 +96,8 @@ fun CategoryCanvasScreen(
     onAddPersonClick: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var isControlSheetOpen by remember { mutableStateOf(false) }
+    val hasActiveFilters = uiState.relationDistance > 0 || uiState.relationCategoryFilter.isNotEmpty()
 
     Scaffold(
         topBar = {
@@ -99,6 +106,15 @@ fun CategoryCanvasScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    BadgedBox(
+                        badge = { if (hasActiveFilters) Badge() },
+                    ) {
+                        IconButton(onClick = { isControlSheetOpen = true }) {
+                            Icon(Icons.Default.Tune, contentDescription = "Filters")
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -113,49 +129,25 @@ fun CategoryCanvasScreen(
             }
         },
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
+            contentAlignment = Alignment.Center,
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    text = "Distance",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
+            when {
+                uiState.isLoading -> CircularProgressIndicator()
+                uiState.nodes.isEmpty() -> Text(
+                    text = "No people in this category",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                (0..2).forEach { d ->
-                    FilterChip(
-                        selected = uiState.relationDistance == d,
-                        onClick = { viewModel.setRelationDistance(d) },
-                        label = { Text(d.toString()) },
-                    )
-                }
-            }
-            Box(
-                modifier = Modifier.weight(1f),
-                contentAlignment = Alignment.Center,
-            ) {
-                when {
-                    uiState.isLoading -> CircularProgressIndicator()
-                    uiState.nodes.isEmpty() -> Text(
-                        text = "No people in this category",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    else -> CanvasGraph(
-                        nodes = uiState.nodes,
-                        edges = uiState.edges,
-                        onPersonClick = onPersonClick,
-                        onRelationDrop = viewModel::openRelationDialog,
-                    )
-                }
+                else -> CanvasGraph(
+                    nodes = uiState.nodes,
+                    edges = uiState.edges,
+                    onPersonClick = onPersonClick,
+                    onRelationDrop = viewModel::openRelationDialog,
+                )
             }
         }
     }
@@ -172,6 +164,67 @@ fun CategoryCanvasScreen(
             },
             onDismiss = viewModel::closeRelationDialog,
         )
+    }
+
+    if (isControlSheetOpen) {
+        CanvasControlSheet(
+            relationDistance = uiState.relationDistance,
+            relationCategoryFilter = uiState.relationCategoryFilter,
+            onDistanceChange = viewModel::setRelationDistance,
+            onCategoryFilterToggle = viewModel::toggleRelationCategoryFilter,
+            onDismiss = { isControlSheetOpen = false },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CanvasControlSheet(
+    relationDistance: Int,
+    relationCategoryFilter: Set<RelationCategory>,
+    onDistanceChange: (Int) -> Unit,
+    onCategoryFilterToggle: (RelationCategory) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState()
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text("Distance", style = MaterialTheme.typography.titleSmall)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                (0..2).forEach { d ->
+                    FilterChip(
+                        selected = relationDistance == d,
+                        onClick = { onDistanceChange(d) },
+                        label = { Text(d.toString()) },
+                    )
+                }
+            }
+            Text("Relations", style = MaterialTheme.typography.titleSmall)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(bottom = 8.dp),
+            ) {
+                listOf(
+                    RelationCategory.FAMILY to "Family",
+                    RelationCategory.PROFESSIONAL to "Professional",
+                    RelationCategory.SOCIAL to "Social",
+                ).forEach { (cat, label) ->
+                    FilterChip(
+                        selected = cat in relationCategoryFilter,
+                        onClick = { onCategoryFilterToggle(cat) },
+                        label = { Text(label) },
+                    )
+                }
+            }
+        }
     }
 }
 

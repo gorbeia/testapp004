@@ -223,6 +223,7 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | Canvas parent/child category color distinction | ✅ Done | [ADR-024](docs/decisions/ADR-024-canvas-parent-child-color-distinction.md) |
 | Category drag-drop hierarchy reordering | ✅ Done | [ADR-025](docs/decisions/ADR-025-category-reorder-hierarchy.md) |
 | Canvas relation-distance expansion (0/1/2) | ✅ Done | [ADR-028](docs/decisions/ADR-028-canvas-distance-feature.md) |
+| Canvas control sheet (distance + relation-category filter) | ✅ Done | [ADR-030](docs/decisions/ADR-030-canvas-control-sheet.md) |
 
 ---
 
@@ -259,3 +260,4 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | [ADR-027](docs/decisions/ADR-027-canvas-source-target-node-colors.md) | Canvas node fill distinguishes relation source (bright accent) from target (soft container) | 2026-06-02 |
 | [ADR-028](docs/decisions/ADR-028-canvas-distance-feature.md) | Canvas distance selector (0/1/2) expands visible nodes to relation neighbours | 2026-06-02 |
 | [ADR-029](docs/decisions/ADR-029-contact-import.md) | Contact import: batch create people from Android contacts with birthday and bio | 2026-06-03 |
+| [ADR-030](docs/decisions/ADR-030-canvas-control-sheet.md) | Canvas control sheet: distance + relation-category filter moved to a ModalBottomSheet | 2026-06-06 |
