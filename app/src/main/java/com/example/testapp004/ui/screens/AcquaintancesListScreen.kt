@@ -85,7 +85,7 @@ fun AcquaintancesListScreen(
     val roots = remember(allCategories) {
         allCategories.filter { it.parentId == null }.sortedBy { it.name }
     }
-    var expandedIds by remember { mutableStateOf(emptySet<Long>()) }
+    val expandedIds = acquaintancesState.expandedCategoryIds
     val flatTree = remember(roots, childrenOf, expandedIds) {
         buildBrowseTree(roots, childrenOf, expandedIds)
     }
@@ -175,9 +175,7 @@ fun AcquaintancesListScreen(
                 flatTree = flatTree,
                 childrenOf = childrenOf,
                 expandedIds = expandedIds,
-                onToggleExpand = { id ->
-                    expandedIds = if (id in expandedIds) expandedIds - id else expandedIds + id
-                },
+                onToggleExpand = acquaintancesViewModel::toggleCategoryExpanded,
                 onCanvasClick = onCanvasClick,
                 modifier = Modifier
                     .fillMaxSize()

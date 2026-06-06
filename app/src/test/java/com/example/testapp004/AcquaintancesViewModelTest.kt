@@ -4,6 +4,7 @@ import com.example.testapp004.util.MainDispatcherRule
 import com.example.testapp004.viewmodel.AcquaintancesViewModel
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -111,5 +112,44 @@ class AcquaintancesViewModelTest {
             fakeCategoryRepository.addCategory("Family")
         }
         assertEquals(2, createViewModel().uiState.value.categories.size)
+    }
+
+    @Test
+    fun `initial state has no expanded category ids`() {
+        assertTrue(createViewModel().uiState.value.expandedCategoryIds.isEmpty())
+    }
+
+    @Test
+    fun `toggleCategoryExpanded adds id to expanded set`() {
+        runBlocking { fakeCategoryRepository.addCategory("Work") }
+        val vm = createViewModel()
+        val catId = vm.uiState.value.categories.first().id
+        vm.toggleCategoryExpanded(catId)
+        assertTrue(catId in vm.uiState.value.expandedCategoryIds)
+    }
+
+    @Test
+    fun `toggleCategoryExpanded removes already-expanded id`() {
+        runBlocking { fakeCategoryRepository.addCategory("Work") }
+        val vm = createViewModel()
+        val catId = vm.uiState.value.categories.first().id
+        vm.toggleCategoryExpanded(catId)
+        vm.toggleCategoryExpanded(catId)
+        assertFalse(catId in vm.uiState.value.expandedCategoryIds)
+    }
+
+    @Test
+    fun `toggleCategoryExpanded preserves other expanded ids`() {
+        runBlocking {
+            fakeCategoryRepository.addCategory("Work")
+            fakeCategoryRepository.addCategory("Family")
+        }
+        val vm = createViewModel()
+        val ids = vm.uiState.value.categories.map { it.id }
+        vm.toggleCategoryExpanded(ids[0])
+        vm.toggleCategoryExpanded(ids[1])
+        vm.toggleCategoryExpanded(ids[0])
+        assertFalse(ids[0] in vm.uiState.value.expandedCategoryIds)
+        assertTrue(ids[1] in vm.uiState.value.expandedCategoryIds)
     }
 }
