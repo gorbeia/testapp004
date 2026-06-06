@@ -31,7 +31,7 @@ class AcquaintancesViewModel @Inject constructor(
 ) : ViewModel() {
     private val categoryIdFilter = MutableStateFlow<Long?>(null)
     private val searchQueryFlow = MutableStateFlow("")
-    private val _expandedCategoryIds = MutableStateFlow<Set<Long>>(emptySet())
+    private val expandedCategoryIdsFlow = MutableStateFlow<Set<Long>>(emptySet())
     private val _uiState = MutableStateFlow(AcquaintancesUiState())
     val uiState: StateFlow<AcquaintancesUiState> = _uiState.asStateFlow()
 
@@ -42,7 +42,7 @@ class AcquaintancesViewModel @Inject constructor(
                 categoryRepository.categories,
                 categoryIdFilter,
                 searchQueryFlow,
-                _expandedCategoryIds,
+                expandedCategoryIdsFlow,
             ) { acquaintances, categories, selectedCategoryId, searchQuery, expandedCategoryIds ->
                 val categoryFiltered = if (selectedCategoryId == null) {
                     acquaintances
@@ -81,8 +81,8 @@ class AcquaintancesViewModel @Inject constructor(
     }
 
     fun toggleCategoryExpanded(id: Long) {
-        val current = _expandedCategoryIds.value
-        _expandedCategoryIds.value = if (id in current) current - id else current + id
+        val current = expandedCategoryIdsFlow.value
+        expandedCategoryIdsFlow.value = if (id in current) current - id else current + id
     }
 
     private fun descendantsAndSelf(categories: List<Category>, id: Long): Set<Long> {
