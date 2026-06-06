@@ -157,7 +157,12 @@ Work through this checklist in order before every push:
 ./gradlew test lint ktlintCheck assembleDebug --no-daemon --stacktrace
 ```
 Fix every failure before the push. For ktlint violations, run `./gradlew ktlintFormat` first to auto-fix what it can, then re-run the check.
-If Gradle is not available in the current environment, state that explicitly rather than skipping it.
+
+**Remote web environment (Claude Code on the web):** the Android Gradle plugin cannot be downloaded in this environment, so local builds will always fail at plugin resolution. Do **not** waste time retrying. Instead:
+1. Commit and push the branch as normal.
+2. Open a GitHub PR targeting `main` using the MCP GitHub tools (`mcp__github__create_pull_request`).
+3. Subscribe to the PR with `mcp__github__subscribe_pr_activity` and monitor CI results — the four jobs (`ktlint`, `unit-tests`, `lint`, `assemble`) run in GitHub Actions where the full network is available.
+4. Fix any CI failures reported via webhook and push the fix to the same branch.
 
 ---
 
