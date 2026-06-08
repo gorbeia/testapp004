@@ -19,6 +19,7 @@ data class AcquaintancesUiState(
     val categories: List<Category> = emptyList(),
     val selectedCategoryId: Long? = null,
     val searchQuery: String = "",
+    val expandedCategoryIds: Set<Long> = emptySet(),
     val isLoading: Boolean = false,
     val error: String? = null,
 )
@@ -30,6 +31,7 @@ class AcquaintancesViewModel @Inject constructor(
 ) : ViewModel() {
     private val categoryIdFilter = MutableStateFlow<Long?>(null)
     private val searchQueryFlow = MutableStateFlow("")
+    private val expandedCategoryIdsFlow = MutableStateFlow<Set<Long>>(emptySet())
     private val _uiState = MutableStateFlow(AcquaintancesUiState())
     val uiState: StateFlow<AcquaintancesUiState> = _uiState.asStateFlow()
 
@@ -40,7 +42,8 @@ class AcquaintancesViewModel @Inject constructor(
                 categoryRepository.categories,
                 categoryIdFilter,
                 searchQueryFlow,
-            ) { acquaintances, categories, selectedCategoryId, searchQuery ->
+                expandedCategoryIdsFlow,
+            ) { acquaintances, categories, selectedCategoryId, searchQuery, expandedCategoryIds ->
                 val categoryFiltered = if (selectedCategoryId == null) {
                     acquaintances
                 } else {
@@ -61,6 +64,7 @@ class AcquaintancesViewModel @Inject constructor(
                     categories = categories,
                     selectedCategoryId = selectedCategoryId,
                     searchQuery = searchQuery,
+                    expandedCategoryIds = expandedCategoryIds,
                 )
             }.collect { state ->
                 _uiState.value = state
@@ -74,6 +78,11 @@ class AcquaintancesViewModel @Inject constructor(
 
     fun updateSearchQuery(query: String) {
         searchQueryFlow.value = query
+    }
+
+    fun toggleCategoryExpanded(id: Long) {
+        val current = expandedCategoryIdsFlow.value
+        expandedCategoryIdsFlow.value = if (id in current) current - id else current + id
     }
 
     private fun descendantsAndSelf(categories: List<Category>, id: Long): Set<Long> {
