@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Hub
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.LinkOff
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
@@ -40,6 +41,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -53,7 +55,6 @@ import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SuggestionChip
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -95,6 +96,7 @@ fun AcquaintanceDetailScreen(
     val uiState by viewModel.uiState.collectAsState()
     val acquaintance = uiState.acquaintance
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showMoreMenu by remember { mutableStateOf(false) }
 
     LaunchedEffect(acquaintance) {
         if (acquaintance == null && !uiState.isLoading) {
@@ -129,6 +131,31 @@ fun AcquaintanceDetailScreen(
                             tint = MaterialTheme.colorScheme.error,
                         )
                     }
+                    Box {
+                        IconButton(onClick = { showMoreMenu = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                        }
+                        DropdownMenu(
+                            expanded = showMoreMenu,
+                            onDismissRequest = { showMoreMenu = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        if (acquaintance?.isDeceased == true) {
+                                            "Mark as alive"
+                                        } else {
+                                            "Mark as deceased"
+                                        },
+                                    )
+                                },
+                                onClick = {
+                                    showMoreMenu = false
+                                    viewModel.toggleDeceased()
+                                },
+                            )
+                        }
+                    }
                 },
             )
         },
@@ -149,7 +176,6 @@ fun AcquaintanceDetailScreen(
                         categoryNames = uiState.categoryNames,
                         onCategoryClick = onCategoryClick,
                         onSaveBio = viewModel::saveBio,
-                        onToggleDeceased = viewModel::toggleDeceased,
                     )
                 }
                 item {
@@ -221,7 +247,6 @@ private fun BioSection(
     categoryNames: List<String>,
     onCategoryClick: () -> Unit,
     onSaveBio: (String) -> Unit,
-    onToggleDeceased: () -> Unit,
 ) {
     var isEditing by remember { mutableStateOf(false) }
     var draft by remember(bio) { mutableStateOf(bio) }
@@ -231,6 +256,14 @@ private fun BioSection(
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+            if (isDeceased) {
+                Text(
+                    text = "Deceased",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
             if (categoryNames.isNotEmpty()) {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     categoryNames.forEach { name ->
@@ -302,23 +335,6 @@ private fun BioSection(
                         Icon(Icons.Default.Edit, contentDescription = "Edit bio")
                     }
                 }
-            }
-            HorizontalDivider(modifier = Modifier.padding(top = 12.dp, bottom = 4.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "Deceased",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (isDeceased) {
-                        MaterialTheme.colorScheme.error
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                )
-                Switch(checked = isDeceased, onCheckedChange = { onToggleDeceased() })
             }
         }
     }
