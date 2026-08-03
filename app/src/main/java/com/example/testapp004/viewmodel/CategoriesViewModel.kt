@@ -14,6 +14,7 @@ import javax.inject.Inject
 
 data class CategoriesUiState(
     val categories: List<Category> = emptyList(),
+    val collapsedCategories: Set<Long> = emptySet(),
     val isAddDialogOpen: Boolean = false,
     val addChildToCategory: Category? = null,
     val editingCategory: Category? = null,
@@ -91,6 +92,19 @@ class CategoriesViewModel @Inject constructor(
     fun moveCategory(movedId: Long, newParentId: Long?, targetPositionId: Long?) {
         viewModelScope.launch {
             categoryRepository.moveCategory(movedId, newParentId, targetPositionId)
+        }
+    }
+
+    fun toggleCollapsed(categoryId: Long) {
+        _uiState.update { state ->
+            val collapsed = state.collapsedCategories
+            state.copy(
+                collapsedCategories = if (categoryId in collapsed) {
+                    collapsed - categoryId
+                } else {
+                    collapsed + categoryId
+                },
+            )
         }
     }
 }

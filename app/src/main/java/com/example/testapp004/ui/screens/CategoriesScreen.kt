@@ -5,9 +5,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -17,6 +19,8 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -102,9 +106,13 @@ fun CategoriesScreen(
             val density = LocalDensity.current
             val indentStepPx = with(density) { 24.dp.toPx() }
 
+            val parentIds = remember(uiState.categories) {
+                uiState.categories.mapNotNull { it.parentId }.toSet()
+            }
+
             // Working copy of the tree for live drag animation; resets when ViewModel emits.
-            var localTree by remember(uiState.categories) {
-                mutableStateOf(buildCategoryTree(uiState.categories))
+            var localTree by remember(uiState.categories, uiState.collapsedCategories) {
+                mutableStateOf(buildCategoryTree(uiState.categories, uiState.collapsedCategories))
             }
 
             // Drag state
@@ -204,7 +212,10 @@ fun CategoriesScreen(
                             depth = displayDepth,
                             isDragging = isThisDragging,
                             isProposedParent = isProposedParent,
+                            hasChildren = category.id in parentIds,
+                            isCollapsed = category.id in uiState.collapsedCategories,
                             handleModifier = handleModifier,
+                            onToggleCollapse = { viewModel.toggleCollapsed(category.id) },
                             onAddChild = { viewModel.openAddChildDialog(category) },
                             onEdit = { viewModel.openEditDialog(category) },
                             onDelete = { viewModel.deleteCategory(category.id) },
@@ -249,7 +260,10 @@ private fun CategoryItem(
     depth: Int,
     isDragging: Boolean,
     isProposedParent: Boolean,
+    hasChildren: Boolean,
+    isCollapsed: Boolean,
     handleModifier: Modifier,
+    onToggleCollapse: () -> Unit,
     onAddChild: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
@@ -288,6 +302,21 @@ private fun CategoryItem(
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+            if (hasChildren) {
+                IconButton(onClick = onToggleCollapse) {
+                    Icon(
+                        imageVector = if (isCollapsed) {
+                            Icons.Default.KeyboardArrowRight
+                        } else {
+                            Icons.Default.KeyboardArrowDown
+                        },
+                        contentDescription = if (isCollapsed) "Expand" else "Collapse",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            } else {
+                Spacer(modifier = Modifier.width(48.dp))
             }
             Text(
                 text = category.name,
@@ -518,7 +547,10 @@ private fun descendantIds(categories: List<Category>, rootId: Long): Set<Long> {
     return result
 }
 
-private fun buildCategoryTree(categories: List<Category>): List<Pair<Category, Int>> {
+private fun buildCategoryTree(
+    categories: List<Category>,
+    collapsed: Set<Long> = emptySet(),
+): List<Pair<Category, Int>> {
     val result = mutableListOf<Pair<Category, Int>>()
 
     fun visit(parentId: Long?, depth: Int) {
@@ -526,7 +558,9 @@ private fun buildCategoryTree(categories: List<Category>): List<Pair<Category, I
             .sortedWith(compareBy({ it.sortOrder }, { it.id }))
             .forEach { cat ->
                 result.add(cat to depth)
-                visit(cat.id, depth + 1)
+                if (cat.id !in collapsed) {
+                    visit(cat.id, depth + 1)
+                }
             }
     }
     visit(null, 0)
