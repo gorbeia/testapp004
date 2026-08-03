@@ -48,12 +48,14 @@ import com.example.testapp004.ui.screens.AddEditAcquaintanceScreen
 import com.example.testapp004.ui.screens.CategoriesScreen
 import com.example.testapp004.ui.screens.CategoryCanvasScreen
 import com.example.testapp004.ui.screens.ImportContactsScreen
+import com.example.testapp004.ui.screens.PersonCanvasScreen
 import com.example.testapp004.viewmodel.AcquaintanceDetailViewModel
 import com.example.testapp004.viewmodel.AcquaintancesViewModel
 import com.example.testapp004.viewmodel.AddEditAcquaintanceViewModel
 import com.example.testapp004.viewmodel.CategoriesViewModel
 import com.example.testapp004.viewmodel.CategoryCanvasViewModel
 import com.example.testapp004.viewmodel.ImportContactsViewModel
+import com.example.testapp004.viewmodel.PersonCanvasViewModel
 import com.example.testapp004.viewmodel.UpdateUiState
 import com.example.testapp004.viewmodel.UpdateViewModel
 
@@ -94,6 +96,12 @@ sealed class Screen(val route: String) {
     }
 
     object ImportContacts : Screen("import_contacts")
+
+    object PersonCanvas : Screen("person_canvas/{acquaintanceId}") {
+        const val ARG_ACQUAINTANCE_ID = "acquaintanceId"
+
+        fun createRoute(id: Long) = "person_canvas/$id"
+    }
 }
 
 @Composable
@@ -182,6 +190,9 @@ fun AppNavigation() {
                                 ),
                             )
                         },
+                        onCanvasClick = { id ->
+                            navController.navigate(Screen.PersonCanvas.createRoute(id))
+                        },
                     )
                 }
                 composable(
@@ -255,6 +266,23 @@ fun AppNavigation() {
                             navController.navigate(
                                 Screen.AddEditAcquaintance.createRouteWithCategory(categoryId),
                             )
+                        },
+                    )
+                }
+                composable(
+                    route = Screen.PersonCanvas.route,
+                    arguments = listOf(
+                        navArgument(Screen.PersonCanvas.ARG_ACQUAINTANCE_ID) {
+                            type = NavType.LongType
+                        },
+                    ),
+                ) {
+                    val personCanvasViewModel: PersonCanvasViewModel = hiltViewModel()
+                    PersonCanvasScreen(
+                        viewModel = personCanvasViewModel,
+                        onNavigateBack = { navController.popBackStack() },
+                        onPersonClick = { id ->
+                            navController.navigate(Screen.AcquaintanceDetail.createRoute(id))
                         },
                     )
                 }

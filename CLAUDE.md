@@ -226,6 +226,7 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | Canvas control sheet (distance + relation-category filter) | ✅ Done | [ADR-030](docs/decisions/ADR-030-canvas-control-sheet.md) |
 | Foldable category structure in category management | ✅ Done | [ADR-031](docs/decisions/ADR-031-foldable-category-structure.md) |
 | Mark deceased people | ✅ Done | [ADR-032](docs/decisions/ADR-032-mark-deceased.md) |
+| Person canvas view (relations graph from detail screen) | ✅ Done | [ADR-033](docs/decisions/ADR-033-person-canvas-view.md) |
 
 ---
 
@@ -265,3 +266,4 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | [ADR-030](docs/decisions/ADR-030-canvas-control-sheet.md) | Canvas control sheet: distance + relation-category filter moved to a ModalBottomSheet | 2026-06-06 |
 | [ADR-031](docs/decisions/ADR-031-foldable-category-structure.md) | Foldable category structure: expand/collapse subtrees in the Categories management screen | 2026-08-03 |
 | [ADR-032](docs/decisions/ADR-032-mark-deceased.md) | Mark deceased people: isDeceased flag on Acquaintance, toggled from detail screen | 2026-08-03 |
+| [ADR-033](docs/decisions/ADR-033-person-canvas-view.md) | Person canvas view: radial relation graph reachable from the detail screen Hub icon | 2026-08-03 |
