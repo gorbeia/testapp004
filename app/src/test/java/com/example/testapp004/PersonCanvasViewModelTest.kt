@@ -124,7 +124,7 @@ class PersonCanvasViewModelTest {
     }
 
     @Test
-    fun `only relations involving the center person appear`() {
+    fun `only relations involving the center person appear at distance 0`() {
         val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
         val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
         val carolId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Carol", "", emptySet()) }
@@ -201,5 +201,150 @@ class PersonCanvasViewModelTest {
         val vm = createViewModel(aliceId)
         val centerNode = vm.uiState.value.nodes.first { it.id == aliceId }
         assertEquals(false, centerNode.isNetSource)
+    }
+
+    // --- Distance selector tests ---
+
+    @Test
+    fun `relationDistance defaults to 0`() {
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
+        assertEquals(0, createViewModel(aliceId).uiState.value.relationDistance)
+    }
+
+    @Test
+    fun `setRelationDistance updates state to given value`() {
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
+        val vm = createViewModel(aliceId)
+        vm.setRelationDistance(1)
+        assertEquals(1, vm.uiState.value.relationDistance)
+    }
+
+    @Test
+    fun `setRelationDistance to 2 updates state`() {
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
+        val vm = createViewModel(aliceId)
+        vm.setRelationDistance(2)
+        assertEquals(2, vm.uiState.value.relationDistance)
+    }
+
+    @Test
+    fun `setRelationDistance clamps values above 2 to 2`() {
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
+        val vm = createViewModel(aliceId)
+        vm.setRelationDistance(5)
+        assertEquals(2, vm.uiState.value.relationDistance)
+    }
+
+    @Test
+    fun `setRelationDistance clamps values below 0 to 0`() {
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
+        val vm = createViewModel(aliceId)
+        vm.setRelationDistance(-1)
+        assertEquals(0, vm.uiState.value.relationDistance)
+    }
+
+    @Test
+    fun `distance 1 includes contacts of direct contacts`() {
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
+        val carolId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Carol", "", emptySet()) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "FRIEND", null) }
+        runBlocking { fakeRelationRepository.addRelation(bobId, carolId, "COLLEAGUE", null) }
+        val vm = createViewModel(aliceId)
+        vm.setRelationDistance(1)
+        val nodeIds = vm.uiState.value.nodes.map { it.id }.toSet()
+        assertTrue(carolId in nodeIds)
+    }
+
+    @Test
+    fun `distance 0 excludes contacts of direct contacts`() {
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
+        val carolId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Carol", "", emptySet()) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "FRIEND", null) }
+        runBlocking { fakeRelationRepository.addRelation(bobId, carolId, "COLLEAGUE", null) }
+        val vm = createViewModel(aliceId)
+        val nodeIds = vm.uiState.value.nodes.map { it.id }.toSet()
+        assertFalse(carolId in nodeIds)
+    }
+
+    @Test
+    fun `distance 1 nodes have distanceFromCategory of 1`() {
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
+        val carolId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Carol", "", emptySet()) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "FRIEND", null) }
+        runBlocking { fakeRelationRepository.addRelation(bobId, carolId, "COLLEAGUE", null) }
+        val vm = createViewModel(aliceId)
+        vm.setRelationDistance(1)
+        val carolNode = vm.uiState.value.nodes.first { it.id == carolId }
+        assertEquals(1, carolNode.distanceFromCategory)
+    }
+
+    @Test
+    fun `distance 2 includes contacts two hops away`() {
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
+        val carolId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Carol", "", emptySet()) }
+        val daveId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Dave", "", emptySet()) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "FRIEND", null) }
+        runBlocking { fakeRelationRepository.addRelation(bobId, carolId, "COLLEAGUE", null) }
+        runBlocking { fakeRelationRepository.addRelation(carolId, daveId, "FRIEND", null) }
+        val vm = createViewModel(aliceId)
+        vm.setRelationDistance(2)
+        val nodeIds = vm.uiState.value.nodes.map { it.id }.toSet()
+        assertTrue(daveId in nodeIds)
+    }
+
+    @Test
+    fun `distance 1 does not include contacts two hops away`() {
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
+        val carolId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Carol", "", emptySet()) }
+        val daveId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Dave", "", emptySet()) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "FRIEND", null) }
+        runBlocking { fakeRelationRepository.addRelation(bobId, carolId, "COLLEAGUE", null) }
+        runBlocking { fakeRelationRepository.addRelation(carolId, daveId, "FRIEND", null) }
+        val vm = createViewModel(aliceId)
+        vm.setRelationDistance(1)
+        val nodeIds = vm.uiState.value.nodes.map { it.id }.toSet()
+        assertFalse(daveId in nodeIds)
+    }
+
+    @Test
+    fun `distance 2 nodes have distanceFromCategory of 2`() {
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
+        val carolId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Carol", "", emptySet()) }
+        val daveId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Dave", "", emptySet()) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "FRIEND", null) }
+        runBlocking { fakeRelationRepository.addRelation(bobId, carolId, "COLLEAGUE", null) }
+        runBlocking { fakeRelationRepository.addRelation(carolId, daveId, "FRIEND", null) }
+        val vm = createViewModel(aliceId)
+        vm.setRelationDistance(2)
+        val daveNode = vm.uiState.value.nodes.first { it.id == daveId }
+        assertEquals(2, daveNode.distanceFromCategory)
+    }
+
+    @Test
+    fun `direct contact nodes have distanceFromCategory of 0`() {
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "FRIEND", null) }
+        val vm = createViewModel(aliceId)
+        val bobNode = vm.uiState.value.nodes.first { it.id == bobId }
+        assertEquals(0, bobNode.distanceFromCategory)
+    }
+
+    @Test
+    fun `distance 1 includes edges between expanded nodes`() {
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
+        val carolId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Carol", "", emptySet()) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "FRIEND", null) }
+        runBlocking { fakeRelationRepository.addRelation(bobId, carolId, "COLLEAGUE", null) }
+        val vm = createViewModel(aliceId)
+        vm.setRelationDistance(1)
+        assertEquals(2, vm.uiState.value.edges.size)
     }
 }
