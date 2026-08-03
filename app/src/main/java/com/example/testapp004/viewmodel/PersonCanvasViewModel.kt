@@ -84,7 +84,9 @@ class PersonCanvasViewModel @Inject constructor(
                         .flatMap { listOf(it.fromId, it.toId) }
                         .filter { it !in reachedAfterDirect }
                         .toSet()
-                } else emptySet()
+                } else {
+                    emptySet()
+                }
 
                 val reachedAfterOne = reachedAfterDirect + distanceOneIds
                 val distanceTwoIds: Set<Long> = if (distance >= 2) {
@@ -96,7 +98,9 @@ class PersonCanvasViewModel @Inject constructor(
                         .flatMap { listOf(it.fromId, it.toId) }
                         .filter { it !in reachedAfterOne }
                         .toSet()
-                } else emptySet()
+                } else {
+                    emptySet()
+                }
 
                 val distanceMap = buildMap<Long, Int> {
                     put(acquaintanceId, 0)
