@@ -227,6 +227,7 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | Foldable category structure in category management | ✅ Done | [ADR-031](docs/decisions/ADR-031-foldable-category-structure.md) |
 | Mark deceased people | ✅ Done | [ADR-032](docs/decisions/ADR-032-mark-deceased.md) |
 | Person canvas view (relations graph from detail screen) | ✅ Done | [ADR-033](docs/decisions/ADR-033-person-canvas-view.md) |
+| Person canvas distance selector (0/1/2) | ✅ Done | [ADR-035](docs/decisions/ADR-035-person-canvas-distance-selector.md) |
 
 ---
 
@@ -268,3 +269,4 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | [ADR-032](docs/decisions/ADR-032-mark-deceased.md) | Mark deceased people: isDeceased flag on Acquaintance, toggled from detail screen (UI superseded by ADR-034) | 2026-08-03 |
 | [ADR-033](docs/decisions/ADR-033-person-canvas-view.md) | Person canvas view: radial relation graph reachable from the detail screen Hub icon | 2026-08-03 |
 | [ADR-034](docs/decisions/ADR-034-deceased-overflow-menu.md) | Move deceased toggle to overflow menu (MoreVert) on detail screen; read-only label in Bio card | 2026-08-03 |
+| [ADR-035](docs/decisions/ADR-035-person-canvas-distance-selector.md) | Person canvas distance selector (0/1/2) expands visible nodes to relation neighbours | 2026-08-03 |

@@ -14,21 +14,27 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -44,6 +50,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -86,6 +93,7 @@ fun PersonCanvasScreen(
     onPersonClick: (Long) -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var isControlSheetOpen by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -96,6 +104,13 @@ fun PersonCanvasScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    BadgedBox(badge = { if (uiState.relationDistance > 0) Badge() }) {
+                        IconButton(onClick = { isControlSheetOpen = true }) {
+                            Icon(Icons.Default.Tune, contentDescription = "Filters")
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -140,6 +155,14 @@ fun PersonCanvasScreen(
                 viewModel.addRelationFromCanvas(typeKey, isDragSourceFrom, customLabel)
             },
             onDismiss = viewModel::closeRelationDialog,
+        )
+    }
+
+    if (isControlSheetOpen) {
+        PersonCanvasControlSheet(
+            relationDistance = uiState.relationDistance,
+            onDistanceChange = viewModel::setRelationDistance,
+            onDismiss = { isControlSheetOpen = false },
         )
     }
 }
@@ -231,28 +254,42 @@ private fun PersonCanvasGraph(
     val dropTargetHighlightColor = cs.tertiary
     val centerHighlightColor = cs.primary
 
-    fun nodeFill(cat: RelationCategory?, isCenter: Boolean, isNetSource: Boolean?): Color {
-        return if (isNetSource == true) {
+    fun nodeFill(cat: RelationCategory?, isCenter: Boolean, isNetSource: Boolean?, distance: Int): Color {
+        val base = if (isNetSource == true) {
             categoryFillSource[cat] ?: defaultFillSource
-        } else if (isCenter) {
-            categoryFill[cat] ?: defaultFill
         } else {
-            lerp(categoryFill[cat] ?: defaultFill, cs.surfaceContainerHighest, 0.25f)
+            categoryFill[cat] ?: defaultFill
+        }
+        return when {
+            isCenter -> base
+            distance >= 2 -> lerp(base, cs.surfaceContainerHighest, 0.65f)
+            distance == 1 -> lerp(base, cs.surfaceContainerHighest, 0.45f)
+            else -> lerp(base, cs.surfaceContainerHighest, 0.25f)
         }
     }
 
-    fun nodeStroke(cat: RelationCategory?, isCenter: Boolean): Color {
+    fun nodeStroke(cat: RelationCategory?, isCenter: Boolean, distance: Int): Color {
         val base = categoryStroke[cat] ?: defaultStroke
-        return if (isCenter) base else lerp(base, cs.surfaceContainerHighest, 0.20f)
+        return when {
+            isCenter -> base
+            distance >= 2 -> lerp(base, cs.surfaceContainerHighest, 0.55f)
+            distance == 1 -> lerp(base, cs.surfaceContainerHighest, 0.35f)
+            else -> lerp(base, cs.surfaceContainerHighest, 0.20f)
+        }
     }
 
-    fun nodeText(cat: RelationCategory?, isCenter: Boolean, isNetSource: Boolean?): Color {
+    fun nodeText(cat: RelationCategory?, isCenter: Boolean, isNetSource: Boolean?, distance: Int): Color {
         val base = if (isNetSource == true) {
             categoryTextSource[cat] ?: defaultTextSource
         } else {
             categoryText[cat] ?: defaultText
         }
-        return if (isCenter) base else lerp(base, cs.onSurfaceVariant, 0.10f)
+        return when {
+            isCenter -> base
+            distance >= 2 -> lerp(base, cs.onSurfaceVariant, 0.35f)
+            distance == 1 -> lerp(base, cs.onSurfaceVariant, 0.20f)
+            else -> lerp(base, cs.onSurfaceVariant, 0.10f)
+        }
     }
 
     fun edgeColor(cat: RelationCategory?) = categoryStroke[cat] ?: cs.outline
@@ -351,9 +388,10 @@ private fun PersonCanvasGraph(
                 val isCenter = node.id == centerId
                 val isDropTarget = isDragging && node.id == dropTargetId
                 val isDragSource = isDragging && node.id == draggedNodeId
-                val fill = nodeFill(node.dominantCategory, isCenter, node.isNetSource)
-                val stroke = nodeStroke(node.dominantCategory, isCenter)
-                val text = nodeText(node.dominantCategory, isCenter, node.isNetSource)
+                val dist = node.distanceFromCategory
+                val fill = nodeFill(node.dominantCategory, isCenter, node.isNetSource, dist)
+                val stroke = nodeStroke(node.dominantCategory, isCenter, dist)
+                val text = nodeText(node.dominantCategory, isCenter, node.isNetSource, dist)
 
                 if (isCenter) {
                     val hw = nodeHalfWidths[node.id] ?: PC_NODE_MAX_HALF_W
@@ -379,6 +417,7 @@ private fun PersonCanvasGraph(
                     },
                     textColor = if (isDragSource) text.copy(alpha = 0.3f) else text,
                     textMeasurer = textMeasurer,
+                    useDashedBorder = dist > 0,
                 )
 
                 if (isDropTarget) {
@@ -398,19 +437,20 @@ private fun PersonCanvasGraph(
                 val ghostNode = if (id != null) nodeMap[id] else null
                 if (ghostNode != null) {
                     val isCenter = ghostNode.id == centerId
+                    val ghostDist = ghostNode.distanceFromCategory
                     val ghostCanvasX = (dragScreenPos.x - panOffset.x) / zoom
                     val ghostCanvasY = (dragScreenPos.y - panOffset.y) / zoom
                     pcDrawNode(
                         center = Offset(ghostCanvasX, ghostCanvasY),
                         halfW = nodeHalfWidths[ghostNode.id] ?: PC_NODE_MAX_HALF_W,
                         name = ghostNode.name,
-                        nodeColor = nodeFill(ghostNode.dominantCategory, isCenter, ghostNode.isNetSource),
+                        nodeColor = nodeFill(ghostNode.dominantCategory, isCenter, ghostNode.isNetSource, ghostDist),
                         strokeColor = if (dropTargetId != null) {
                             dropTargetHighlightColor
                         } else {
-                            nodeStroke(ghostNode.dominantCategory, isCenter)
+                            nodeStroke(ghostNode.dominantCategory, isCenter, ghostDist)
                         },
-                        textColor = nodeText(ghostNode.dominantCategory, isCenter, ghostNode.isNetSource),
+                        textColor = nodeText(ghostNode.dominantCategory, isCenter, ghostNode.isNetSource, ghostDist),
                         textMeasurer = textMeasurer,
                     )
                 }
@@ -494,6 +534,7 @@ private fun DrawScope.pcDrawNode(
     strokeColor: Color,
     textColor: Color,
     textMeasurer: TextMeasurer,
+    useDashedBorder: Boolean = false,
 ) {
     val topLeft = Offset(center.x - halfW, center.y - PC_NODE_HALF_H)
     val size = Size(halfW * 2, PC_NODE_HALF_H * 2)
@@ -504,7 +545,10 @@ private fun DrawScope.pcDrawNode(
         topLeft = topLeft,
         size = size,
         cornerRadius = corner,
-        style = Stroke(width = 2.5f),
+        style = Stroke(
+            width = 2.5f,
+            pathEffect = if (useDashedBorder) PathEffect.dashPathEffect(floatArrayOf(8f, 4f)) else null,
+        ),
     )
     val measured = textMeasurer.measure(
         text = name,
@@ -517,6 +561,38 @@ private fun DrawScope.pcDrawNode(
         textLayoutResult = measured,
         topLeft = Offset(center.x - measured.size.width / 2f, center.y - measured.size.height / 2f),
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PersonCanvasControlSheet(
+    relationDistance: Int,
+    onDistanceChange: (Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState()
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text("Distance", style = MaterialTheme.typography.titleSmall)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(bottom = 8.dp),
+            ) {
+                (0..2).forEach { d ->
+                    FilterChip(
+                        selected = relationDistance == d,
+                        onClick = { onDistanceChange(d) },
+                        label = { Text(d.toString()) },
+                    )
+                }
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

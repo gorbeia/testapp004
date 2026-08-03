@@ -27,6 +27,7 @@ data class PersonCanvasUiState(
     val edges: List<CanvasRelationEdge> = emptyList(),
     val isLoading: Boolean = true,
     val error: String? = null,
+    val relationDistance: Int = 0,
     val isRelationDialogOpen: Boolean = false,
     val pendingRelationFromId: Long? = null,
     val pendingRelationToId: Long? = null,
@@ -45,47 +46,110 @@ class PersonCanvasViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(PersonCanvasUiState())
     val uiState: StateFlow<PersonCanvasUiState> = _uiState.asStateFlow()
 
+    private val relationDistanceFlow = MutableStateFlow(0)
+
     init {
         viewModelScope.launch {
             combine(
                 acquaintanceRepository.acquaintances,
                 relationRepository.relations,
-            ) { acquaintances, relations ->
-                val personRelations = relations.filter {
-                    it.fromId == acquaintanceId || it.toId == acquaintanceId
-                }
-
+                relationDistanceFlow,
+            ) { acquaintances, relations, distance ->
                 val centerPerson = acquaintances.find { it.id == acquaintanceId }
                     ?: return@combine PersonCanvasUiState(isLoading = false)
 
-                if (personRelations.isEmpty()) {
+                val directRelatedIds = relations
+                    .filter { it.fromId == acquaintanceId || it.toId == acquaintanceId }
+                    .flatMap { listOf(it.fromId, it.toId) }
+                    .filter { it != acquaintanceId }
+                    .toSet()
+
+                if (directRelatedIds.isEmpty()) {
                     return@combine PersonCanvasUiState(
                         personName = centerPerson.name,
                         nodes = emptyList(),
                         edges = emptyList(),
                         isLoading = false,
+                        relationDistance = distance,
                     )
                 }
 
-                val relatedIds = personRelations
-                    .flatMap { listOf(it.fromId, it.toId) }
-                    .filter { it != acquaintanceId }
-                    .toSet()
-                val relatedPeople = acquaintances.filter { it.id in relatedIds }
+                val reachedAfterDirect = setOf(acquaintanceId) + directRelatedIds
+                val distanceOneIds: Set<Long> = if (distance >= 1) {
+                    relations
+                        .filter {
+                            (it.fromId in directRelatedIds && it.toId !in reachedAfterDirect) ||
+                                (it.toId in directRelatedIds && it.fromId !in reachedAfterDirect)
+                        }
+                        .flatMap { listOf(it.fromId, it.toId) }
+                        .filter { it !in reachedAfterDirect }
+                        .toSet()
+                } else {
+                    emptySet()
+                }
 
-                val ringRadius = max(180f, relatedPeople.size * 60f)
+                val reachedAfterOne = reachedAfterDirect + distanceOneIds
+                val distanceTwoIds: Set<Long> = if (distance >= 2) {
+                    relations
+                        .filter {
+                            (it.fromId in distanceOneIds && it.toId !in reachedAfterOne) ||
+                                (it.toId in distanceOneIds && it.fromId !in reachedAfterOne)
+                        }
+                        .flatMap { listOf(it.fromId, it.toId) }
+                        .filter { it !in reachedAfterOne }
+                        .toSet()
+                } else {
+                    emptySet()
+                }
+
+                val distanceMap = buildMap<Long, Int> {
+                    put(acquaintanceId, 0)
+                    directRelatedIds.forEach { put(it, 0) }
+                    distanceOneIds.forEach { put(it, 1) }
+                    distanceTwoIds.forEach { put(it, 2) }
+                }
+
+                val visibleIds = distanceMap.keys
+                val visibleRelations = relations.filter {
+                    it.fromId in visibleIds && it.toId in visibleIds
+                }
+
+                val directPeople = acquaintances.filter { it.id in directRelatedIds }
+                val d1People = acquaintances.filter { it.id in distanceOneIds }
+                val d2People = acquaintances.filter { it.id in distanceTwoIds }
+
                 val positions = mutableMapOf<Long, Pair<Float, Float>>()
                 positions[acquaintanceId] = 0f to 0f
-                val n = relatedPeople.size
-                relatedPeople.forEachIndexed { index, person ->
-                    val angle = (2 * PI * index / n.coerceAtLeast(1) - PI / 2).toFloat()
-                    positions[person.id] = (ringRadius * cos(angle)) to (ringRadius * sin(angle))
+
+                val r1 = max(180f, directPeople.size * 60f)
+                val n1 = directPeople.size
+                directPeople.forEachIndexed { index, person ->
+                    val angle = (2 * PI * index / n1.coerceAtLeast(1) - PI / 2).toFloat()
+                    positions[person.id] = (r1 * cos(angle)) to (r1 * sin(angle))
+                }
+
+                if (d1People.isNotEmpty()) {
+                    val r2 = r1 + max(150f, d1People.size * 50f)
+                    val n2 = d1People.size
+                    d1People.forEachIndexed { index, person ->
+                        val angle = (2 * PI * index / n2.coerceAtLeast(1) - PI / 2).toFloat()
+                        positions[person.id] = (r2 * cos(angle)) to (r2 * sin(angle))
+                    }
+
+                    if (d2People.isNotEmpty()) {
+                        val r3 = r2 + max(130f, d2People.size * 40f)
+                        val n3 = d2People.size
+                        d2People.forEachIndexed { index, person ->
+                            val angle = (2 * PI * index / n3.coerceAtLeast(1) - PI / 2).toFloat()
+                            positions[person.id] = (r3 * cos(angle)) to (r3 * sin(angle))
+                        }
+                    }
                 }
 
                 val fromCounts = mutableMapOf<Long, Int>()
                 val toCounts = mutableMapOf<Long, Int>()
                 val categoryLists = mutableMapOf<Long, MutableList<RelationCategory>>()
-                personRelations.forEach { rel ->
+                visibleRelations.forEach { rel ->
                     val relType = RelationTypes.findByKey(rel.typeKey)
                     val cat = relType?.category ?: return@forEach
                     categoryLists.getOrPut(rel.fromId) { mutableListOf() }.add(cat)
@@ -96,8 +160,8 @@ class PersonCanvasViewModel @Inject constructor(
                     }
                 }
 
-                val allPeople = listOf(centerPerson) + relatedPeople
-                val nodes = allPeople.mapNotNull { person ->
+                val allVisiblePeople = acquaintances.filter { it.id in visibleIds }
+                val nodes = allVisiblePeople.mapNotNull { person ->
                     val (x, y) = positions[person.id] ?: return@mapNotNull null
                     val dominant = categoryLists[person.id]
                         ?.groupingBy { it }
@@ -119,11 +183,11 @@ class PersonCanvasViewModel @Inject constructor(
                         dominantCategory = dominant,
                         isDirectMember = person.id == acquaintanceId,
                         isNetSource = isNetSource,
-                        distanceFromCategory = 0,
+                        distanceFromCategory = distanceMap[person.id] ?: 0,
                     )
                 }
 
-                val edges = personRelations.mapNotNull { rel ->
+                val edges = visibleRelations.mapNotNull { rel ->
                     val relType = RelationTypes.findByKey(rel.typeKey)
                     CanvasRelationEdge(
                         id = rel.id,
@@ -140,6 +204,7 @@ class PersonCanvasViewModel @Inject constructor(
                     nodes = nodes,
                     edges = edges,
                     isLoading = false,
+                    relationDistance = distance,
                 )
             }.collect { newState ->
                 _uiState.update { current ->
@@ -153,6 +218,10 @@ class PersonCanvasViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun setRelationDistance(d: Int) {
+        relationDistanceFlow.value = d.coerceIn(0, 2)
     }
 
     fun openRelationDialog(fromId: Long, toId: Long) {
