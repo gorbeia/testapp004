@@ -68,6 +68,7 @@ private fun AcquaintanceWithCategories.toDomain() = Acquaintance(
     categoryIds = categories.map { it.id }.toSet(),
     androidContactLookupKey = acquaintance.androidContactLookupKey,
     birthday = acquaintance.birthday,
+    isDeceased = acquaintance.isDeceased,
 )
 
 private fun Acquaintance.toEntity() = AcquaintanceEntity(
@@ -76,4 +77,5 @@ private fun Acquaintance.toEntity() = AcquaintanceEntity(
     bio = bio,
     androidContactLookupKey = androidContactLookupKey,
     birthday = birthday,
+    isDeceased = isDeceased,
 )

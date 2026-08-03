@@ -13,6 +13,7 @@ Accessible via the **People** tab in the bottom navigation bar.
 ### People list (`AcquaintancesListScreen`)
 
 * Shows all acquaintances as cards (name, bio preview, category chips — one per assigned category). Tapping a category chip navigates to the Categories screen.
+* Deceased people are shown with a `†` suffix after their name and in a muted (`onSurfaceVariant`) colour.
 * **Category filter row**: horizontal scrollable `FilterChip` row — "All" + one chip per existing category. Selecting a chip shows people who have that category **or any of its descendants** assigned.
 * **FAB (+)**: navigates to Add Person screen.
 * **AccountTree icon (top-right)**: navigates to the Browse Categories screen.
@@ -37,6 +38,7 @@ Accessible via the **People** tab in the bottom navigation bar.
 * **Top bar**: person's name; back, edit (pencil), delete (bin) actions.
 * **Bio card**: shows the bio text; or "No bio added" placeholder. All assigned categories are shown as chips above the bio. Tapping a category chip navigates to the Categories screen.
   - A pencil icon in the top-right of the card enters **inline edit mode**: the bio is replaced by a multi-line text field with Save and Cancel buttons. Saving persists immediately; Cancel restores the previous text. No navigation required.
+  - A **Deceased** row at the bottom of the card shows the current status with a Switch. Toggling it immediately persists the change.
 * **Relations section**: compact list of directed relations inside a single card.
   - Each row shows the **other person's name** (tappable, primary) and their **role relative to the
     current person** below it (e.g., "Parent", "Spouse") — making direction unambiguous at a glance.

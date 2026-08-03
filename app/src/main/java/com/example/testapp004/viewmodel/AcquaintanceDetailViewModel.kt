@@ -177,4 +177,11 @@ class AcquaintanceDetailViewModel @Inject constructor(
             acquaintanceRepository.updateAcquaintance(acquaintance.copy(bio = bio.trim()))
         }
     }
+
+    fun toggleDeceased() {
+        val acquaintance = _uiState.value.acquaintance ?: return
+        viewModelScope.launch {
+            acquaintanceRepository.updateAcquaintance(acquaintance.copy(isDeceased = !acquaintance.isDeceased))
+        }
+    }
 }

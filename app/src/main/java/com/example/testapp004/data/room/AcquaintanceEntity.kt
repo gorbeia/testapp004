@@ -11,4 +11,5 @@ data class AcquaintanceEntity(
     val bio: String,
     @ColumnInfo(name = "android_contact_lookup_key") val androidContactLookupKey: String?,
     val birthday: String?,
+    @ColumnInfo(name = "is_deceased") val isDeceased: Boolean = false,
 )
