@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Cake
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Hub
 import androidx.compose.material.icons.filled.LinkOff
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
@@ -89,6 +90,7 @@ fun AcquaintanceDetailScreen(
     onPersonClick: (Long) -> Unit,
     onCategoryClick: () -> Unit,
     onCreateNewPersonClick: () -> Unit,
+    onCanvasClick: (Long) -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val acquaintance = uiState.acquaintance
@@ -114,6 +116,9 @@ fun AcquaintanceDetailScreen(
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 ),
                 actions = {
+                    IconButton(onClick = { acquaintance?.let { onCanvasClick(it.id) } }) {
+                        Icon(Icons.Default.Hub, contentDescription = "View relations canvas")
+                    }
                     IconButton(onClick = { acquaintance?.let { onEditClick(it.id) } }) {
                         Icon(Icons.Default.Edit, contentDescription = "Edit")
                     }
