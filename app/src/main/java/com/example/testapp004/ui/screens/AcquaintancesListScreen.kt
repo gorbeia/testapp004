@@ -506,8 +506,13 @@ private fun AcquaintanceCard(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = acquaintance.name,
+                    text = if (acquaintance.isDeceased) "${acquaintance.name} †" else acquaintance.name,
                     style = MaterialTheme.typography.titleMedium,
+                    color = if (acquaintance.isDeceased) {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

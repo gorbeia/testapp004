@@ -214,4 +214,37 @@ class AcquaintanceDetailViewModelTest {
         assertFalse(ids.contains(aliceId))
         assertEquals(1, ids.size)
     }
+
+    @Test
+    fun `toggleDeceased marks a living person as deceased`() {
+        val vm = buildViewModel()
+        assertFalse(vm.uiState.value.acquaintance?.isDeceased ?: true)
+        vm.toggleDeceased()
+        assertTrue(vm.uiState.value.acquaintance?.isDeceased ?: false)
+    }
+
+    @Test
+    fun `toggleDeceased marks a deceased person as living`() {
+        runBlocking {
+            val alice = fakeAcquaintanceRepository.getAcquaintance(aliceId)!!
+            fakeAcquaintanceRepository.updateAcquaintance(alice.copy(isDeceased = true))
+        }
+        val vm = buildViewModel()
+        assertTrue(vm.uiState.value.acquaintance?.isDeceased ?: false)
+        vm.toggleDeceased()
+        assertFalse(vm.uiState.value.acquaintance?.isDeceased ?: true)
+    }
+
+    @Test
+    fun `toggleDeceased does nothing when acquaintance is null`() {
+        val vm = AcquaintanceDetailViewModel(
+            acquaintanceRepository = fakeAcquaintanceRepository,
+            categoryRepository = fakeCategoryRepository,
+            relationRepository = fakeRelationRepository,
+            contactRepository = fakeContactRepository,
+            savedStateHandle = SavedStateHandle(mapOf("acquaintanceId" to -1L)),
+        )
+        vm.toggleDeceased()
+        assertFalse(fakeAcquaintanceRepository.acquaintances.value.any { it.isDeceased })
+    }
 }

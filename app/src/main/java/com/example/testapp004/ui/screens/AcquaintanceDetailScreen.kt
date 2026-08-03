@@ -52,6 +52,7 @@ import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -139,9 +140,11 @@ fun AcquaintanceDetailScreen(
                     BioSection(
                         bio = acquaintance.bio,
                         birthday = acquaintance.birthday,
+                        isDeceased = acquaintance.isDeceased,
                         categoryNames = uiState.categoryNames,
                         onCategoryClick = onCategoryClick,
                         onSaveBio = viewModel::saveBio,
+                        onToggleDeceased = viewModel::toggleDeceased,
                     )
                 }
                 item {
@@ -209,9 +212,11 @@ fun AcquaintanceDetailScreen(
 private fun BioSection(
     bio: String,
     birthday: String?,
+    isDeceased: Boolean,
     categoryNames: List<String>,
     onCategoryClick: () -> Unit,
     onSaveBio: (String) -> Unit,
+    onToggleDeceased: () -> Unit,
 ) {
     var isEditing by remember { mutableStateOf(false) }
     var draft by remember(bio) { mutableStateOf(bio) }
@@ -292,6 +297,23 @@ private fun BioSection(
                         Icon(Icons.Default.Edit, contentDescription = "Edit bio")
                     }
                 }
+            }
+            HorizontalDivider(modifier = Modifier.padding(top = 12.dp, bottom = 4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Deceased",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (isDeceased) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                )
+                Switch(checked = isDeceased, onCheckedChange = { onToggleDeceased() })
             }
         }
     }
