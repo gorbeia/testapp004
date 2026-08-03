@@ -410,4 +410,40 @@ class CategoriesViewModelTest {
         val child3 = viewModel.uiState.value.categories.first { it.name == "Child3" }
         assertTrue(child2.sortOrder < child3.sortOrder)
     }
+
+    @Test
+    fun `initial state has no collapsed categories`() {
+        assertTrue(viewModel.uiState.value.collapsedCategories.isEmpty())
+    }
+
+    @Test
+    fun `toggleCollapsed collapses a category`() {
+        viewModel.addCategory("Work")
+        val id = viewModel.uiState.value.categories.first().id
+        viewModel.toggleCollapsed(id)
+        assertTrue(viewModel.uiState.value.collapsedCategories.contains(id))
+    }
+
+    @Test
+    fun `toggleCollapsed twice restores expanded state`() {
+        viewModel.addCategory("Work")
+        val id = viewModel.uiState.value.categories.first().id
+        viewModel.toggleCollapsed(id)
+        viewModel.toggleCollapsed(id)
+        assertFalse(viewModel.uiState.value.collapsedCategories.contains(id))
+    }
+
+    @Test
+    fun `toggleCollapsed multiple categories independently`() {
+        viewModel.addCategory("Work")
+        viewModel.addCategory("Family")
+        val workId = viewModel.uiState.value.categories.first { it.name == "Work" }.id
+        val familyId = viewModel.uiState.value.categories.first { it.name == "Family" }.id
+        viewModel.toggleCollapsed(workId)
+        assertTrue(viewModel.uiState.value.collapsedCategories.contains(workId))
+        assertFalse(viewModel.uiState.value.collapsedCategories.contains(familyId))
+        viewModel.toggleCollapsed(familyId)
+        assertTrue(viewModel.uiState.value.collapsedCategories.contains(workId))
+        assertTrue(viewModel.uiState.value.collapsedCategories.contains(familyId))
+    }
 }

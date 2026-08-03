@@ -91,7 +91,8 @@ Spatial overview of the people in a category and their relationships.
 
 * **Top bar**: "Categories"; back button.
 * List of existing categories displayed in **tree order** with visual indentation (children indented under their parent, prefixed with `└`). Order within each sibling group is user-defined and persisted via `sort_order`.
-* Each item shows a **drag handle (☰)** on the left and three action icons on the right: **add child (+)**, **edit (pencil)**, **delete (bin)**.
+* Each item shows a **drag handle (☰)** on the left and action icons on the right.
+  - **Expand/collapse chevron**: categories that have children display a `▾` (expanded) or `›` (collapsed) chevron between the drag handle and the name. Tapping it hides or reveals the entire subtree. Leaf categories show a fixed spacer instead. Collapse state is session-local and resets when the screen is left.
   - **Drag handle / long-press**: initiates drag-and-drop reordering. Dragging onto a sibling (same parent) repositions the item there. Dragging onto a category from a different parent is a no-op.
   - **Add child (+)**: opens the Add Category dialog with the current category pre-selected as parent. The parent can still be changed or cleared in the dialog.
   - **Edit**: opens Edit Category dialog pre-filled with the current name and parent.

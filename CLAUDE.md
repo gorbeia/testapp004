@@ -224,6 +224,7 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | Category drag-drop hierarchy reordering | ✅ Done | [ADR-025](docs/decisions/ADR-025-category-reorder-hierarchy.md) |
 | Canvas relation-distance expansion (0/1/2) | ✅ Done | [ADR-028](docs/decisions/ADR-028-canvas-distance-feature.md) |
 | Canvas control sheet (distance + relation-category filter) | ✅ Done | [ADR-030](docs/decisions/ADR-030-canvas-control-sheet.md) |
+| Foldable category structure in category management | ✅ Done | [ADR-031](docs/decisions/ADR-031-foldable-category-structure.md) |
 
 ---
 
@@ -261,3 +262,4 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | [ADR-028](docs/decisions/ADR-028-canvas-distance-feature.md) | Canvas distance selector (0/1/2) expands visible nodes to relation neighbours | 2026-06-02 |
 | [ADR-029](docs/decisions/ADR-029-contact-import.md) | Contact import: batch create people from Android contacts with birthday and bio | 2026-06-03 |
 | [ADR-030](docs/decisions/ADR-030-canvas-control-sheet.md) | Canvas control sheet: distance + relation-category filter moved to a ModalBottomSheet | 2026-06-06 |
+| [ADR-031](docs/decisions/ADR-031-foldable-category-structure.md) | Foldable category structure: expand/collapse subtrees in the Categories management screen | 2026-08-03 |
