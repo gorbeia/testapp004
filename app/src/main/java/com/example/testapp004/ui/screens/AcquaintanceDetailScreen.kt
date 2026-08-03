@@ -307,8 +307,11 @@ private fun BioSection(
                 Text(
                     text = "Deceased",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (isDeceased) MaterialTheme.colorScheme.error
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (isDeceased) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
                 )
                 Switch(checked = isDeceased, onCheckedChange = { onToggleDeceased() })
             }

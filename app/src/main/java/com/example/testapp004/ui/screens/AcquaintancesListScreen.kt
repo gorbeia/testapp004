@@ -508,8 +508,11 @@ private fun AcquaintanceCard(
                 Text(
                     text = if (acquaintance.isDeceased) "${acquaintance.name} †" else acquaintance.name,
                     style = MaterialTheme.typography.titleMedium,
-                    color = if (acquaintance.isDeceased) MaterialTheme.colorScheme.onSurfaceVariant
-                        else MaterialTheme.colorScheme.onSurface,
+                    color = if (acquaintance.isDeceased) {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
