@@ -66,6 +66,7 @@ sealed class Screen(val route: String) {
         const val ARG_INITIAL_TAB = "initialTab"
 
         fun createRoute(id: Long) = "acquaintance/$id"
+
         fun createRouteWithCanvasTab(id: Long) = "acquaintance/$id?initialTab=1"
     }
 
