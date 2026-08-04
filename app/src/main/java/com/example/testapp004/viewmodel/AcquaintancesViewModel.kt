@@ -6,6 +6,7 @@ import com.example.testapp004.data.AcquaintanceRepository
 import com.example.testapp004.data.CategoryRepository
 import com.example.testapp004.model.Acquaintance
 import com.example.testapp004.model.Category
+import com.example.testapp004.model.descendantsAndSelf
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -47,7 +48,7 @@ class AcquaintancesViewModel @Inject constructor(
                 val categoryFiltered = if (selectedCategoryId == null) {
                     acquaintances
                 } else {
-                    val includedIds = descendantsAndSelf(categories, selectedCategoryId)
+                    val includedIds = categories.descendantsAndSelf(selectedCategoryId)
                     acquaintances.filter { person -> person.categoryIds.any { it in includedIds } }
                 }
                 val filtered = if (searchQuery.isBlank()) {
@@ -83,13 +84,5 @@ class AcquaintancesViewModel @Inject constructor(
     fun toggleCategoryExpanded(id: Long) {
         val current = expandedCategoryIdsFlow.value
         expandedCategoryIdsFlow.value = if (id in current) current - id else current + id
-    }
-
-    private fun descendantsAndSelf(categories: List<Category>, id: Long): Set<Long> {
-        val result = mutableSetOf(id)
-        categories.filter { it.parentId == id }.forEach { child ->
-            result.addAll(descendantsAndSelf(categories, child.id))
-        }
-        return result
     }
 }

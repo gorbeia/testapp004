@@ -1,6 +1,8 @@
 package com.example.testapp004.di
 
+import com.example.testapp004.data.ApkInstaller
 import com.example.testapp004.data.GitHubUpdateRepository
+import com.example.testapp004.data.OkHttpApkInstaller
 import com.example.testapp004.data.UpdateRepository
 import dagger.Binds
 import dagger.Module
@@ -16,6 +18,10 @@ abstract class NetworkModule {
     @Binds
     @Singleton
     abstract fun bindUpdateRepository(impl: GitHubUpdateRepository): UpdateRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindApkInstaller(impl: OkHttpApkInstaller): ApkInstaller
 
     companion object {
         @Provides

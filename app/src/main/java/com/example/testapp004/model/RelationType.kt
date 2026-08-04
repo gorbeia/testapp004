@@ -7,6 +7,7 @@ data class RelationType(
     val fromLabel: String,
     val toLabel: String,
     val category: RelationCategory,
+    val verticalDelta: Int = 0,
 ) {
     val isSymmetric: Boolean get() = fromLabel == toLabel
 }
@@ -14,23 +15,54 @@ data class RelationType(
 object RelationTypes {
     val SPOUSE = RelationType("SPOUSE", "Spouse", "Spouse", RelationCategory.FAMILY)
     val PARTNER = RelationType("PARTNER", "Partner", "Partner", RelationCategory.FAMILY)
-    val PARENT_CHILD = RelationType("PARENT_CHILD", "Parent", "Child", RelationCategory.FAMILY)
+    val PARENT_CHILD = RelationType("PARENT_CHILD", "Parent", "Child", RelationCategory.FAMILY, verticalDelta = 1)
     val SIBLING = RelationType("SIBLING", "Sibling", "Sibling", RelationCategory.FAMILY)
     val GRANDPARENT_GRANDCHILD = RelationType(
         "GRANDPARENT_GRANDCHILD",
         "Grandparent",
         "Grandchild",
         RelationCategory.FAMILY,
+        verticalDelta = 2,
     )
-    val UNCLE_AUNT = RelationType("UNCLE_AUNT", "Uncle / Aunt", "Nephew / Niece", RelationCategory.FAMILY)
+    val UNCLE_AUNT = RelationType(
+        "UNCLE_AUNT",
+        "Uncle / Aunt",
+        "Nephew / Niece",
+        RelationCategory.FAMILY,
+        verticalDelta = 1,
+    )
     val COUSIN = RelationType("COUSIN", "Cousin", "Cousin", RelationCategory.FAMILY)
-    val STEP_PARENT_CHILD = RelationType("STEP_PARENT_CHILD", "Step-parent", "Step-child", RelationCategory.FAMILY)
-    val GUARDIAN = RelationType("GUARDIAN", "Guardian", "Ward", RelationCategory.FAMILY)
+    val STEP_PARENT_CHILD = RelationType(
+        "STEP_PARENT_CHILD",
+        "Step-parent",
+        "Step-child",
+        RelationCategory.FAMILY,
+        verticalDelta = 1,
+    )
+    val GUARDIAN = RelationType("GUARDIAN", "Guardian", "Ward", RelationCategory.FAMILY, verticalDelta = 1)
 
-    val MANAGER_REPORT = RelationType("MANAGER_REPORT", "Manager", "Direct report", RelationCategory.PROFESSIONAL)
-    val MENTOR_MENTEE = RelationType("MENTOR_MENTEE", "Mentor", "Mentee", RelationCategory.PROFESSIONAL)
+    val MANAGER_REPORT = RelationType(
+        "MANAGER_REPORT",
+        "Manager",
+        "Direct report",
+        RelationCategory.PROFESSIONAL,
+        verticalDelta = 1,
+    )
+    val MENTOR_MENTEE = RelationType(
+        "MENTOR_MENTEE",
+        "Mentor",
+        "Mentee",
+        RelationCategory.PROFESSIONAL,
+        verticalDelta = 1,
+    )
     val COLLEAGUE = RelationType("COLLEAGUE", "Colleague", "Colleague", RelationCategory.PROFESSIONAL)
-    val EMPLOYER_EMPLOYEE = RelationType("EMPLOYER_EMPLOYEE", "Employer", "Employee", RelationCategory.PROFESSIONAL)
+    val EMPLOYER_EMPLOYEE = RelationType(
+        "EMPLOYER_EMPLOYEE",
+        "Employer",
+        "Employee",
+        RelationCategory.PROFESSIONAL,
+        verticalDelta = 1,
+    )
 
     val FRIEND = RelationType("FRIEND", "Friend", "Friend", RelationCategory.SOCIAL)
     val NEIGHBOR = RelationType("NEIGHBOR", "Neighbor", "Neighbor", RelationCategory.SOCIAL)

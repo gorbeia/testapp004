@@ -1,16 +1,14 @@
 package com.example.testapp004.viewmodel
 
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.testapp004.data.AcquaintanceRepository
 import com.example.testapp004.data.CategoryRepository
 import com.example.testapp004.data.RelationRepository
-import com.example.testapp004.model.Category
 import com.example.testapp004.model.Relation
 import com.example.testapp004.model.RelationCategory
 import com.example.testapp004.model.RelationTypes
-import com.example.testapp004.model.labelFor
+import com.example.testapp004.model.descendantsAndSelf
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -65,8 +63,8 @@ class CategoryCanvasViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val acquaintanceRepository: AcquaintanceRepository,
     private val categoryRepository: CategoryRepository,
-    private val relationRepository: RelationRepository,
-) : ViewModel() {
+    relationRepository: RelationRepository,
+) : CanvasViewModel(relationRepository) {
     private val categoryId: Long = checkNotNull(savedStateHandle["categoryId"])
 
     private val _uiState = MutableStateFlow(CategoryCanvasUiState())
@@ -79,6 +77,29 @@ class CategoryCanvasViewModel @Inject constructor(
         relationCategoryFilterFlow,
     ) { distance, categoryFilter -> CanvasFilters(distance, categoryFilter) }
 
+    override val dialogFromId get() = _uiState.value.pendingRelationFromId
+    override val dialogToId get() = _uiState.value.pendingRelationToId
+
+    override fun nodesSnapshot() = _uiState.value.nodes
+
+    override fun applyDialogState(
+        isOpen: Boolean,
+        fromId: Long?,
+        toId: Long?,
+        fromName: String,
+        toName: String,
+    ) {
+        _uiState.update {
+            it.copy(
+                isRelationDialogOpen = isOpen,
+                pendingRelationFromId = fromId,
+                pendingRelationToId = toId,
+                pendingRelationFromName = fromName,
+                pendingRelationToName = toName,
+            )
+        }
+    }
+
     init {
         viewModelScope.launch {
             combine(
@@ -90,7 +111,7 @@ class CategoryCanvasViewModel @Inject constructor(
                 val distance = filters.distance
                 val categoryFilter = filters.categoryFilter
                 val categoryName = categories.find { it.id == categoryId }?.name ?: ""
-                val categoryTreeIds = descendantsAndSelf(categoryId, categories)
+                val categoryTreeIds = categories.descendantsAndSelf(categoryId)
 
                 val categoryPersonIds = acquaintances
                     .filter { person -> person.categoryIds.any { it in categoryTreeIds } }
@@ -136,69 +157,31 @@ class CategoryCanvasViewModel @Inject constructor(
                 }
                 val allPersonIds = distanceMap.keys
 
-                val people = acquaintances.filter { it.id in allPersonIds }
-
                 val visibleRelations = filteredRelations.filter { rel ->
                     rel.fromId in allPersonIds && rel.toId in allPersonIds
                 }
 
-                val components = findConnectedComponents(people.map { it.id }, visibleRelations)
+                val components = findConnectedComponents(allPersonIds.toList(), visibleRelations)
                 val nodePositions = computeLayout(components)
 
-                val personCategoryLists = mutableMapOf<Long, MutableList<RelationCategory>>()
-                val fromCounts = mutableMapOf<Long, Int>()
-                val toCounts = mutableMapOf<Long, Int>()
-                visibleRelations.forEach { rel ->
-                    val relType = RelationTypes.findByKey(rel.typeKey)
-                    val cat = relType?.category ?: return@forEach
-                    personCategoryLists.getOrPut(rel.fromId) { mutableListOf() }.add(cat)
-                    personCategoryLists.getOrPut(rel.toId) { mutableListOf() }.add(cat)
-                    if (!relType.isSymmetric) {
-                        fromCounts[rel.fromId] = (fromCounts[rel.fromId] ?: 0) + 1
-                        toCounts[rel.toId] = (toCounts[rel.toId] ?: 0) + 1
-                    }
-                }
+                val nodes = buildCanvasNodes(
+                    acquaintances = acquaintances,
+                    visibleIds = allPersonIds,
+                    positions = nodePositions,
+                    distanceMap = distanceMap,
+                    visibleRelations = visibleRelations,
+                    isDirectMember = { id ->
+                        acquaintances.find { it.id == id }?.categoryIds?.any { it == categoryId } == true
+                    },
+                )
+                val edges = buildCanvasEdges(visibleRelations)
 
                 CategoryCanvasUiState(
                     categoryName = categoryName,
                     relationDistance = distance,
                     relationCategoryFilter = categoryFilter,
-                    nodes = people.map { person ->
-                        val (x, y) = nodePositions[person.id] ?: (0f to 0f)
-                        val dominant = personCategoryLists[person.id]
-                            ?.groupingBy { it }
-                            ?.eachCount()
-                            ?.maxByOrNull { it.value }
-                            ?.key
-                        val outDegree = fromCounts[person.id] ?: 0
-                        val inDegree = toCounts[person.id] ?: 0
-                        val isNetSource = when {
-                            outDegree > inDegree -> true
-                            inDegree > outDegree -> false
-                            else -> null
-                        }
-                        CanvasPersonNode(
-                            id = person.id,
-                            name = person.name,
-                            x = x,
-                            y = y,
-                            dominantCategory = dominant,
-                            isDirectMember = categoryId in person.categoryIds,
-                            isNetSource = isNetSource,
-                            distanceFromCategory = distanceMap[person.id] ?: 0,
-                        )
-                    },
-                    edges = visibleRelations.map { rel ->
-                        val relType = RelationTypes.findByKey(rel.typeKey)
-                        CanvasRelationEdge(
-                            id = rel.id,
-                            fromId = rel.fromId,
-                            toId = rel.toId,
-                            label = rel.labelFor(rel.fromId),
-                            category = relType?.category,
-                            isSymmetric = relType?.isSymmetric ?: false,
-                        )
-                    },
+                    nodes = nodes,
+                    edges = edges,
                     isLoading = false,
                 )
             }.collect { newState ->
@@ -222,64 +205,6 @@ class CategoryCanvasViewModel @Inject constructor(
     fun toggleRelationCategoryFilter(category: RelationCategory) {
         val current = relationCategoryFilterFlow.value
         relationCategoryFilterFlow.value = if (category in current) current - category else current + category
-    }
-
-    fun openRelationDialog(fromId: Long, toId: Long) {
-        val nodes = _uiState.value.nodes
-        val fromName = nodes.find { it.id == fromId }?.name ?: ""
-        val toName = nodes.find { it.id == toId }?.name ?: ""
-        _uiState.update {
-            it.copy(
-                isRelationDialogOpen = true,
-                pendingRelationFromId = fromId,
-                pendingRelationToId = toId,
-                pendingRelationFromName = fromName,
-                pendingRelationToName = toName,
-            )
-        }
-    }
-
-    fun closeRelationDialog() {
-        _uiState.update {
-            it.copy(
-                isRelationDialogOpen = false,
-                pendingRelationFromId = null,
-                pendingRelationToId = null,
-                pendingRelationFromName = "",
-                pendingRelationToName = "",
-            )
-        }
-    }
-
-    fun addRelationFromCanvas(typeKey: String, isDragSourceFrom: Boolean, customLabel: String?) {
-        val state = _uiState.value
-        val dragFromId = state.pendingRelationFromId ?: return
-        val dragToId = state.pendingRelationToId ?: return
-        if (typeKey == RelationTypes.CUSTOM_KEY && customLabel.isNullOrBlank()) return
-        val actualFromId = if (isDragSourceFrom) dragFromId else dragToId
-        val actualToId = if (isDragSourceFrom) dragToId else dragFromId
-        viewModelScope.launch {
-            relationRepository.addRelation(
-                fromId = actualFromId,
-                toId = actualToId,
-                typeKey = typeKey,
-                customLabel = customLabel,
-            )
-            closeRelationDialog()
-        }
-    }
-
-    private fun descendantsAndSelf(id: Long, categories: List<Category>): Set<Long> {
-        val result = mutableSetOf(id)
-        val queue = ArrayDeque<Long>()
-        queue.add(id)
-        while (queue.isNotEmpty()) {
-            val current = queue.removeFirst()
-            categories.filter { it.parentId == current }.forEach { child ->
-                if (result.add(child.id)) queue.add(child.id)
-            }
-        }
-        return result
     }
 
     private fun findConnectedComponents(
