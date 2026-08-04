@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.testapp004.data.AcquaintanceRepository
 import com.example.testapp004.data.CategoryRepository
 import com.example.testapp004.data.RelationRepository
-import com.example.testapp004.model.Relation
 import com.example.testapp004.model.RelationCategory
 import com.example.testapp004.model.RelationTypes
 import com.example.testapp004.model.descendantsAndSelf
@@ -17,9 +16,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.math.PI
-import kotlin.math.cos
-import kotlin.math.sin
 
 data class CanvasPersonNode(
     val id: Long,
@@ -66,6 +62,7 @@ class CategoryCanvasViewModel @Inject constructor(
     relationRepository: RelationRepository,
 ) : CanvasViewModel(relationRepository) {
     private val categoryId: Long = checkNotNull(savedStateHandle["categoryId"])
+    private val layoutEngine: CanvasLayoutEngine = RadialClusterLayoutEngine()
 
     private val _uiState = MutableStateFlow(CategoryCanvasUiState())
     val uiState: StateFlow<CategoryCanvasUiState> = _uiState.asStateFlow()
@@ -161,8 +158,7 @@ class CategoryCanvasViewModel @Inject constructor(
                     rel.fromId in allPersonIds && rel.toId in allPersonIds
                 }
 
-                val components = findConnectedComponents(allPersonIds.toList(), visibleRelations)
-                val nodePositions = computeLayout(components)
+                val nodePositions = layoutEngine.computePositions(allPersonIds, visibleRelations)
 
                 val nodes = buildCanvasNodes(
                     acquaintances = acquaintances,
@@ -205,77 +201,5 @@ class CategoryCanvasViewModel @Inject constructor(
     fun toggleRelationCategoryFilter(category: RelationCategory) {
         val current = relationCategoryFilterFlow.value
         relationCategoryFilterFlow.value = if (category in current) current - category else current + category
-    }
-
-    private fun findConnectedComponents(
-        nodeIds: List<Long>,
-        edges: List<Relation>,
-    ): List<List<Long>> {
-        val parent = nodeIds.associateWith { it }.toMutableMap()
-
-        fun find(x: Long): Long {
-            var root = x
-            while (parent[root] != root) root = parent[root]!!
-            var curr = x
-            while (curr != root) {
-                val next = parent[curr]!!
-                parent[curr] = root
-                curr = next
-            }
-            return root
-        }
-
-        edges.forEach { edge ->
-            val ra = find(edge.fromId)
-            val rb = find(edge.toId)
-            if (ra != rb) parent[ra] = rb
-        }
-
-        return nodeIds.groupBy { find(it) }.values.toList()
-    }
-
-    private fun computeLayout(components: List<List<Long>>): Map<Long, Pair<Float, Float>> {
-        val positions = mutableMapOf<Long, Pair<Float, Float>>()
-        val nodeRadius = 50f
-        val clusterGap = 100f
-        val maxPerRow = 3
-
-        val sorted = components.sortedByDescending { it.size }
-
-        var curX = nodeRadius + clusterGap
-        var curY = nodeRadius + clusterGap
-        var rowMaxHeight = 0f
-        var rowCount = 0
-
-        sorted.forEach { component ->
-            val n = component.size
-            val clusterRadius = if (n == 1) {
-                0f
-            } else {
-                (n * (nodeRadius * 2 + 30f) / (2 * PI)).toFloat().coerceAtLeast(nodeRadius * 2)
-            }
-
-            component.forEachIndexed { index, nodeId ->
-                val angle = (2 * PI * index / n - PI / 2).toFloat()
-                val x = curX + clusterRadius + if (n == 1) 0f else clusterRadius * cos(angle)
-                val y = curY + clusterRadius + if (n == 1) 0f else clusterRadius * sin(angle)
-                positions[nodeId] = x to y
-            }
-
-            val span = (clusterRadius + nodeRadius) * 2
-            rowMaxHeight = maxOf(rowMaxHeight, span)
-            rowCount++
-
-            if (rowCount >= maxPerRow) {
-                curX = nodeRadius + clusterGap
-                curY += rowMaxHeight + clusterGap
-                rowMaxHeight = 0f
-                rowCount = 0
-            } else {
-                curX += span + clusterGap
-            }
-        }
-
-        return positions
     }
 }

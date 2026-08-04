@@ -77,6 +77,7 @@ private const val PC_NODE_MAX_HALF_W = 110f
 private const val PC_NODE_H_PAD = 18f
 private const val PC_ARROW_LEN = 18f
 private const val PC_ARROW_HALF_ANGLE = 0.4f
+private const val PC_ARC_BEND = 60f
 
 @Composable
 internal fun PersonCanvasContent(
@@ -337,6 +338,18 @@ private fun PersonCanvasGraph(
             translate(panOffset.x, panOffset.y)
             scale(zoom, zoom, Offset.Zero)
         }) {
+            val pcArcSides: Map<Long, Int> = buildMap {
+                edges.groupBy { e ->
+                    if (e.fromId < e.toId) e.fromId to e.toId else e.toId to e.fromId
+                }.values.forEach { group ->
+                    val n = group.size
+                    group.forEachIndexed { i, edge ->
+                        val arcIndex = if (n == 1) 0 else 2 * i - (n - 1)
+                        put(edge.id, if (edge.fromId <= edge.toId) arcIndex else -arcIndex)
+                    }
+                }
+            }
+
             edges.forEach { edge ->
                 val from = nodeMap[edge.fromId] ?: return@forEach
                 val to = nodeMap[edge.toId] ?: return@forEach
@@ -345,12 +358,17 @@ private fun PersonCanvasGraph(
                     to = Offset(to.x, to.y),
                     fromHalfW = nodeHalfWidths[edge.fromId] ?: PC_NODE_MAX_HALF_W,
                     toHalfW = nodeHalfWidths[edge.toId] ?: PC_NODE_MAX_HALF_W,
+                    fromId = edge.fromId,
+                    toId = edge.toId,
                     label = edge.label,
                     edgeColor = edgeColor(edge.category),
                     labelColor = labelColor,
                     labelBgColor = labelBgColor,
                     textMeasurer = textMeasurer,
                     drawArrow = !edge.isSymmetric,
+                    arcSide = pcArcSides[edge.id] ?: 0,
+                    allNodes = nodes,
+                    allHalfWidths = nodeHalfWidths,
                 )
             }
             nodes.forEach { node ->
@@ -440,17 +458,40 @@ private fun pcRectBorderPoint(cx: Float, cy: Float, ux: Float, uy: Float, hw: Fl
     return Offset(cx + ux * t, cy + uy * t)
 }
 
+private fun pcSegmentIntersectsNode(
+    ax: Float,
+    ay: Float,
+    bx: Float,
+    by: Float,
+    cx: Float,
+    cy: Float,
+    hw: Float,
+    hh: Float,
+): Boolean {
+    val dx = bx - ax
+    val dy = by - ay
+    val lenSq = dx * dx + dy * dy
+    if (lenSq < 1f) return false
+    val t = (((cx - ax) * dx + (cy - ay) * dy) / lenSq).coerceIn(0f, 1f)
+    return abs(ax + t * dx - cx) < hw && abs(ay + t * dy - cy) < hh
+}
+
 private fun DrawScope.pcDrawEdge(
     from: Offset,
     to: Offset,
     fromHalfW: Float,
     toHalfW: Float,
+    fromId: Long,
+    toId: Long,
     label: String,
     edgeColor: Color,
     labelColor: Color,
     labelBgColor: Color,
     textMeasurer: TextMeasurer,
     drawArrow: Boolean = true,
+    arcSide: Int = 0,
+    allNodes: List<CanvasPersonNode>,
+    allHalfWidths: Map<Long, Float>,
 ) {
     val dx = to.x - from.x
     val dy = to.y - from.y
@@ -459,14 +500,68 @@ private fun DrawScope.pcDrawEdge(
 
     val ux = dx / length
     val uy = dy / length
+    val perpX = -uy
+    val perpY = ux
 
     val start = pcRectBorderPoint(from.x, from.y, ux, uy, fromHalfW, PC_NODE_HALF_H)
     val end = pcRectBorderPoint(to.x, to.y, -ux, -uy, toHalfW, PC_NODE_HALF_H)
 
-    drawLine(color = edgeColor, start = start, end = end, strokeWidth = 2.5f, cap = StrokeCap.Round)
+    val occluded = arcSide == 0 && allNodes.any { node ->
+        node.id != fromId && node.id != toId &&
+            pcSegmentIntersectsNode(
+                from.x, from.y, to.x, to.y,
+                node.x, node.y,
+                allHalfWidths[node.id] ?: PC_NODE_MAX_HALF_W, PC_NODE_HALF_H,
+            )
+    }
+    val effectiveSide = when {
+        arcSide != 0 -> arcSide
+        occluded -> 1
+        else -> 0
+    }
+
+    val labelPos: Offset
+    val labelPerpX: Float
+    val labelPerpY: Float
+    val arrowDirX: Float
+    val arrowDirY: Float
+
+    if (effectiveSide == 0) {
+        drawLine(color = edgeColor, start = start, end = end, strokeWidth = 2.5f, cap = StrokeCap.Round)
+        arrowDirX = ux
+        arrowDirY = uy
+        // Offset label perpendicular to a straight edge so it doesn't sit on the line.
+        labelPos = Offset((start.x + end.x) / 2f, (start.y + end.y) / 2f)
+        labelPerpX = perpX
+        labelPerpY = perpY
+    } else {
+        val bendAmount = PC_ARC_BEND * effectiveSide
+        val cpX = (from.x + to.x) / 2f + perpX * bendAmount
+        val cpY = (from.y + to.y) / 2f + perpY * bendAmount
+        drawPath(
+            path = Path().apply {
+                moveTo(start.x, start.y)
+                quadraticBezierTo(cpX, cpY, end.x, end.y)
+            },
+            color = edgeColor,
+            style = Stroke(width = 2.5f, cap = StrokeCap.Round),
+        )
+        val tanX = end.x - cpX
+        val tanY = end.y - cpY
+        val tanLen = sqrt(tanX * tanX + tanY * tanY).coerceAtLeast(0.001f)
+        arrowDirX = tanX / tanLen
+        arrowDirY = tanY / tanLen
+        // Apex of the arc is the natural visual midpoint; no additional perp offset needed.
+        labelPos = Offset(
+            0.25f * start.x + 0.5f * cpX + 0.25f * end.x,
+            0.25f * start.y + 0.5f * cpY + 0.25f * end.y,
+        )
+        labelPerpX = 0f
+        labelPerpY = 0f
+    }
 
     if (drawArrow) {
-        val angle = atan2(uy, ux)
+        val angle = atan2(arrowDirY, arrowDirX)
         val a1 = Offset(
             end.x - PC_ARROW_LEN * cos(angle - PC_ARROW_HALF_ANGLE),
             end.y - PC_ARROW_LEN * sin(angle - PC_ARROW_HALF_ANGLE),
@@ -487,20 +582,16 @@ private fun DrawScope.pcDrawEdge(
     }
 
     if (label.isNotBlank()) {
-        val mid = Offset((start.x + end.x) / 2f, (start.y + end.y) / 2f)
-        // Offset label perpendicular to the edge so it doesn't sit on the line.
-        val perpX = -uy
-        val perpY = ux
-        val perpSign = if (perpX >= 0f) 1f else -1f
-        val perpDist = 14f
         val measured = textMeasurer.measure(
             text = label,
             style = TextStyle(fontSize = 11.sp, color = labelColor),
             overflow = TextOverflow.Ellipsis,
             maxLines = 1,
         )
-        val textX = mid.x + perpX * perpSign * perpDist - measured.size.width / 2f
-        val textY = mid.y + perpY * perpSign * perpDist - measured.size.height / 2f
+        val perpSign = if (labelPerpX >= 0f) 1f else -1f
+        val perpDist = if (labelPerpX == 0f && labelPerpY == 0f) 0f else 14f
+        val textX = labelPos.x + labelPerpX * perpSign * perpDist - measured.size.width / 2f
+        val textY = labelPos.y + labelPerpY * perpSign * perpDist - measured.size.height / 2f
         val bgPad = 3f
         drawRoundRect(
             color = labelBgColor,

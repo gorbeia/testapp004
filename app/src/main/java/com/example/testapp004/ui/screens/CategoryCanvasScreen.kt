@@ -86,6 +86,7 @@ private const val NODE_MAX_HALF_W = 110f
 private const val NODE_H_PAD = 18f
 private const val ARROW_LEN = 18f
 private const val ARROW_HALF_ANGLE = 0.4f
+private const val ARC_BEND = 60f
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -431,6 +432,21 @@ private fun CanvasGraph(
             translate(panOffset.x, panOffset.y)
             scale(zoom, zoom, Offset.Zero)
         }) {
+            // Assign arc sides for pairs of nodes that share multiple relations so their
+            // edges fan out on opposite sides rather than overlapping. The sign is computed
+            // in the canonical (smaller-id → larger-id) frame so both directions are consistent.
+            val arcSides: Map<Long, Int> = buildMap {
+                edges.groupBy { e ->
+                    if (e.fromId < e.toId) e.fromId to e.toId else e.toId to e.fromId
+                }.values.forEach { group ->
+                    val n = group.size
+                    group.forEachIndexed { i, edge ->
+                        val arcIndex = if (n == 1) 0 else 2 * i - (n - 1)
+                        put(edge.id, if (edge.fromId <= edge.toId) arcIndex else -arcIndex)
+                    }
+                }
+            }
+
             edges.forEach { edge ->
                 val from = nodeMap[edge.fromId] ?: return@forEach
                 val to = nodeMap[edge.toId] ?: return@forEach
@@ -439,11 +455,16 @@ private fun CanvasGraph(
                     to = Offset(to.x, to.y),
                     fromHalfW = nodeHalfWidths[edge.fromId] ?: NODE_MAX_HALF_W,
                     toHalfW = nodeHalfWidths[edge.toId] ?: NODE_MAX_HALF_W,
+                    fromId = edge.fromId,
+                    toId = edge.toId,
                     label = edge.label,
                     edgeColor = edgeColor(edge.category),
                     labelColor = labelColor,
                     textMeasurer = textMeasurer,
                     drawArrow = !edge.isSymmetric,
+                    arcSide = arcSides[edge.id] ?: 0,
+                    allNodes = nodes,
+                    allHalfWidths = nodeHalfWidths,
                 )
             }
             nodes.forEach { node ->
@@ -535,16 +556,39 @@ private fun rectBorderPoint(cx: Float, cy: Float, ux: Float, uy: Float, hw: Floa
     return Offset(cx + ux * t, cy + uy * t)
 }
 
+private fun segmentIntersectsNode(
+    ax: Float,
+    ay: Float,
+    bx: Float,
+    by: Float,
+    cx: Float,
+    cy: Float,
+    hw: Float,
+    hh: Float,
+): Boolean {
+    val dx = bx - ax
+    val dy = by - ay
+    val lenSq = dx * dx + dy * dy
+    if (lenSq < 1f) return false
+    val t = (((cx - ax) * dx + (cy - ay) * dy) / lenSq).coerceIn(0f, 1f)
+    return abs(ax + t * dx - cx) < hw && abs(ay + t * dy - cy) < hh
+}
+
 private fun DrawScope.drawEdge(
     from: Offset,
     to: Offset,
     fromHalfW: Float,
     toHalfW: Float,
+    fromId: Long,
+    toId: Long,
     label: String,
     edgeColor: Color,
     labelColor: Color,
     textMeasurer: TextMeasurer,
     drawArrow: Boolean = true,
+    arcSide: Int = 0,
+    allNodes: List<CanvasPersonNode>,
+    allHalfWidths: Map<Long, Float>,
 ) {
     val dx = to.x - from.x
     val dy = to.y - from.y
@@ -553,14 +597,61 @@ private fun DrawScope.drawEdge(
 
     val ux = dx / length
     val uy = dy / length
+    val perpX = -uy
+    val perpY = ux
 
     val start = rectBorderPoint(from.x, from.y, ux, uy, fromHalfW, NODE_HALF_H)
     val end = rectBorderPoint(to.x, to.y, -ux, -uy, toHalfW, NODE_HALF_H)
 
-    drawLine(color = edgeColor, start = start, end = end, strokeWidth = 2.5f, cap = StrokeCap.Round)
+    val occluded = arcSide == 0 && allNodes.any { node ->
+        node.id != fromId && node.id != toId &&
+            segmentIntersectsNode(
+                from.x, from.y, to.x, to.y,
+                node.x, node.y,
+                allHalfWidths[node.id] ?: NODE_MAX_HALF_W, NODE_HALF_H,
+            )
+    }
+    val effectiveSide = when {
+        arcSide != 0 -> arcSide
+        occluded -> 1
+        else -> 0
+    }
+
+    val labelPos: Offset
+    val arrowDirX: Float
+    val arrowDirY: Float
+
+    if (effectiveSide == 0) {
+        drawLine(color = edgeColor, start = start, end = end, strokeWidth = 2.5f, cap = StrokeCap.Round)
+        arrowDirX = ux
+        arrowDirY = uy
+        labelPos = Offset((start.x + end.x) / 2f, (start.y + end.y) / 2f)
+    } else {
+        val bendAmount = ARC_BEND * effectiveSide
+        val cpX = (from.x + to.x) / 2f + perpX * bendAmount
+        val cpY = (from.y + to.y) / 2f + perpY * bendAmount
+        drawPath(
+            path = Path().apply {
+                moveTo(start.x, start.y)
+                quadraticBezierTo(cpX, cpY, end.x, end.y)
+            },
+            color = edgeColor,
+            style = Stroke(width = 2.5f, cap = StrokeCap.Round),
+        )
+        val tanX = end.x - cpX
+        val tanY = end.y - cpY
+        val tanLen = sqrt(tanX * tanX + tanY * tanY).coerceAtLeast(0.001f)
+        arrowDirX = tanX / tanLen
+        arrowDirY = tanY / tanLen
+        // Point at t=0.5 on a quadratic Bézier: 0.25*start + 0.5*cp + 0.25*end
+        labelPos = Offset(
+            0.25f * start.x + 0.5f * cpX + 0.25f * end.x,
+            0.25f * start.y + 0.5f * cpY + 0.25f * end.y,
+        )
+    }
 
     if (drawArrow) {
-        val angle = atan2(uy, ux)
+        val angle = atan2(arrowDirY, arrowDirX)
         val a1 = Offset(
             end.x - ARROW_LEN * cos(angle - ARROW_HALF_ANGLE),
             end.y - ARROW_LEN * sin(angle - ARROW_HALF_ANGLE),
@@ -581,7 +672,6 @@ private fun DrawScope.drawEdge(
     }
 
     if (label.isNotBlank()) {
-        val mid = Offset((start.x + end.x) / 2f, (start.y + end.y) / 2f)
         val measured = textMeasurer.measure(
             text = label,
             style = TextStyle(fontSize = 11.sp, color = labelColor),
@@ -590,7 +680,7 @@ private fun DrawScope.drawEdge(
         )
         drawText(
             textLayoutResult = measured,
-            topLeft = Offset(mid.x - measured.size.width / 2f, mid.y - measured.size.height - 4f),
+            topLeft = Offset(labelPos.x - measured.size.width / 2f, labelPos.y - measured.size.height - 4f),
         )
     }
 }
