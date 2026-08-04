@@ -9,10 +9,11 @@ import kotlinx.coroutines.launch
 abstract class CanvasViewModel(
     private val relationRepository: RelationRepository,
 ) : ViewModel() {
-
     protected abstract val dialogFromId: Long?
     protected abstract val dialogToId: Long?
+
     protected abstract fun nodesSnapshot(): List<CanvasPersonNode>
+
     protected abstract fun applyDialogState(
         isOpen: Boolean,
         fromId: Long?,

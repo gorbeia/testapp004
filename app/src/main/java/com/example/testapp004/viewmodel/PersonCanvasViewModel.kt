@@ -44,9 +44,15 @@ class PersonCanvasViewModel @Inject constructor(
 
     override val dialogFromId get() = _uiState.value.pendingRelationFromId
     override val dialogToId get() = _uiState.value.pendingRelationToId
+
     override fun nodesSnapshot() = _uiState.value.nodes
+
     override fun applyDialogState(
-        isOpen: Boolean, fromId: Long?, toId: Long?, fromName: String, toName: String,
+        isOpen: Boolean,
+        fromId: Long?,
+        toId: Long?,
+        fromName: String,
+        toName: String,
     ) {
         _uiState.update {
             it.copy(
