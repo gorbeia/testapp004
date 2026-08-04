@@ -31,13 +31,15 @@ import androidx.compose.material.icons.filled.Cake
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Hub
 import androidx.compose.material.icons.filled.LinkOff
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -55,6 +57,8 @@ import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -63,6 +67,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -80,23 +85,30 @@ import com.example.testapp004.model.RelationCategory
 import com.example.testapp004.model.RelationTypeOption
 import com.example.testapp004.model.RelationTypes
 import com.example.testapp004.viewmodel.AcquaintanceDetailViewModel
+import com.example.testapp004.viewmodel.PersonCanvasViewModel
 import com.example.testapp004.viewmodel.RelationDisplay
+
+private val PERSON_VIEW_TABS = listOf("Detail", "Canvas")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AcquaintanceDetailScreen(
     viewModel: AcquaintanceDetailViewModel,
+    personCanvasViewModel: PersonCanvasViewModel,
     onNavigateBack: () -> Unit,
     onEditClick: (Long) -> Unit,
     onPersonClick: (Long) -> Unit,
     onCategoryClick: () -> Unit,
     onCreateNewPersonClick: () -> Unit,
-    onCanvasClick: (Long) -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val canvasUiState by personCanvasViewModel.uiState.collectAsState()
     val acquaintance = uiState.acquaintance
+
+    var selectedTab by remember { mutableIntStateOf(0) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showMoreMenu by remember { mutableStateOf(false) }
+    var isControlSheetOpen by remember { mutableStateOf(false) }
 
     LaunchedEffect(acquaintance) {
         if (acquaintance == null && !uiState.isLoading) {
@@ -106,94 +118,122 @@ fun AcquaintanceDetailScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(acquaintance?.name ?: "") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                ),
-                actions = {
-                    IconButton(onClick = { acquaintance?.let { onCanvasClick(it.id) } }) {
-                        Icon(Icons.Default.Hub, contentDescription = "View relations canvas")
-                    }
-                    IconButton(onClick = { acquaintance?.let { onEditClick(it.id) } }) {
-                        Icon(Icons.Default.Edit, contentDescription = "Edit")
-                    }
-                    IconButton(onClick = { showDeleteConfirm = true }) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = "Delete",
-                            tint = MaterialTheme.colorScheme.error,
+            Column {
+                TopAppBar(
+                    title = { Text(acquaintance?.name ?: "") },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    ),
+                    actions = {
+                        if (selectedTab == 1) {
+                            BadgedBox(badge = { if (canvasUiState.relationDistance > 0) Badge() }) {
+                                IconButton(onClick = { isControlSheetOpen = true }) {
+                                    Icon(Icons.Default.Tune, contentDescription = "Filters")
+                                }
+                            }
+                        }
+                        IconButton(onClick = { acquaintance?.let { onEditClick(it.id) } }) {
+                            Icon(Icons.Default.Edit, contentDescription = "Edit")
+                        }
+                        IconButton(onClick = { showDeleteConfirm = true }) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Delete",
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                        Box {
+                            IconButton(onClick = { showMoreMenu = true }) {
+                                Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                            }
+                            DropdownMenu(
+                                expanded = showMoreMenu,
+                                onDismissRequest = { showMoreMenu = false },
+                            ) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            if (acquaintance?.isDeceased == true) {
+                                                "Mark as alive"
+                                            } else {
+                                                "Mark as deceased"
+                                            },
+                                        )
+                                    },
+                                    onClick = {
+                                        showMoreMenu = false
+                                        viewModel.toggleDeceased()
+                                    },
+                                )
+                            }
+                        }
+                    },
+                )
+                TabRow(selectedTabIndex = selectedTab) {
+                    PERSON_VIEW_TABS.forEachIndexed { index, title ->
+                        Tab(
+                            selected = selectedTab == index,
+                            onClick = { selectedTab = index },
+                            text = { Text(title) },
                         )
                     }
-                    Box {
-                        IconButton(onClick = { showMoreMenu = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                }
+            }
+        },
+    ) { paddingValues ->
+        when (selectedTab) {
+            0 -> {
+                if (acquaintance != null) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        item {
+                            BioSection(
+                                bio = acquaintance.bio,
+                                birthday = acquaintance.birthday,
+                                isDeceased = acquaintance.isDeceased,
+                                categoryNames = uiState.categoryNames,
+                                onCategoryClick = onCategoryClick,
+                                onSaveBio = viewModel::saveBio,
+                            )
                         }
-                        DropdownMenu(
-                            expanded = showMoreMenu,
-                            onDismissRequest = { showMoreMenu = false },
-                        ) {
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        if (acquaintance?.isDeceased == true) {
-                                            "Mark as alive"
-                                        } else {
-                                            "Mark as deceased"
-                                        },
-                                    )
-                                },
-                                onClick = {
-                                    showMoreMenu = false
-                                    viewModel.toggleDeceased()
-                                },
+                        item {
+                            LinkedContactSection(
+                                linkedContactInfo = uiState.linkedContactInfo,
+                                isLinked = acquaintance.androidContactLookupKey != null,
+                                onLinkContact = { viewModel.linkContact(it) },
+                                onUnlinkContact = { viewModel.unlinkContact() },
+                            )
+                        }
+                        item {
+                            RelationsSection(
+                                relations = uiState.relations,
+                                onAddClick = viewModel::openAddRelationDialog,
+                                onDelete = viewModel::deleteRelation,
+                                onPersonClick = onPersonClick,
                             )
                         }
                     }
-                },
-            )
-        },
-    ) { paddingValues ->
-        if (acquaintance != null) {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                item {
-                    BioSection(
-                        bio = acquaintance.bio,
-                        birthday = acquaintance.birthday,
-                        isDeceased = acquaintance.isDeceased,
-                        categoryNames = uiState.categoryNames,
-                        onCategoryClick = onCategoryClick,
-                        onSaveBio = viewModel::saveBio,
-                    )
                 }
-                item {
-                    LinkedContactSection(
-                        linkedContactInfo = uiState.linkedContactInfo,
-                        isLinked = acquaintance.androidContactLookupKey != null,
-                        onLinkContact = { viewModel.linkContact(it) },
-                        onUnlinkContact = { viewModel.unlinkContact() },
-                    )
-                }
-                item {
-                    RelationsSection(
-                        relations = uiState.relations,
-                        onAddClick = viewModel::openAddRelationDialog,
-                        onDelete = viewModel::deleteRelation,
-                        onPersonClick = onPersonClick,
-                    )
-                }
+            }
+            1 -> {
+                PersonCanvasContent(
+                    viewModel = personCanvasViewModel,
+                    paddingValues = paddingValues,
+                    onPersonClick = onPersonClick,
+                    isControlSheetOpen = isControlSheetOpen,
+                    onControlSheetDismiss = { isControlSheetOpen = false },
+                )
             }
         }
     }

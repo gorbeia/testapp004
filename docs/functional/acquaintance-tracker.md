@@ -35,10 +35,17 @@ Accessible via the **People** tab in the bottom navigation bar.
 
 ### Person detail (`AcquaintanceDetailScreen`)
 
-* **Top bar**: person's name; back, edit (pencil), delete (bin) actions.
+The person view is a single navigation destination with two equal-weight tabs:
+
+**Shared top bar** (always visible on both tabs):
+* Person's name as title; back arrow.
+* **Edit** (pencil), **Delete** (bin), **⋮ More options** actions.
+* The More options menu contains "Mark as deceased" / "Mark as alive" toggle.
+* **Filters** (tune icon, badged when distance > 0) appears only on the Canvas tab.
+
+**Detail tab:**
 * **Bio card**: shows the bio text; or "No bio added" placeholder. All assigned categories are shown as chips above the bio. Tapping a category chip navigates to the Categories screen.
-  - A pencil icon in the top-right of the card enters **inline edit mode**: the bio is replaced by a multi-line text field with Save and Cancel buttons. Saving persists immediately; Cancel restores the previous text. No navigation required.
-  - A **Deceased** row at the bottom of the card shows the current status with a Switch. Toggling it immediately persists the change.
+  - A pencil icon in the top-right of the card enters **inline edit mode**: the bio is replaced by a multi-line text field with Save and Cancel buttons. Saving persists immediately; Cancel restores the previous text.
 * **Relations section**: compact list of directed relations inside a single card.
   - Each row shows the **other person's name** (tappable, primary) and their **role relative to the
     current person** below it (e.g., "Parent", "Spouse") — making direction unambiguous at a glance.
@@ -47,6 +54,13 @@ Accessible via the **People** tab in the bottom navigation bar.
   - Inside the Add Relation dialog a **"Create new person"** button navigates to the New Person
     screen. After saving, the app returns automatically to the detail screen with the relation
     dialog reopened and the newly created person pre-selected.
+
+**Canvas tab:**
+* Interactive radial graph of the person's relations (same graph as the former standalone Person canvas screen).
+* Distance selector (0/1/2) in the Filters bottom sheet expands the visible neighbourhood.
+* Drag-drop between nodes opens the Add Relation dialog.
+* Tapping a node navigates to that person's detail screen.
+
 * Deleting the person navigates back automatically.
 * Tapping another person's name in a relation navigates to their detail screen.
 

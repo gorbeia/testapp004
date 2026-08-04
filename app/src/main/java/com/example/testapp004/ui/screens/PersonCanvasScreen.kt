@@ -7,17 +7,14 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -25,15 +22,11 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -85,62 +78,36 @@ private const val PC_NODE_H_PAD = 18f
 private const val PC_ARROW_LEN = 18f
 private const val PC_ARROW_HALF_ANGLE = 0.4f
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PersonCanvasScreen(
+internal fun PersonCanvasContent(
     viewModel: PersonCanvasViewModel,
-    onNavigateBack: () -> Unit,
+    paddingValues: PaddingValues,
     onPersonClick: (Long) -> Unit,
+    isControlSheetOpen: Boolean,
+    onControlSheetDismiss: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var isControlSheetOpen by remember { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(if (uiState.personName.isNotEmpty()) "${uiState.personName}'s relations" else "Relations")
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    BadgedBox(badge = { if (uiState.relationDistance > 0) Badge() }) {
-                        IconButton(onClick = { isControlSheetOpen = true }) {
-                            Icon(Icons.Default.Tune, contentDescription = "Filters")
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                ),
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues),
+        contentAlignment = Alignment.Center,
+    ) {
+        when {
+            uiState.isLoading -> CircularProgressIndicator()
+            uiState.nodes.isEmpty() -> Text(
+                text = "No relations yet",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-        },
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            contentAlignment = Alignment.Center,
-        ) {
-            when {
-                uiState.isLoading -> CircularProgressIndicator()
-                uiState.nodes.isEmpty() -> Text(
-                    text = "No relations yet",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                else -> PersonCanvasGraph(
-                    nodes = uiState.nodes,
-                    edges = uiState.edges,
-                    centerId = viewModel.acquaintanceId,
-                    onPersonClick = onPersonClick,
-                    onRelationDrop = viewModel::openRelationDialog,
-                )
-            }
+            else -> PersonCanvasGraph(
+                nodes = uiState.nodes,
+                edges = uiState.edges,
+                centerId = viewModel.acquaintanceId,
+                onPersonClick = onPersonClick,
+                onRelationDrop = viewModel::openRelationDialog,
+            )
         }
     }
 
@@ -162,7 +129,7 @@ fun PersonCanvasScreen(
         PersonCanvasControlSheet(
             relationDistance = uiState.relationDistance,
             onDistanceChange = viewModel::setRelationDistance,
-            onDismiss = { isControlSheetOpen = false },
+            onDismiss = onControlSheetDismiss,
         )
     }
 }
@@ -450,7 +417,12 @@ private fun PersonCanvasGraph(
                         } else {
                             nodeStroke(ghostNode.dominantCategory, isCenter, ghostDist)
                         },
-                        textColor = nodeText(ghostNode.dominantCategory, isCenter, ghostNode.isNetSource, ghostDist),
+                        textColor = nodeText(
+                            ghostNode.dominantCategory,
+                            isCenter,
+                            ghostNode.isNetSource,
+                            ghostDist,
+                        ),
                         textMeasurer = textMeasurer,
                     )
                 }
