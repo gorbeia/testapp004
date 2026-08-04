@@ -230,6 +230,7 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | Person canvas distance selector (0/1/2) | ✅ Done | [ADR-035](docs/decisions/ADR-035-person-canvas-distance-selector.md) |
 | Person view tabs (Detail + Canvas at equal importance, shared menus) | ✅ Done | [ADR-036](docs/decisions/ADR-036-person-view-tabs.md) |
 | Canvas-to-canvas navigation (tap person node → person canvas tab) | ✅ Done | [ADR-037](docs/decisions/ADR-037-canvas-to-canvas-navigation.md) |
+| Canvas layout engine extraction and Bézier edge routing | ✅ Done | [ADR-040](docs/decisions/ADR-040-canvas-layout-engine.md) |
 
 ---
 
@@ -276,3 +277,4 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | [ADR-037](docs/decisions/ADR-037-canvas-to-canvas-navigation.md) | Canvas-to-canvas navigation: tapping a person node on any canvas opens the Canvas tab of the destination | 2026-08-04 |
 | [ADR-038](docs/decisions/ADR-038-person-canvas-hierarchical-layout.md) | Person canvas hierarchical layout: layered by relation type with barycentric reordering | 2026-08-04 |
 | [ADR-039](docs/decisions/ADR-039-canvas-viewmodel-apkinstaller-refactor.md) | Shared CanvasViewModel base, ApkInstaller interface extraction, descendantsAndSelf extension | 2026-08-04 |
+| [ADR-040](docs/decisions/ADR-040-canvas-layout-engine.md) | Canvas layout engine extraction and Bézier edge routing | 2026-08-04 |
