@@ -155,8 +155,23 @@ internal class HierarchicalLayoutEngine : CanvasLayoutEngine {
                         }
                         neighbor?.takeIf { levelMap[it] != level }?.let { positions[it]?.first }
                     }
-                    id to if (xs.isEmpty()) positions[id]?.first ?: 0f else xs.average().toFloat()
-                }.sortedBy { it.second }
+                    val baryScore = if (xs.isEmpty()) positions[id]?.first ?: 0f else xs.average().toFloat()
+                    val upperNeighborCount = visibleRelations.count { rel ->
+                        when {
+                            rel.fromId == id -> levelMap.getOrDefault(rel.toId, level) > level
+                            rel.toId == id -> levelMap.getOrDefault(rel.fromId, level) > level
+                            else -> false
+                        }
+                    }
+                    val lowerNeighborCount = visibleRelations.count { rel ->
+                        when {
+                            rel.fromId == id -> levelMap.getOrDefault(rel.toId, level) < level
+                            rel.toId == id -> levelMap.getOrDefault(rel.fromId, level) < level
+                            else -> false
+                        }
+                    }
+                    id to Triple(baryScore, upperNeighborCount, lowerNeighborCount)
+                }.sortedWith(compareBy({ it.second.first }, { it.second.second }, { -it.second.third }))
                 val n = withScore.size
                 withScore.forEachIndexed { i, (id, _) ->
                     val y = positions[id]?.second ?: (-level * layerHeight)
