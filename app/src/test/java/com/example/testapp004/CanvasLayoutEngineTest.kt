@@ -135,4 +135,35 @@ class CanvasLayoutEngineTest {
         val isolatedY = positions[3L]!!.second
         assertEquals(0f, isolatedY, 0.001f)
     }
+
+    @Test
+    fun `hierarchical layout places sibling with children left of sibling without children`() {
+        val engine = HierarchicalLayoutEngine()
+        // Root: Esti(1). Fernando(2) and Inigo(3) are siblings of Esti.
+        // Both parents (Juanje=6, Maite=7) are parents of all three siblings,
+        // making all barycentric scores equal — the tie-breaker must place Fernando
+        // (which has children Jon=4 and Irati=5) to the LEFT of Inigo (no children).
+        val relations = listOf(
+            Relation(id = 1L, fromId = 1L, toId = 2L, typeKey = "SIBLING"),
+            Relation(id = 2L, fromId = 1L, toId = 3L, typeKey = "SIBLING"),
+            Relation(id = 3L, fromId = 6L, toId = 1L, typeKey = "PARENT_CHILD"),
+            Relation(id = 4L, fromId = 6L, toId = 2L, typeKey = "PARENT_CHILD"),
+            Relation(id = 5L, fromId = 6L, toId = 3L, typeKey = "PARENT_CHILD"),
+            Relation(id = 6L, fromId = 7L, toId = 1L, typeKey = "PARENT_CHILD"),
+            Relation(id = 7L, fromId = 7L, toId = 2L, typeKey = "PARENT_CHILD"),
+            Relation(id = 8L, fromId = 7L, toId = 3L, typeKey = "PARENT_CHILD"),
+            Relation(id = 9L, fromId = 2L, toId = 4L, typeKey = "PARENT_CHILD"),
+            Relation(id = 10L, fromId = 2L, toId = 5L, typeKey = "PARENT_CHILD"),
+        )
+        val positions = engine.computePositions(
+            nodeIds = setOf(1L, 2L, 3L, 4L, 5L, 6L, 7L),
+            edges = relations,
+            rootId = 1L,
+        )
+        val fernandoX = positions[2L]!!.first
+        val inigoX = positions[3L]!!.first
+        val estiX = positions[1L]!!.first
+        assertTrue("Fernando (with children) should be left of Inigo (no children)", fernandoX < inigoX)
+        assertTrue("Fernando (with children) should be left of Esti (root)", fernandoX < estiX)
+    }
 }
