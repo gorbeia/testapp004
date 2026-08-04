@@ -1,14 +1,11 @@
 package com.example.testapp004.viewmodel
 
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.testapp004.data.AcquaintanceRepository
 import com.example.testapp004.data.RelationRepository
 import com.example.testapp004.model.Relation
-import com.example.testapp004.model.RelationCategory
 import com.example.testapp004.model.RelationTypes
-import com.example.testapp004.model.labelFor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -36,14 +33,31 @@ data class PersonCanvasUiState(
 class PersonCanvasViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val acquaintanceRepository: AcquaintanceRepository,
-    private val relationRepository: RelationRepository,
-) : ViewModel() {
+    relationRepository: RelationRepository,
+) : CanvasViewModel(relationRepository) {
     val acquaintanceId: Long = checkNotNull(savedStateHandle["acquaintanceId"])
 
     private val _uiState = MutableStateFlow(PersonCanvasUiState())
     val uiState: StateFlow<PersonCanvasUiState> = _uiState.asStateFlow()
 
     private val relationDistanceFlow = MutableStateFlow(0)
+
+    override val dialogFromId get() = _uiState.value.pendingRelationFromId
+    override val dialogToId get() = _uiState.value.pendingRelationToId
+    override fun nodesSnapshot() = _uiState.value.nodes
+    override fun applyDialogState(
+        isOpen: Boolean, fromId: Long?, toId: Long?, fromName: String, toName: String,
+    ) {
+        _uiState.update {
+            it.copy(
+                isRelationDialogOpen = isOpen,
+                pendingRelationFromId = fromId,
+                pendingRelationToId = toId,
+                pendingRelationFromName = fromName,
+                pendingRelationToName = toName,
+            )
+        }
+    }
 
     init {
         viewModelScope.launch {
@@ -113,58 +127,15 @@ class PersonCanvasViewModel @Inject constructor(
 
                 val positions = computeHierarchicalPositions(acquaintanceId, visibleIds, visibleRelations)
 
-                val fromCounts = mutableMapOf<Long, Int>()
-                val toCounts = mutableMapOf<Long, Int>()
-                val categoryLists = mutableMapOf<Long, MutableList<RelationCategory>>()
-                visibleRelations.forEach { rel ->
-                    val relType = RelationTypes.findByKey(rel.typeKey)
-                    val cat = relType?.category ?: return@forEach
-                    categoryLists.getOrPut(rel.fromId) { mutableListOf() }.add(cat)
-                    categoryLists.getOrPut(rel.toId) { mutableListOf() }.add(cat)
-                    if (!relType.isSymmetric) {
-                        fromCounts[rel.fromId] = (fromCounts[rel.fromId] ?: 0) + 1
-                        toCounts[rel.toId] = (toCounts[rel.toId] ?: 0) + 1
-                    }
-                }
-
-                val allVisiblePeople = acquaintances.filter { it.id in visibleIds }
-                val nodes = allVisiblePeople.mapNotNull { person ->
-                    val (x, y) = positions[person.id] ?: return@mapNotNull null
-                    val dominant = categoryLists[person.id]
-                        ?.groupingBy { it }
-                        ?.eachCount()
-                        ?.maxByOrNull { it.value }
-                        ?.key
-                    val outDegree = fromCounts[person.id] ?: 0
-                    val inDegree = toCounts[person.id] ?: 0
-                    val isNetSource = when {
-                        outDegree > inDegree -> true
-                        inDegree > outDegree -> false
-                        else -> null
-                    }
-                    CanvasPersonNode(
-                        id = person.id,
-                        name = person.name,
-                        x = x,
-                        y = y,
-                        dominantCategory = dominant,
-                        isDirectMember = person.id == acquaintanceId,
-                        isNetSource = isNetSource,
-                        distanceFromCategory = distanceMap[person.id] ?: 0,
-                    )
-                }
-
-                val edges = visibleRelations.mapNotNull { rel ->
-                    val relType = RelationTypes.findByKey(rel.typeKey)
-                    CanvasRelationEdge(
-                        id = rel.id,
-                        fromId = rel.fromId,
-                        toId = rel.toId,
-                        label = rel.labelFor(rel.fromId),
-                        category = relType?.category,
-                        isSymmetric = relType?.isSymmetric ?: false,
-                    )
-                }
+                val nodes = buildCanvasNodes(
+                    acquaintances = acquaintances,
+                    visibleIds = visibleIds,
+                    positions = positions,
+                    distanceMap = distanceMap,
+                    visibleRelations = visibleRelations,
+                    isDirectMember = { id -> id == acquaintanceId },
+                )
+                val edges = buildCanvasEdges(visibleRelations)
 
                 PersonCanvasUiState(
                     personName = centerPerson.name,
@@ -191,58 +162,11 @@ class PersonCanvasViewModel @Inject constructor(
         relationDistanceFlow.value = d.coerceIn(0, 2)
     }
 
-    fun openRelationDialog(fromId: Long, toId: Long) {
-        val nodes = _uiState.value.nodes
-        val fromName = nodes.find { it.id == fromId }?.name ?: ""
-        val toName = nodes.find { it.id == toId }?.name ?: ""
-        _uiState.update {
-            it.copy(
-                isRelationDialogOpen = true,
-                pendingRelationFromId = fromId,
-                pendingRelationToId = toId,
-                pendingRelationFromName = fromName,
-                pendingRelationToName = toName,
-            )
-        }
-    }
-
-    fun closeRelationDialog() {
-        _uiState.update {
-            it.copy(
-                isRelationDialogOpen = false,
-                pendingRelationFromId = null,
-                pendingRelationToId = null,
-                pendingRelationFromName = "",
-                pendingRelationToName = "",
-            )
-        }
-    }
-
-    fun addRelationFromCanvas(typeKey: String, isDragSourceFrom: Boolean, customLabel: String?) {
-        val state = _uiState.value
-        val dragFromId = state.pendingRelationFromId ?: return
-        val dragToId = state.pendingRelationToId ?: return
-        if (typeKey == RelationTypes.CUSTOM_KEY && customLabel.isNullOrBlank()) return
-        val actualFromId = if (isDragSourceFrom) dragFromId else dragToId
-        val actualToId = if (isDragSourceFrom) dragToId else dragFromId
-        viewModelScope.launch {
-            relationRepository.addRelation(
-                fromId = actualFromId,
-                toId = actualToId,
-                typeKey = typeKey,
-                customLabel = customLabel,
-            )
-            closeRelationDialog()
-        }
-    }
-
     private fun computeHierarchicalPositions(
         centerId: Long,
         visibleIds: Set<Long>,
         visibleRelations: List<Relation>,
     ): Map<Long, Pair<Float, Float>> {
-        // BFS from center assigning generation levels.
-        // PARENT_CHILD stores fromId=parent, toId=child, so fromId is 1 level above toId.
         val levelMap = mutableMapOf(centerId to 0)
         val queue = ArrayDeque<Long>()
         queue.add(centerId)
@@ -250,7 +174,7 @@ class PersonCanvasViewModel @Inject constructor(
             val nodeId = queue.removeFirst()
             val nodeLevel = levelMap[nodeId] ?: continue
             for (rel in visibleRelations) {
-                val delta = verticalDelta(rel.typeKey)
+                val delta = RelationTypes.findByKey(rel.typeKey)?.verticalDelta ?: 0
                 when {
                     rel.fromId == nodeId && rel.toId !in levelMap -> {
                         levelMap[rel.toId] = nodeLevel - delta
@@ -278,7 +202,6 @@ class PersonCanvasViewModel @Inject constructor(
             }
         }
 
-        // Barycentric reordering: alternate top-down and bottom-up passes to reduce crossings.
         repeat(4) { pass ->
             val levelOrder = if (pass % 2 == 0) allLevels else allLevels.reversed()
             for (level in levelOrder) {
@@ -306,12 +229,5 @@ class PersonCanvasViewModel @Inject constructor(
         val cx = positions[centerId]?.first ?: 0f
         val cy = positions[centerId]?.second ?: 0f
         return positions.mapValues { (_, pos) -> (pos.first - cx) to (pos.second - cy) }
-    }
-
-    private fun verticalDelta(typeKey: String): Int = when (typeKey) {
-        "PARENT_CHILD", "STEP_PARENT_CHILD", "UNCLE_AUNT", "GUARDIAN" -> 1
-        "GRANDPARENT_GRANDCHILD" -> 2
-        "MANAGER_REPORT", "MENTOR_MENTEE", "EMPLOYER_EMPLOYEE" -> 1
-        else -> 0
     }
 }
