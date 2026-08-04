@@ -100,12 +100,13 @@ fun AcquaintanceDetailScreen(
     onPersonClick: (Long) -> Unit,
     onCategoryClick: () -> Unit,
     onCreateNewPersonClick: () -> Unit,
+    initialTab: Int = 0,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val canvasUiState by personCanvasViewModel.uiState.collectAsState()
     val acquaintance = uiState.acquaintance
 
-    var selectedTab by remember { mutableIntStateOf(0) }
+    var selectedTab by remember { mutableIntStateOf(initialTab) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showMoreMenu by remember { mutableStateOf(false) }
     var isControlSheetOpen by remember { mutableStateOf(false) }

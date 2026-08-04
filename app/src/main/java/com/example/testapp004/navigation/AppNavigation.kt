@@ -61,10 +61,12 @@ import com.example.testapp004.viewmodel.UpdateViewModel
 sealed class Screen(val route: String) {
     object AcquaintancesList : Screen("acquaintances")
 
-    object AcquaintanceDetail : Screen("acquaintance/{acquaintanceId}") {
+    object AcquaintanceDetail : Screen("acquaintance/{acquaintanceId}?initialTab={initialTab}") {
         const val ARG_ACQUAINTANCE_ID = "acquaintanceId"
+        const val ARG_INITIAL_TAB = "initialTab"
 
         fun createRoute(id: Long) = "acquaintance/$id"
+        fun createRouteWithCanvasTab(id: Long) = "acquaintance/$id?initialTab=1"
     }
 
     object AddEditAcquaintance : Screen(
@@ -154,8 +156,14 @@ fun AppNavigation() {
                     route = Screen.AcquaintanceDetail.route,
                     arguments = listOf(
                         navArgument(Screen.AcquaintanceDetail.ARG_ACQUAINTANCE_ID) { type = NavType.LongType },
+                        navArgument(Screen.AcquaintanceDetail.ARG_INITIAL_TAB) {
+                            type = NavType.IntType
+                            defaultValue = 0
+                        },
                     ),
                 ) { backStackEntry ->
+                    val initialTab = backStackEntry.arguments
+                        ?.getInt(Screen.AcquaintanceDetail.ARG_INITIAL_TAB) ?: 0
                     val detailViewModel: AcquaintanceDetailViewModel = hiltViewModel()
                     val personCanvasViewModel: PersonCanvasViewModel = hiltViewModel()
 
@@ -174,9 +182,12 @@ fun AppNavigation() {
                     AcquaintanceDetailScreen(
                         viewModel = detailViewModel,
                         personCanvasViewModel = personCanvasViewModel,
+                        initialTab = initialTab,
                         onNavigateBack = { navController.popBackStack() },
                         onEditClick = { id -> navController.navigate(Screen.AddEditAcquaintance.createRoute(id)) },
-                        onPersonClick = { id -> navController.navigate(Screen.AcquaintanceDetail.createRoute(id)) },
+                        onPersonClick = { id ->
+                            navController.navigate(Screen.AcquaintanceDetail.createRouteWithCanvasTab(id))
+                        },
                         onCategoryClick = { navController.navigate(Screen.Categories.route) },
                         onCreateNewPersonClick = {
                             navController.navigate(
@@ -252,7 +263,7 @@ fun AppNavigation() {
                         viewModel = canvasViewModel,
                         onNavigateBack = { navController.popBackStack() },
                         onPersonClick = { id ->
-                            navController.navigate(Screen.AcquaintanceDetail.createRoute(id))
+                            navController.navigate(Screen.AcquaintanceDetail.createRouteWithCanvasTab(id))
                         },
                         onAddPersonClick = {
                             navController.navigate(
