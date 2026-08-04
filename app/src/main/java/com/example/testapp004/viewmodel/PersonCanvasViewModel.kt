@@ -33,7 +33,6 @@ class PersonCanvasViewModel @Inject constructor(
     private val acquaintanceRepository: AcquaintanceRepository,
     relationRepository: RelationRepository,
 ) : CanvasViewModel(relationRepository) {
-
     val acquaintanceId: Long = checkNotNull(savedStateHandle["acquaintanceId"])
     private val layoutEngine: CanvasLayoutEngine = HierarchicalLayoutEngine()
 

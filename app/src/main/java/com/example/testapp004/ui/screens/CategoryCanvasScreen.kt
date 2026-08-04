@@ -557,8 +557,14 @@ private fun rectBorderPoint(cx: Float, cy: Float, ux: Float, uy: Float, hw: Floa
 }
 
 private fun segmentIntersectsNode(
-    ax: Float, ay: Float, bx: Float, by: Float,
-    cx: Float, cy: Float, hw: Float, hh: Float,
+    ax: Float,
+    ay: Float,
+    bx: Float,
+    by: Float,
+    cx: Float,
+    cy: Float,
+    hw: Float,
+    hh: Float,
 ): Boolean {
     val dx = bx - ax
     val dy = by - ay
@@ -605,7 +611,11 @@ private fun DrawScope.drawEdge(
                 allHalfWidths[node.id] ?: NODE_MAX_HALF_W, NODE_HALF_H,
             )
     }
-    val effectiveSide = if (arcSide != 0) arcSide else if (occluded) 1 else 0
+    val effectiveSide = when {
+        arcSide != 0 -> arcSide
+        occluded -> 1
+        else -> 0
+    }
 
     val labelPos: Offset
     val arrowDirX: Float

@@ -61,7 +61,6 @@ class CategoryCanvasViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     relationRepository: RelationRepository,
 ) : CanvasViewModel(relationRepository) {
-
     private val categoryId: Long = checkNotNull(savedStateHandle["categoryId"])
     private val layoutEngine: CanvasLayoutEngine = RadialClusterLayoutEngine()
 
