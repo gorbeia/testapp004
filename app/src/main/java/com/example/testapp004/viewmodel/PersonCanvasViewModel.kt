@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.testapp004.data.AcquaintanceRepository
 import com.example.testapp004.data.RelationRepository
+import com.example.testapp004.model.Relation
 import com.example.testapp004.model.RelationCategory
 import com.example.testapp004.model.RelationTypes
 import com.example.testapp004.model.labelFor
@@ -16,10 +17,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.math.PI
-import kotlin.math.cos
-import kotlin.math.max
-import kotlin.math.sin
 
 data class PersonCanvasUiState(
     val personName: String = "",
@@ -114,37 +111,7 @@ class PersonCanvasViewModel @Inject constructor(
                     it.fromId in visibleIds && it.toId in visibleIds
                 }
 
-                val directPeople = acquaintances.filter { it.id in directRelatedIds }
-                val d1People = acquaintances.filter { it.id in distanceOneIds }
-                val d2People = acquaintances.filter { it.id in distanceTwoIds }
-
-                val positions = mutableMapOf<Long, Pair<Float, Float>>()
-                positions[acquaintanceId] = 0f to 0f
-
-                val r1 = max(180f, directPeople.size * 60f)
-                val n1 = directPeople.size
-                directPeople.forEachIndexed { index, person ->
-                    val angle = (2 * PI * index / n1.coerceAtLeast(1) - PI / 2).toFloat()
-                    positions[person.id] = (r1 * cos(angle)) to (r1 * sin(angle))
-                }
-
-                if (d1People.isNotEmpty()) {
-                    val r2 = r1 + max(150f, d1People.size * 50f)
-                    val n2 = d1People.size
-                    d1People.forEachIndexed { index, person ->
-                        val angle = (2 * PI * index / n2.coerceAtLeast(1) - PI / 2).toFloat()
-                        positions[person.id] = (r2 * cos(angle)) to (r2 * sin(angle))
-                    }
-
-                    if (d2People.isNotEmpty()) {
-                        val r3 = r2 + max(130f, d2People.size * 40f)
-                        val n3 = d2People.size
-                        d2People.forEachIndexed { index, person ->
-                            val angle = (2 * PI * index / n3.coerceAtLeast(1) - PI / 2).toFloat()
-                            positions[person.id] = (r3 * cos(angle)) to (r3 * sin(angle))
-                        }
-                    }
-                }
+                val positions = computeHierarchicalPositions(acquaintanceId, visibleIds, visibleRelations)
 
                 val fromCounts = mutableMapOf<Long, Int>()
                 val toCounts = mutableMapOf<Long, Int>()
@@ -267,5 +234,84 @@ class PersonCanvasViewModel @Inject constructor(
             )
             closeRelationDialog()
         }
+    }
+
+    private fun computeHierarchicalPositions(
+        centerId: Long,
+        visibleIds: Set<Long>,
+        visibleRelations: List<Relation>,
+    ): Map<Long, Pair<Float, Float>> {
+        // BFS from center assigning generation levels.
+        // PARENT_CHILD stores fromId=parent, toId=child, so fromId is 1 level above toId.
+        val levelMap = mutableMapOf(centerId to 0)
+        val queue = ArrayDeque<Long>()
+        queue.add(centerId)
+        while (queue.isNotEmpty()) {
+            val nodeId = queue.removeFirst()
+            val nodeLevel = levelMap[nodeId] ?: continue
+            for (rel in visibleRelations) {
+                val delta = verticalDelta(rel.typeKey)
+                when {
+                    rel.fromId == nodeId && rel.toId !in levelMap -> {
+                        levelMap[rel.toId] = nodeLevel - delta
+                        queue.add(rel.toId)
+                    }
+                    rel.toId == nodeId && rel.fromId !in levelMap -> {
+                        levelMap[rel.fromId] = nodeLevel + delta
+                        queue.add(rel.fromId)
+                    }
+                }
+            }
+        }
+        visibleIds.forEach { id -> levelMap.getOrPut(id) { 0 } }
+
+        val levelGroups = levelMap.entries.groupBy({ it.value }, { it.key })
+        val allLevels = levelGroups.keys.sorted()
+        val layerHeight = 170f
+        val nodeSpacing = 220f
+        val positions = mutableMapOf<Long, Pair<Float, Float>>()
+
+        for ((level, ids) in levelGroups) {
+            val n = ids.size
+            ids.forEachIndexed { i, id ->
+                positions[id] = (-(n - 1) / 2f + i) * nodeSpacing to -level * layerHeight
+            }
+        }
+
+        // Barycentric reordering: alternate top-down and bottom-up passes to reduce crossings.
+        repeat(4) { pass ->
+            val levelOrder = if (pass % 2 == 0) allLevels else allLevels.reversed()
+            for (level in levelOrder) {
+                val ids = levelGroups[level] ?: continue
+                if (ids.size <= 1) continue
+                val withScore = ids.map { id ->
+                    val xs = visibleRelations.mapNotNull { rel ->
+                        val neighbor = when {
+                            rel.fromId == id -> rel.toId
+                            rel.toId == id -> rel.fromId
+                            else -> null
+                        }
+                        neighbor?.takeIf { levelMap[it] != level }?.let { positions[it]?.first }
+                    }
+                    id to if (xs.isEmpty()) positions[id]?.first ?: 0f else xs.average().toFloat()
+                }.sortedBy { it.second }
+                val n = withScore.size
+                withScore.forEachIndexed { i, (id, _) ->
+                    val y = positions[id]?.second ?: (-level * layerHeight)
+                    positions[id] = (-(n - 1) / 2f + i) * nodeSpacing to y
+                }
+            }
+        }
+
+        val cx = positions[centerId]?.first ?: 0f
+        val cy = positions[centerId]?.second ?: 0f
+        return positions.mapValues { (_, pos) -> (pos.first - cx) to (pos.second - cy) }
+    }
+
+    private fun verticalDelta(typeKey: String): Int = when (typeKey) {
+        "PARENT_CHILD", "STEP_PARENT_CHILD", "UNCLE_AUNT", "GUARDIAN" -> 1
+        "GRANDPARENT_GRANDCHILD" -> 2
+        "MANAGER_REPORT", "MENTOR_MENTEE", "EMPLOYER_EMPLOYEE" -> 1
+        else -> 0
     }
 }

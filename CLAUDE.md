@@ -274,3 +274,4 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | [ADR-035](docs/decisions/ADR-035-person-canvas-distance-selector.md) | Person canvas distance selector (0/1/2) expands visible nodes to relation neighbours | 2026-08-03 |
 | [ADR-036](docs/decisions/ADR-036-person-view-tabs.md) | Person view tabs: Detail and Canvas as equal-weight tabs sharing one top bar and menus | 2026-08-04 |
 | [ADR-037](docs/decisions/ADR-037-canvas-to-canvas-navigation.md) | Canvas-to-canvas navigation: tapping a person node on any canvas opens the Canvas tab of the destination | 2026-08-04 |
+| [ADR-038](docs/decisions/ADR-038-person-canvas-hierarchical-layout.md) | Person canvas hierarchical layout: layered by relation type with barycentric reordering | 2026-08-04 |

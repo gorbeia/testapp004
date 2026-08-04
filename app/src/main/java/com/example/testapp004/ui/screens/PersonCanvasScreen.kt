@@ -218,6 +218,7 @@ private fun PersonCanvasGraph(
     val defaultText = cs.onPrimaryContainer
     val defaultTextSource = cs.onPrimary
     val labelColor = cs.onSurface
+    val labelBgColor = cs.surface.copy(alpha = 0.82f)
     val dropTargetHighlightColor = cs.tertiary
     val centerHighlightColor = cs.primary
 
@@ -347,6 +348,7 @@ private fun PersonCanvasGraph(
                     label = edge.label,
                     edgeColor = edgeColor(edge.category),
                     labelColor = labelColor,
+                    labelBgColor = labelBgColor,
                     textMeasurer = textMeasurer,
                     drawArrow = !edge.isSymmetric,
                 )
@@ -446,6 +448,7 @@ private fun DrawScope.pcDrawEdge(
     label: String,
     edgeColor: Color,
     labelColor: Color,
+    labelBgColor: Color,
     textMeasurer: TextMeasurer,
     drawArrow: Boolean = true,
 ) {
@@ -485,16 +488,27 @@ private fun DrawScope.pcDrawEdge(
 
     if (label.isNotBlank()) {
         val mid = Offset((start.x + end.x) / 2f, (start.y + end.y) / 2f)
+        // Offset label perpendicular to the edge so it doesn't sit on the line.
+        val perpX = -uy
+        val perpY = ux
+        val perpSign = if (perpX >= 0f) 1f else -1f
+        val perpDist = 14f
         val measured = textMeasurer.measure(
             text = label,
             style = TextStyle(fontSize = 11.sp, color = labelColor),
             overflow = TextOverflow.Ellipsis,
             maxLines = 1,
         )
-        drawText(
-            textLayoutResult = measured,
-            topLeft = Offset(mid.x - measured.size.width / 2f, mid.y - measured.size.height - 4f),
+        val textX = mid.x + perpX * perpSign * perpDist - measured.size.width / 2f
+        val textY = mid.y + perpY * perpSign * perpDist - measured.size.height / 2f
+        val bgPad = 3f
+        drawRoundRect(
+            color = labelBgColor,
+            topLeft = Offset(textX - bgPad, textY - bgPad),
+            size = Size(measured.size.width + bgPad * 2f, measured.size.height + bgPad * 2f),
+            cornerRadius = CornerRadius(4f),
         )
+        drawText(textLayoutResult = measured, topLeft = Offset(textX, textY))
     }
 }
 
