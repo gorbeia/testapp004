@@ -275,3 +275,4 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | [ADR-036](docs/decisions/ADR-036-person-view-tabs.md) | Person view tabs: Detail and Canvas as equal-weight tabs sharing one top bar and menus | 2026-08-04 |
 | [ADR-037](docs/decisions/ADR-037-canvas-to-canvas-navigation.md) | Canvas-to-canvas navigation: tapping a person node on any canvas opens the Canvas tab of the destination | 2026-08-04 |
 | [ADR-038](docs/decisions/ADR-038-person-canvas-hierarchical-layout.md) | Person canvas hierarchical layout: layered by relation type with barycentric reordering | 2026-08-04 |
+| [ADR-039](docs/decisions/ADR-039-canvas-viewmodel-apkinstaller-refactor.md) | Shared CanvasViewModel base, ApkInstaller interface extraction, descendantsAndSelf extension | 2026-08-04 |
