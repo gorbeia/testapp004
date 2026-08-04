@@ -199,4 +199,45 @@ class CanvasLayoutEngineTest {
         val inigoX = positions[3L]!!.first
         assertTrue("Fernando (with children) should be left of Inigo (no children)", fernandoX < inigoX)
     }
+
+    @Test
+    fun `hierarchical layout minimises crossings between two layers`() {
+        val engine = HierarchicalLayoutEngine()
+        // Parent layer: P1(10), P2(11).  Child layer: C1(1), C2(2), C3(3).
+        // Edges: P1→C3, P2→C1. The crossing-free order is [C3, C2, C1] (or just C3 left of C1).
+        // BFS would discover C1 and C2 before C3; without crossing minimisation C1 ends up
+        // left of C3, crossing the P2→C1 / P1→C3 edge pair.
+        val relations = listOf(
+            Relation(id = 1L, fromId = 10L, toId = 3L, typeKey = "PARENT_CHILD"),
+            Relation(id = 2L, fromId = 11L, toId = 1L, typeKey = "PARENT_CHILD"),
+            Relation(id = 3L, fromId = 10L, toId = 2L, typeKey = "PARENT_CHILD"),
+        )
+        val positions = engine.computePositions(
+            nodeIds = setOf(1L, 2L, 3L, 10L, 11L),
+            edges = relations,
+            rootId = 1L,
+        )
+        // P1 is connected to C3 and C2; P2 is connected to C1.
+        // P2 has no upper connections so it sorts left of P1 → P2 < P1 in x.
+        // For the child layer: C1 is connected only to P2 (leftmost parent) → C1 should
+        // be left of C3 (connected to P1, the rightmost parent).
+        val c1X = positions[1L]!!.first
+        val c3X = positions[3L]!!.first
+        assertTrue("C1 (child of left parent P2) should be left of C3 (child of right parent P1)", c1X < c3X)
+    }
+
+    @Test
+    fun `hierarchical layout is deterministic regardless of input set order`() {
+        val engine = HierarchicalLayoutEngine()
+        val relations = listOf(
+            Relation(id = 1L, fromId = 6L, toId = 1L, typeKey = "PARENT_CHILD"),
+            Relation(id = 2L, fromId = 6L, toId = 2L, typeKey = "PARENT_CHILD"),
+            Relation(id = 3L, fromId = 6L, toId = 3L, typeKey = "PARENT_CHILD"),
+        )
+        val nodes = setOf(1L, 2L, 3L, 6L)
+        val pos1 = engine.computePositions(nodes, relations, rootId = 1L)
+        val pos2 = engine.computePositions(nodes, relations, rootId = 1L)
+        assertEquals(pos1[2L]!!.first, pos2[2L]!!.first, 0.001f)
+        assertEquals(pos1[3L]!!.first, pos2[3L]!!.first, 0.001f)
+    }
 }

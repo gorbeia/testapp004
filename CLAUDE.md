@@ -232,6 +232,7 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | Canvas-to-canvas navigation (tap person node → person canvas tab) | ✅ Done | [ADR-037](docs/decisions/ADR-037-canvas-to-canvas-navigation.md) |
 | Canvas layout engine extraction and Bézier edge routing | ✅ Done | [ADR-040](docs/decisions/ADR-040-canvas-layout-engine.md) |
 | Person canvas: subtree-size tie-breaking in barycentric layout | ✅ Done | [ADR-041](docs/decisions/ADR-041-barycentric-subtree-tiebreak.md) |
+| Person canvas: exact crossing minimisation in hierarchical layout | ✅ Done | [ADR-042](docs/decisions/ADR-042-exact-crossing-minimisation.md) |
 
 ---
 
@@ -280,3 +281,4 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | [ADR-039](docs/decisions/ADR-039-canvas-viewmodel-apkinstaller-refactor.md) | Shared CanvasViewModel base, ApkInstaller interface extraction, descendantsAndSelf extension | 2026-08-04 |
 | [ADR-040](docs/decisions/ADR-040-canvas-layout-engine.md) | Canvas layout engine extraction and Bézier edge routing | 2026-08-04 |
 | [ADR-041](docs/decisions/ADR-041-barycentric-subtree-tiebreak.md) | Barycentric tie-breaking by lower-level neighbour count | 2026-08-04 |
+| [ADR-042](docs/decisions/ADR-042-exact-crossing-minimisation.md) | Exact crossing minimisation replacing barycentric heuristic for small layers | 2026-08-04 |
