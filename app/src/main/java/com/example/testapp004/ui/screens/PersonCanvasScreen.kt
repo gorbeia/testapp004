@@ -69,6 +69,7 @@ import com.example.testapp004.viewmodel.PersonCanvasViewModel
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
+import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
 
@@ -77,6 +78,9 @@ private const val PC_NODE_MAX_HALF_W = 110f
 private const val PC_NODE_H_PAD = 18f
 private const val PC_ARROW_LEN = 18f
 private const val PC_ARROW_HALF_ANGLE = 0.4f
+private const val PC_LAYER_H = 170f
+
+private data class PcEdgeLabelKey(val label: String, val fromRow: Int, val toRow: Int)
 
 @Composable
 internal fun PersonCanvasContent(
@@ -345,14 +349,17 @@ private fun PersonCanvasGraph(
                     to = Offset(to.x, to.y),
                     fromHalfW = nodeHalfWidths[edge.fromId] ?: PC_NODE_MAX_HALF_W,
                     toHalfW = nodeHalfWidths[edge.toId] ?: PC_NODE_MAX_HALF_W,
-                    label = edge.label,
                     edgeColor = edgeColor(edge.category),
-                    labelColor = labelColor,
-                    labelBgColor = labelBgColor,
-                    textMeasurer = textMeasurer,
                     drawArrow = !edge.isSymmetric,
                 )
             }
+            pcDrawEdgeLabels(
+                edges = edges,
+                nodeMap = nodeMap,
+                labelColor = labelColor,
+                labelBgColor = labelBgColor,
+                textMeasurer = textMeasurer,
+            )
             nodes.forEach { node ->
                 val isCenter = node.id == centerId
                 val isDropTarget = isDragging && node.id == dropTargetId
@@ -445,11 +452,7 @@ private fun DrawScope.pcDrawEdge(
     to: Offset,
     fromHalfW: Float,
     toHalfW: Float,
-    label: String,
     edgeColor: Color,
-    labelColor: Color,
-    labelBgColor: Color,
-    textMeasurer: TextMeasurer,
     drawArrow: Boolean = true,
 ) {
     val dx = to.x - from.x
@@ -485,22 +488,38 @@ private fun DrawScope.pcDrawEdge(
             color = edgeColor,
         )
     }
+}
 
-    if (label.isNotBlank()) {
-        val mid = Offset((start.x + end.x) / 2f, (start.y + end.y) / 2f)
-        // Offset label perpendicular to the edge so it doesn't sit on the line.
-        val perpX = -uy
-        val perpY = ux
-        val perpSign = if (perpX >= 0f) 1f else -1f
-        val perpDist = 14f
+private fun DrawScope.pcDrawEdgeLabels(
+    edges: List<CanvasRelationEdge>,
+    nodeMap: Map<Long, CanvasPersonNode>,
+    labelColor: Color,
+    labelBgColor: Color,
+    textMeasurer: TextMeasurer,
+) {
+    val groups = mutableMapOf<PcEdgeLabelKey, MutableList<Pair<Float, Float>>>()
+    edges.forEach { edge ->
+        if (edge.label.isBlank()) return@forEach
+        val from = nodeMap[edge.fromId] ?: return@forEach
+        val to = nodeMap[edge.toId] ?: return@forEach
+        val key = PcEdgeLabelKey(
+            label = edge.label,
+            fromRow = (from.y / PC_LAYER_H).roundToInt(),
+            toRow = (to.y / PC_LAYER_H).roundToInt(),
+        )
+        groups.getOrPut(key) { mutableListOf() }.add((from.x + to.x) / 2f to (from.y + to.y) / 2f)
+    }
+    groups.forEach { (key, mids) ->
+        val cx = mids.sumOf { it.first.toDouble() }.toFloat() / mids.size
+        val cy = mids.sumOf { it.second.toDouble() }.toFloat() / mids.size
         val measured = textMeasurer.measure(
-            text = label,
+            text = key.label,
             style = TextStyle(fontSize = 11.sp, color = labelColor),
             overflow = TextOverflow.Ellipsis,
             maxLines = 1,
         )
-        val textX = mid.x + perpX * perpSign * perpDist - measured.size.width / 2f
-        val textY = mid.y + perpY * perpSign * perpDist - measured.size.height / 2f
+        val textX = cx - measured.size.width / 2f
+        val textY = cy - measured.size.height / 2f
         val bgPad = 3f
         drawRoundRect(
             color = labelBgColor,
