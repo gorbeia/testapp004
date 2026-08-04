@@ -229,6 +229,7 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | Person canvas view (relations graph from detail screen) | ✅ Done | [ADR-033](docs/decisions/ADR-033-person-canvas-view.md) |
 | Person canvas distance selector (0/1/2) | ✅ Done | [ADR-035](docs/decisions/ADR-035-person-canvas-distance-selector.md) |
 | Person view tabs (Detail + Canvas at equal importance, shared menus) | ✅ Done | [ADR-036](docs/decisions/ADR-036-person-view-tabs.md) |
+| Canvas-to-canvas navigation (tap person node → person canvas tab) | ✅ Done | [ADR-037](docs/decisions/ADR-037-canvas-to-canvas-navigation.md) |
 
 ---
 
@@ -272,3 +273,4 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | [ADR-034](docs/decisions/ADR-034-deceased-overflow-menu.md) | Move deceased toggle to overflow menu (MoreVert) on detail screen; read-only label in Bio card | 2026-08-03 |
 | [ADR-035](docs/decisions/ADR-035-person-canvas-distance-selector.md) | Person canvas distance selector (0/1/2) expands visible nodes to relation neighbours | 2026-08-03 |
 | [ADR-036](docs/decisions/ADR-036-person-view-tabs.md) | Person view tabs: Detail and Canvas as equal-weight tabs sharing one top bar and menus | 2026-08-04 |
+| [ADR-037](docs/decisions/ADR-037-canvas-to-canvas-navigation.md) | Canvas-to-canvas navigation: tapping a person node on any canvas opens the Canvas tab of the destination | 2026-08-04 |
