@@ -95,7 +95,6 @@ sealed class Screen(val route: String) {
     }
 
     object ImportContacts : Screen("import_contacts")
-
 }
 
 @Composable
