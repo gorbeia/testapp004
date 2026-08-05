@@ -2,6 +2,9 @@ package com.example.testapp004.viewmodel
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import com.example.canvasgraph.GraphLayoutEngine
+import com.example.canvasgraph.LayoutEdge
+import com.example.canvasgraph.RadialLayoutEngine
 import com.example.testapp004.data.AcquaintanceRepository
 import com.example.testapp004.data.CategoryRepository
 import com.example.testapp004.data.RelationRepository
@@ -62,7 +65,7 @@ class CategoryCanvasViewModel @Inject constructor(
     relationRepository: RelationRepository,
 ) : CanvasViewModel(relationRepository) {
     private val categoryId: Long = checkNotNull(savedStateHandle["categoryId"])
-    private val layoutEngine: CanvasLayoutEngine = RadialClusterLayoutEngine()
+    private val layoutEngine: GraphLayoutEngine = RadialLayoutEngine()
 
     private val _uiState = MutableStateFlow(CategoryCanvasUiState())
     val uiState: StateFlow<CategoryCanvasUiState> = _uiState.asStateFlow()
@@ -158,7 +161,10 @@ class CategoryCanvasViewModel @Inject constructor(
                     rel.fromId in allPersonIds && rel.toId in allPersonIds
                 }
 
-                val nodePositions = layoutEngine.computePositions(allPersonIds, visibleRelations)
+                val layoutEdges = visibleRelations.map { rel ->
+                    LayoutEdge(rel.fromId, rel.toId, RelationTypes.findByKey(rel.typeKey)?.verticalDelta ?: 0)
+                }
+                val nodePositions = layoutEngine.computePositions(allPersonIds, layoutEdges)
 
                 val nodes = buildCanvasNodes(
                     acquaintances = acquaintances,

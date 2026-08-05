@@ -1,30 +1,46 @@
-package com.example.testapp004.viewmodel
+package com.example.canvasgraph
 
-import com.example.testapp004.model.Relation
-import com.example.testapp004.model.RelationTypes
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
-internal interface CanvasLayoutEngine {
+/**
+ * A generic directed edge used exclusively for layout computation.
+ * [verticalWeight] controls how many layers separate two nodes in
+ * the hierarchical layout (0 = same layer, 1 = adjacent layers, etc.).
+ * The caller maps app-specific relation types to this value before
+ * invoking the layout engine.
+ */
+data class LayoutEdge(
+    val fromId: Long,
+    val toId: Long,
+    val verticalWeight: Int = 0,
+)
+
+/** Computes 2-D positions for a set of graph nodes. */
+interface GraphLayoutEngine {
     fun computePositions(
         nodeIds: Set<Long>,
-        edges: List<Relation>,
+        edges: List<LayoutEdge>,
         rootId: Long? = null,
     ): Map<Long, Pair<Float, Float>>
 }
 
-internal class RadialClusterLayoutEngine : CanvasLayoutEngine {
+/**
+ * Groups nodes into connected components and arranges each cluster in a circle.
+ * Suitable for category-scoped graphs where there is no natural root or hierarchy.
+ */
+class RadialLayoutEngine : GraphLayoutEngine {
     override fun computePositions(
         nodeIds: Set<Long>,
-        edges: List<Relation>,
+        edges: List<LayoutEdge>,
         rootId: Long?,
     ): Map<Long, Pair<Float, Float>> {
         val components = findConnectedComponents(nodeIds.toList(), edges)
         return placeComponents(components)
     }
 
-    private fun findConnectedComponents(nodeIds: List<Long>, edges: List<Relation>): List<List<Long>> {
+    private fun findConnectedComponents(nodeIds: List<Long>, edges: List<LayoutEdge>): List<List<Long>> {
         val parent = nodeIds.associateWith { it }.toMutableMap()
 
         fun find(x: Long): Long {
@@ -91,10 +107,15 @@ internal class RadialClusterLayoutEngine : CanvasLayoutEngine {
     }
 }
 
-internal class HierarchicalLayoutEngine : CanvasLayoutEngine {
+/**
+ * Assigns nodes to horizontal layers using BFS from a root, guided by [LayoutEdge.verticalWeight].
+ * Within each layer, node order is optimised to minimise edge crossings (exact permutation for
+ * small layers ≤ 6 nodes, adjacent-swap heuristic otherwise).
+ */
+class HierarchicalLayoutEngine : GraphLayoutEngine {
     override fun computePositions(
         nodeIds: Set<Long>,
-        edges: List<Relation>,
+        edges: List<LayoutEdge>,
         rootId: Long?,
     ): Map<Long, Pair<Float, Float>> {
         val centerId = rootId ?: return emptyMap()
@@ -104,7 +125,7 @@ internal class HierarchicalLayoutEngine : CanvasLayoutEngine {
     private fun computeHierarchicalPositions(
         centerId: Long,
         visibleIds: Set<Long>,
-        visibleRelations: List<Relation>,
+        visibleEdges: List<LayoutEdge>,
     ): Map<Long, Pair<Float, Float>> {
         val levelMap = mutableMapOf(centerId to 0)
         val queue = ArrayDeque<Long>()
@@ -112,16 +133,16 @@ internal class HierarchicalLayoutEngine : CanvasLayoutEngine {
         while (queue.isNotEmpty()) {
             val nodeId = queue.removeFirst()
             val nodeLevel = levelMap[nodeId] ?: continue
-            for (rel in visibleRelations) {
-                val delta = RelationTypes.findByKey(rel.typeKey)?.verticalDelta ?: 0
+            for (edge in visibleEdges) {
+                val delta = edge.verticalWeight
                 when {
-                    rel.fromId == nodeId && rel.toId !in levelMap -> {
-                        levelMap[rel.toId] = nodeLevel - delta
-                        queue.add(rel.toId)
+                    edge.fromId == nodeId && edge.toId !in levelMap -> {
+                        levelMap[edge.toId] = nodeLevel - delta
+                        queue.add(edge.toId)
                     }
-                    rel.toId == nodeId && rel.fromId !in levelMap -> {
-                        levelMap[rel.fromId] = nodeLevel + delta
-                        queue.add(rel.fromId)
+                    edge.toId == nodeId && edge.fromId !in levelMap -> {
+                        levelMap[edge.fromId] = nodeLevel + delta
+                        queue.add(edge.fromId)
                     }
                 }
             }
@@ -139,9 +160,9 @@ internal class HierarchicalLayoutEngine : CanvasLayoutEngine {
         for ((level, ids) in levelGroups) {
             val sorted = ids.sortedWith(
                 compareBy(
-                    { baryScore(it, level, levelMap, visibleRelations, positions) },
-                    { upperNeighborCount(it, level, levelMap, visibleRelations) },
-                    { -lowerNeighborCount(it, level, levelMap, visibleRelations) },
+                    { baryScore(it, level, levelMap, visibleEdges, positions) },
+                    { upperNeighborCount(it, level, levelMap, visibleEdges) },
+                    { -lowerNeighborCount(it, level, levelMap, visibleEdges) },
                     { it },
                 ),
             )
@@ -156,7 +177,7 @@ internal class HierarchicalLayoutEngine : CanvasLayoutEngine {
             for (level in levelOrder) {
                 val ids = levelGroups[level] ?: continue
                 if (ids.size <= 1) continue
-                val ordered = optimizeLayerOrder(ids, level, levelMap, visibleRelations, positions)
+                val ordered = optimizeLayerOrder(ids, level, levelMap, visibleEdges, positions)
                 val n = ordered.size
                 ordered.forEachIndexed { i, id ->
                     val y = positions[id]?.second ?: (-level * layerHeight)
@@ -174,13 +195,13 @@ internal class HierarchicalLayoutEngine : CanvasLayoutEngine {
         id: Long,
         level: Int,
         levelMap: Map<Long, Int>,
-        edges: List<Relation>,
+        edges: List<LayoutEdge>,
         positions: Map<Long, Pair<Float, Float>>,
     ): Float {
-        val xs = edges.mapNotNull { rel ->
+        val xs = edges.mapNotNull { edge ->
             val neighbor = when {
-                rel.fromId == id -> rel.toId
-                rel.toId == id -> rel.fromId
+                edge.fromId == id -> edge.toId
+                edge.toId == id -> edge.fromId
                 else -> null
             }
             neighbor?.takeIf { levelMap[it] != level }?.let { positions[it]?.first }
@@ -192,11 +213,11 @@ internal class HierarchicalLayoutEngine : CanvasLayoutEngine {
         id: Long,
         level: Int,
         levelMap: Map<Long, Int>,
-        edges: List<Relation>,
-    ): Int = edges.count { rel ->
+        edges: List<LayoutEdge>,
+    ): Int = edges.count { edge ->
         when {
-            rel.fromId == id -> levelMap.getOrDefault(rel.toId, level) > level
-            rel.toId == id -> levelMap.getOrDefault(rel.fromId, level) > level
+            edge.fromId == id -> levelMap.getOrDefault(edge.toId, level) > level
+            edge.toId == id -> levelMap.getOrDefault(edge.fromId, level) > level
             else -> false
         }
     }
@@ -205,11 +226,11 @@ internal class HierarchicalLayoutEngine : CanvasLayoutEngine {
         id: Long,
         level: Int,
         levelMap: Map<Long, Int>,
-        edges: List<Relation>,
-    ): Int = edges.count { rel ->
+        edges: List<LayoutEdge>,
+    ): Int = edges.count { edge ->
         when {
-            rel.fromId == id -> levelMap.getOrDefault(rel.toId, level) < level
-            rel.toId == id -> levelMap.getOrDefault(rel.fromId, level) < level
+            edge.fromId == id -> levelMap.getOrDefault(edge.toId, level) < level
+            edge.toId == id -> levelMap.getOrDefault(edge.fromId, level) < level
             else -> false
         }
     }
@@ -217,13 +238,13 @@ internal class HierarchicalLayoutEngine : CanvasLayoutEngine {
     private fun countCrossings(
         permuted: List<Long>,
         fixed: List<Long>,
-        edges: List<Relation>,
+        edges: List<LayoutEdge>,
     ): Int {
         val permPos = permuted.withIndex().associate { (i, id) -> id to i }
         val fixedPos = fixed.withIndex().associate { (i, id) -> id to i }
-        val layerEdges = edges.mapNotNull { rel ->
-            val p = permPos[rel.fromId] ?: permPos[rel.toId]
-            val f = fixedPos[rel.toId] ?: fixedPos[rel.fromId]
+        val layerEdges = edges.mapNotNull { edge ->
+            val p = permPos[edge.fromId] ?: permPos[edge.toId]
+            val f = fixedPos[edge.toId] ?: fixedPos[edge.fromId]
             if (p != null && f != null) p to f else null
         }
         var crossings = 0
@@ -271,7 +292,7 @@ internal class HierarchicalLayoutEngine : CanvasLayoutEngine {
         ids: List<Long>,
         aboveSorted: List<Long>,
         belowSorted: List<Long>,
-        edges: List<Relation>,
+        edges: List<LayoutEdge>,
         naturalRank: Map<Long, Int>,
     ): List<Long> {
         val arr = ids.toMutableList()
@@ -306,7 +327,7 @@ internal class HierarchicalLayoutEngine : CanvasLayoutEngine {
         ids: List<Long>,
         level: Int,
         levelMap: Map<Long, Int>,
-        edges: List<Relation>,
+        edges: List<LayoutEdge>,
         positions: Map<Long, Pair<Float, Float>>,
     ): List<Long> {
         val aboveSorted = levelMap.entries

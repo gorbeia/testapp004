@@ -1,18 +1,18 @@
 package com.example.testapp004
 
-import com.example.testapp004.model.Relation
-import com.example.testapp004.viewmodel.HierarchicalLayoutEngine
-import com.example.testapp004.viewmodel.RadialClusterLayoutEngine
+import com.example.canvasgraph.HierarchicalLayoutEngine
+import com.example.canvasgraph.LayoutEdge
+import com.example.canvasgraph.RadialLayoutEngine
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CanvasLayoutEngineTest {
-    // --- RadialClusterLayoutEngine ---
+    // --- RadialLayoutEngine ---
 
     @Test
     fun `radial layout assigns a position to every node`() {
-        val engine = RadialClusterLayoutEngine()
+        val engine = RadialLayoutEngine()
         val nodeIds = setOf(1L, 2L, 3L)
         val positions = engine.computePositions(nodeIds, emptyList())
         assertEquals(3, positions.size)
@@ -21,7 +21,7 @@ class CanvasLayoutEngineTest {
 
     @Test
     fun `radial layout handles a single isolated node`() {
-        val engine = RadialClusterLayoutEngine()
+        val engine = RadialLayoutEngine()
         val positions = engine.computePositions(setOf(42L), emptyList())
         assertEquals(1, positions.size)
         assertTrue(42L in positions)
@@ -29,35 +29,34 @@ class CanvasLayoutEngineTest {
 
     @Test
     fun `radial layout handles empty graph`() {
-        val engine = RadialClusterLayoutEngine()
+        val engine = RadialLayoutEngine()
         val positions = engine.computePositions(emptySet(), emptyList())
         assertTrue(positions.isEmpty())
     }
 
     @Test
     fun `radial layout assigns positions to connected nodes`() {
-        val engine = RadialClusterLayoutEngine()
-        val rel = Relation(id = 1L, fromId = 1L, toId = 2L, typeKey = "FRIEND")
-        val positions = engine.computePositions(setOf(1L, 2L), listOf(rel))
+        val engine = RadialLayoutEngine()
+        val edge = LayoutEdge(fromId = 1L, toId = 2L)
+        val positions = engine.computePositions(setOf(1L, 2L), listOf(edge))
         assertEquals(2, positions.size)
     }
 
     @Test
     fun `radial layout places isolated nodes separately from connected cluster`() {
-        val engine = RadialClusterLayoutEngine()
-        val rel = Relation(id = 1L, fromId = 1L, toId = 2L, typeKey = "FRIEND")
-        val positions = engine.computePositions(setOf(1L, 2L, 99L), listOf(rel))
+        val engine = RadialLayoutEngine()
+        val edge = LayoutEdge(fromId = 1L, toId = 2L)
+        val positions = engine.computePositions(setOf(1L, 2L, 99L), listOf(edge))
         assertEquals(3, positions.size)
-        // Isolated node should not share the exact same position as any other node
         val pos99 = positions[99L]!!
         assertTrue(positions.entries.none { (id, pos) -> id != 99L && pos == pos99 })
     }
 
     @Test
     fun `radial layout ignores edges referencing nodes outside the visible set`() {
-        val engine = RadialClusterLayoutEngine()
-        val rel = Relation(id = 1L, fromId = 1L, toId = 999L, typeKey = "FRIEND")
-        val positions = engine.computePositions(setOf(1L, 2L), listOf(rel))
+        val engine = RadialLayoutEngine()
+        val edge = LayoutEdge(fromId = 1L, toId = 999L)
+        val positions = engine.computePositions(setOf(1L, 2L), listOf(edge))
         assertEquals(2, positions.size)
     }
 
@@ -81,8 +80,8 @@ class CanvasLayoutEngineTest {
     @Test
     fun `hierarchical layout places root at origin`() {
         val engine = HierarchicalLayoutEngine()
-        val rel = Relation(id = 1L, fromId = 2L, toId = 1L, typeKey = "FRIEND")
-        val positions = engine.computePositions(setOf(1L, 2L), listOf(rel), rootId = 1L)
+        val edge = LayoutEdge(fromId = 2L, toId = 1L) // symmetric edge, weight 0
+        val positions = engine.computePositions(setOf(1L, 2L), listOf(edge), rootId = 1L)
         val root = positions[1L]!!
         assertEquals(0f, root.first, 0.001f)
         assertEquals(0f, root.second, 0.001f)
@@ -91,9 +90,9 @@ class CanvasLayoutEngineTest {
     @Test
     fun `hierarchical layout places parent above center (negative y)`() {
         val engine = HierarchicalLayoutEngine()
-        // Bob is the parent (fromId) and Alice is the child (toId) in PARENT_CHILD
-        val rel = Relation(id = 1L, fromId = 2L, toId = 1L, typeKey = "PARENT_CHILD")
-        val positions = engine.computePositions(setOf(1L, 2L), listOf(rel), rootId = 1L)
+        // Bob (fromId=2) is parent of Alice (toId=1, the root). verticalWeight=1 (PARENT_CHILD).
+        val edge = LayoutEdge(fromId = 2L, toId = 1L, verticalWeight = 1)
+        val positions = engine.computePositions(setOf(1L, 2L), listOf(edge), rootId = 1L)
         val parentY = positions[2L]!!.second
         assertTrue("Parent should be above center (y < 0)", parentY < 0f)
     }
@@ -101,9 +100,9 @@ class CanvasLayoutEngineTest {
     @Test
     fun `hierarchical layout places child below center (positive y)`() {
         val engine = HierarchicalLayoutEngine()
-        // Alice is the parent (fromId) so Bob (toId) is the child
-        val rel = Relation(id = 1L, fromId = 1L, toId = 2L, typeKey = "PARENT_CHILD")
-        val positions = engine.computePositions(setOf(1L, 2L), listOf(rel), rootId = 1L)
+        // Alice (fromId=1, the root) is parent of Bob (toId=2). verticalWeight=1 (PARENT_CHILD).
+        val edge = LayoutEdge(fromId = 1L, toId = 2L, verticalWeight = 1)
+        val positions = engine.computePositions(setOf(1L, 2L), listOf(edge), rootId = 1L)
         val childY = positions[2L]!!.second
         assertTrue("Child should be below center (y > 0)", childY > 0f)
     }
@@ -111,8 +110,8 @@ class CanvasLayoutEngineTest {
     @Test
     fun `hierarchical layout places sibling at same y as center`() {
         val engine = HierarchicalLayoutEngine()
-        val rel = Relation(id = 1L, fromId = 1L, toId = 2L, typeKey = "SIBLING")
-        val positions = engine.computePositions(setOf(1L, 2L), listOf(rel), rootId = 1L)
+        val edge = LayoutEdge(fromId = 1L, toId = 2L, verticalWeight = 0) // SIBLING weight=0
+        val positions = engine.computePositions(setOf(1L, 2L), listOf(edge), rootId = 1L)
         val siblingY = positions[2L]!!.second
         assertEquals(0f, siblingY, 0.001f)
     }
@@ -129,9 +128,8 @@ class CanvasLayoutEngineTest {
     @Test
     fun `hierarchical layout disconnected nodes default to same level as root`() {
         val engine = HierarchicalLayoutEngine()
-        // Node 3 has no relations, so it falls back to level 0
-        val rel = Relation(id = 1L, fromId = 1L, toId = 2L, typeKey = "FRIEND")
-        val positions = engine.computePositions(setOf(1L, 2L, 3L), listOf(rel), rootId = 1L)
+        val edge = LayoutEdge(fromId = 1L, toId = 2L)
+        val positions = engine.computePositions(setOf(1L, 2L, 3L), listOf(edge), rootId = 1L)
         val isolatedY = positions[3L]!!.second
         assertEquals(0f, isolatedY, 0.001f)
     }
@@ -142,20 +140,17 @@ class CanvasLayoutEngineTest {
         // Esti(1) is the root. Fernando(2) is Esti's spouse — no connections to the
         // parent layer (Juanje=6, Maite=7). Inigo(3) is Esti's sibling, also a child
         // of Juanje and Maite. Both Esti and Fernando are parents of Jon(4) and Irati(5).
-        // All barycentric scores are equal (symmetric parent positions cancel out),
-        // so the tie-breaker must recognise that Fernando has fewer upper-layer
-        // connections (0) than Esti and Inigo (2 each) and place him to the LEFT.
         val relations = listOf(
-            Relation(id = 1L, fromId = 1L, toId = 2L, typeKey = "SPOUSE"),
-            Relation(id = 2L, fromId = 1L, toId = 3L, typeKey = "SIBLING"),
-            Relation(id = 3L, fromId = 6L, toId = 1L, typeKey = "PARENT_CHILD"),
-            Relation(id = 4L, fromId = 6L, toId = 3L, typeKey = "PARENT_CHILD"),
-            Relation(id = 5L, fromId = 7L, toId = 1L, typeKey = "PARENT_CHILD"),
-            Relation(id = 6L, fromId = 7L, toId = 3L, typeKey = "PARENT_CHILD"),
-            Relation(id = 7L, fromId = 1L, toId = 4L, typeKey = "PARENT_CHILD"),
-            Relation(id = 8L, fromId = 1L, toId = 5L, typeKey = "PARENT_CHILD"),
-            Relation(id = 9L, fromId = 2L, toId = 4L, typeKey = "PARENT_CHILD"),
-            Relation(id = 10L, fromId = 2L, toId = 5L, typeKey = "PARENT_CHILD"),
+            LayoutEdge(fromId = 1L, toId = 2L, verticalWeight = 0),
+            LayoutEdge(fromId = 1L, toId = 3L, verticalWeight = 0),
+            LayoutEdge(fromId = 6L, toId = 1L, verticalWeight = 1),
+            LayoutEdge(fromId = 6L, toId = 3L, verticalWeight = 1),
+            LayoutEdge(fromId = 7L, toId = 1L, verticalWeight = 1),
+            LayoutEdge(fromId = 7L, toId = 3L, verticalWeight = 1),
+            LayoutEdge(fromId = 1L, toId = 4L, verticalWeight = 1),
+            LayoutEdge(fromId = 1L, toId = 5L, verticalWeight = 1),
+            LayoutEdge(fromId = 2L, toId = 4L, verticalWeight = 1),
+            LayoutEdge(fromId = 2L, toId = 5L, verticalWeight = 1),
         )
         val positions = engine.computePositions(
             nodeIds = setOf(1L, 2L, 3L, 4L, 5L, 6L, 7L),
@@ -174,21 +169,19 @@ class CanvasLayoutEngineTest {
     fun `hierarchical layout places sibling with children left of sibling without children`() {
         val engine = HierarchicalLayoutEngine()
         // Root: Esti(1). Fernando(2) and Inigo(3) are siblings of Esti.
-        // Both parents (Juanje=6, Maite=7) are parents of all three siblings,
-        // making barycentric scores equal. Fernando additionally has children
-        // Jon(4) and Irati(5); the tertiary tie-breaker on lower-level count
-        // must place Fernando to the LEFT of Inigo.
+        // Both parents (Juanje=6, Maite=7) are parents of all three siblings.
+        // Fernando additionally has children Jon(4) and Irati(5).
         val relations = listOf(
-            Relation(id = 1L, fromId = 1L, toId = 2L, typeKey = "SIBLING"),
-            Relation(id = 2L, fromId = 1L, toId = 3L, typeKey = "SIBLING"),
-            Relation(id = 3L, fromId = 6L, toId = 1L, typeKey = "PARENT_CHILD"),
-            Relation(id = 4L, fromId = 6L, toId = 2L, typeKey = "PARENT_CHILD"),
-            Relation(id = 5L, fromId = 6L, toId = 3L, typeKey = "PARENT_CHILD"),
-            Relation(id = 6L, fromId = 7L, toId = 1L, typeKey = "PARENT_CHILD"),
-            Relation(id = 7L, fromId = 7L, toId = 2L, typeKey = "PARENT_CHILD"),
-            Relation(id = 8L, fromId = 7L, toId = 3L, typeKey = "PARENT_CHILD"),
-            Relation(id = 9L, fromId = 2L, toId = 4L, typeKey = "PARENT_CHILD"),
-            Relation(id = 10L, fromId = 2L, toId = 5L, typeKey = "PARENT_CHILD"),
+            LayoutEdge(fromId = 1L, toId = 2L, verticalWeight = 0),
+            LayoutEdge(fromId = 1L, toId = 3L, verticalWeight = 0),
+            LayoutEdge(fromId = 6L, toId = 1L, verticalWeight = 1),
+            LayoutEdge(fromId = 6L, toId = 2L, verticalWeight = 1),
+            LayoutEdge(fromId = 6L, toId = 3L, verticalWeight = 1),
+            LayoutEdge(fromId = 7L, toId = 1L, verticalWeight = 1),
+            LayoutEdge(fromId = 7L, toId = 2L, verticalWeight = 1),
+            LayoutEdge(fromId = 7L, toId = 3L, verticalWeight = 1),
+            LayoutEdge(fromId = 2L, toId = 4L, verticalWeight = 1),
+            LayoutEdge(fromId = 2L, toId = 5L, verticalWeight = 1),
         )
         val positions = engine.computePositions(
             nodeIds = setOf(1L, 2L, 3L, 4L, 5L, 6L, 7L),
@@ -205,17 +198,13 @@ class CanvasLayoutEngineTest {
         val engine = HierarchicalLayoutEngine()
         // Root(1), SibL(2), SibR(3) at level 0; PL(10) and PR(11) at level 1.
         // PL is parent of Root and SibL; PR is parent of Root and SibR.
-        // BFS from Root reaches PL and PR via their PARENT_CHILD edges to Root,
-        // placing them at level 1. Crossing-optimal order is [SibL, Root, SibR]
-        // (0 crossings); natural sort gives [SibL, SibR, Root] (1 crossing).
-        // After centering on Root: SibL=-220, Root=0, SibR=+220.
         val relations = listOf(
-            Relation(id = 1L, fromId = 1L, toId = 2L, typeKey = "SIBLING"),
-            Relation(id = 2L, fromId = 1L, toId = 3L, typeKey = "SIBLING"),
-            Relation(id = 3L, fromId = 10L, toId = 1L, typeKey = "PARENT_CHILD"),
-            Relation(id = 4L, fromId = 10L, toId = 2L, typeKey = "PARENT_CHILD"),
-            Relation(id = 5L, fromId = 11L, toId = 1L, typeKey = "PARENT_CHILD"),
-            Relation(id = 6L, fromId = 11L, toId = 3L, typeKey = "PARENT_CHILD"),
+            LayoutEdge(fromId = 1L, toId = 2L, verticalWeight = 0),
+            LayoutEdge(fromId = 1L, toId = 3L, verticalWeight = 0),
+            LayoutEdge(fromId = 10L, toId = 1L, verticalWeight = 1),
+            LayoutEdge(fromId = 10L, toId = 2L, verticalWeight = 1),
+            LayoutEdge(fromId = 11L, toId = 1L, verticalWeight = 1),
+            LayoutEdge(fromId = 11L, toId = 3L, verticalWeight = 1),
         )
         val positions = engine.computePositions(
             nodeIds = setOf(1L, 2L, 3L, 10L, 11L),
@@ -234,9 +223,9 @@ class CanvasLayoutEngineTest {
     fun `hierarchical layout is deterministic regardless of input set order`() {
         val engine = HierarchicalLayoutEngine()
         val relations = listOf(
-            Relation(id = 1L, fromId = 6L, toId = 1L, typeKey = "PARENT_CHILD"),
-            Relation(id = 2L, fromId = 6L, toId = 2L, typeKey = "PARENT_CHILD"),
-            Relation(id = 3L, fromId = 6L, toId = 3L, typeKey = "PARENT_CHILD"),
+            LayoutEdge(fromId = 6L, toId = 1L, verticalWeight = 1),
+            LayoutEdge(fromId = 6L, toId = 2L, verticalWeight = 1),
+            LayoutEdge(fromId = 6L, toId = 3L, verticalWeight = 1),
         )
         val nodes = setOf(1L, 2L, 3L, 6L)
         val pos1 = engine.computePositions(nodes, relations, rootId = 1L)

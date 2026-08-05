@@ -1,9 +1,5 @@
 package com.example.testapp004.ui.screens
 
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,55 +34,26 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.text.TextMeasurer
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.drawText
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.example.canvasgraph.EdgeStyle
+import com.example.canvasgraph.GraphEdge
+import com.example.canvasgraph.GraphNode
+import com.example.canvasgraph.NodeStyle
+import com.example.canvasgraph.RelationGraph
 import com.example.testapp004.model.RelationCategory
 import com.example.testapp004.model.RelationTypeOption
 import com.example.testapp004.model.RelationTypes
 import com.example.testapp004.viewmodel.CanvasPersonNode
 import com.example.testapp004.viewmodel.CanvasRelationEdge
 import com.example.testapp004.viewmodel.CategoryCanvasViewModel
-import kotlin.math.abs
-import kotlin.math.atan2
-import kotlin.math.cos
-import kotlin.math.sin
-import kotlin.math.sqrt
-
-private const val NODE_HALF_H = 26f
-private const val NODE_MAX_HALF_W = 110f
-private const val NODE_H_PAD = 18f
-private const val ARROW_LEN = 18f
-private const val ARROW_HALF_ANGLE = 0.4f
-private const val ARC_BEND = 60f
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -143,12 +110,17 @@ fun CategoryCanvasScreen(
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                else -> CanvasGraph(
-                    nodes = uiState.nodes,
-                    edges = uiState.edges,
-                    onPersonClick = onPersonClick,
-                    onRelationDrop = viewModel::openRelationDialog,
-                )
+                else -> {
+                    val graphNodes = rememberCategoryGraphNodes(uiState.nodes, uiState.edges)
+                    val graphEdges = rememberCategoryGraphEdges(uiState.edges)
+                    RelationGraph(
+                        nodes = graphNodes,
+                        edges = graphEdges,
+                        onNodeTap = onPersonClick,
+                        onRelationDrop = viewModel::openRelationDialog,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
             }
         }
     }
@@ -175,6 +147,118 @@ fun CategoryCanvasScreen(
             onCategoryFilterToggle = viewModel::toggleRelationCategoryFilter,
             onDismiss = { isControlSheetOpen = false },
         )
+    }
+}
+
+@Composable
+private fun rememberCategoryGraphNodes(
+    nodes: List<CanvasPersonNode>,
+    edges: List<CanvasRelationEdge>,
+): List<GraphNode> {
+    val cs = MaterialTheme.colorScheme
+    val categoryFill = mapOf(
+        RelationCategory.FAMILY to lerp(cs.tertiaryContainer, cs.tertiary, 0.25f),
+        RelationCategory.PROFESSIONAL to lerp(cs.primaryContainer, cs.primary, 0.25f),
+        RelationCategory.SOCIAL to lerp(cs.secondaryContainer, cs.secondary, 0.25f),
+    )
+    val categoryFillSource = mapOf(
+        RelationCategory.FAMILY to cs.tertiary,
+        RelationCategory.PROFESSIONAL to cs.primary,
+        RelationCategory.SOCIAL to cs.secondary,
+    )
+    val categoryStroke = mapOf(
+        RelationCategory.FAMILY to cs.tertiary,
+        RelationCategory.PROFESSIONAL to cs.primary,
+        RelationCategory.SOCIAL to cs.secondary,
+    )
+    val categoryText = mapOf(
+        RelationCategory.FAMILY to cs.onTertiaryContainer,
+        RelationCategory.PROFESSIONAL to cs.onPrimaryContainer,
+        RelationCategory.SOCIAL to cs.onSecondaryContainer,
+    )
+    val categoryTextSource = mapOf(
+        RelationCategory.FAMILY to cs.onTertiary,
+        RelationCategory.PROFESSIONAL to cs.onPrimary,
+        RelationCategory.SOCIAL to cs.onSecondary,
+    )
+    val defaultFill = lerp(cs.primaryContainer, cs.primary, 0.25f)
+    val defaultFillSource = cs.primary
+    val defaultStroke = cs.primary
+    val defaultText = cs.onPrimaryContainer
+    val defaultTextSource = cs.onPrimary
+
+    return remember(nodes, edges, cs) {
+        nodes.map { node ->
+            val cat = node.dominantCategory
+            val dist = node.distanceFromCategory
+            val baseFill = if (node.isNetSource == true) {
+                categoryFillSource[cat] ?: defaultFillSource
+            } else {
+                categoryFill[cat] ?: defaultFill
+            }
+            val baseStroke = categoryStroke[cat] ?: defaultStroke
+            val baseText = if (node.isNetSource == true) {
+                categoryTextSource[cat] ?: defaultTextSource
+            } else {
+                categoryText[cat] ?: defaultText
+            }
+            // Blend toward surface for nodes reached only through relation distance expansion
+            val fill = when {
+                dist == 1 -> lerp(baseFill, cs.surfaceContainerHighest, 0.40f)
+                dist == 2 -> lerp(baseFill, cs.surfaceContainerHighest, 0.60f)
+                node.isDirectMember -> baseFill
+                else -> lerp(baseFill, cs.surfaceContainerHighest, 0.25f)
+            }
+            val stroke = when {
+                dist == 1 -> lerp(baseStroke, cs.surfaceContainerHighest, 0.30f)
+                dist == 2 -> lerp(baseStroke, cs.surfaceContainerHighest, 0.45f)
+                node.isDirectMember -> baseStroke
+                else -> lerp(baseStroke, cs.surfaceContainerHighest, 0.20f)
+            }
+            val text = when {
+                dist == 1 -> lerp(baseText, cs.onSurfaceVariant, 0.15f)
+                dist == 2 -> lerp(baseText, cs.onSurfaceVariant, 0.30f)
+                node.isDirectMember -> baseText
+                else -> lerp(baseText, cs.onSurfaceVariant, 0.10f)
+            }
+            GraphNode(
+                id = node.id,
+                name = node.name,
+                x = node.x,
+                y = node.y,
+                style = NodeStyle(
+                    fillColor = fill,
+                    strokeColor = stroke,
+                    textColor = text,
+                    useDashedBorder = dist > 0,
+                ),
+            )
+        }
+    }
+}
+
+@Composable
+private fun rememberCategoryGraphEdges(edges: List<CanvasRelationEdge>): List<GraphEdge> {
+    val cs = MaterialTheme.colorScheme
+    val categoryStroke = mapOf(
+        RelationCategory.FAMILY to cs.tertiary,
+        RelationCategory.PROFESSIONAL to cs.primary,
+        RelationCategory.SOCIAL to cs.secondary,
+    )
+    return remember(edges, cs) {
+        edges.map { edge ->
+            GraphEdge(
+                id = edge.id,
+                fromId = edge.fromId,
+                toId = edge.toId,
+                label = edge.label,
+                style = EdgeStyle(
+                    edgeColor = categoryStroke[edge.category] ?: cs.outline,
+                    labelColor = cs.onSurface,
+                ),
+                isSymmetric = edge.isSymmetric,
+            )
+        }
     }
 }
 
@@ -227,502 +311,6 @@ private fun CanvasControlSheet(
             }
         }
     }
-}
-
-@Composable
-private fun CanvasGraph(
-    nodes: List<CanvasPersonNode>,
-    edges: List<CanvasRelationEdge>,
-    onPersonClick: (Long) -> Unit,
-    onRelationDrop: (fromId: Long, toId: Long) -> Unit,
-) {
-    val nodeMap = remember(nodes) { nodes.associateBy { it.id } }
-
-    var zoom by remember { mutableFloatStateOf(1f) }
-    var panOffset by remember { mutableStateOf(Offset.Zero) }
-    var canvasSize by remember { mutableStateOf(Size.Zero) }
-
-    var isDragging by remember { mutableStateOf(false) }
-    var draggedNodeId by remember { mutableStateOf<Long?>(null) }
-    var dragScreenPos by remember { mutableStateOf(Offset.Zero) }
-    var dropTargetId by remember { mutableStateOf<Long?>(null) }
-
-    LaunchedEffect(nodes, canvasSize) {
-        if (nodes.isEmpty() || canvasSize == Size.Zero) return@LaunchedEffect
-        val padding = 80f
-        val minX = nodes.minOf { it.x } - NODE_MAX_HALF_W - padding
-        val minY = nodes.minOf { it.y } - NODE_HALF_H - padding
-        val maxX = nodes.maxOf { it.x } + NODE_MAX_HALF_W + padding
-        val maxY = nodes.maxOf { it.y } + NODE_HALF_H + padding
-        val contentW = maxX - minX
-        val contentH = maxY - minY
-        zoom = minOf(canvasSize.width / contentW, canvasSize.height / contentH, 1.2f)
-            .coerceAtLeast(0.1f)
-        panOffset = Offset(
-            (canvasSize.width - contentW * zoom) / 2f - minX * zoom,
-            (canvasSize.height - contentH * zoom) / 2f - minY * zoom,
-        )
-    }
-
-    val textMeasurer = rememberTextMeasurer()
-    val nodeHalfWidths = remember(nodes, textMeasurer) {
-        nodes.associate { node ->
-            val m = textMeasurer.measure(
-                text = node.name,
-                style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium),
-                overflow = TextOverflow.Ellipsis,
-                maxLines = 1,
-                constraints = Constraints(maxWidth = ((NODE_MAX_HALF_W - NODE_H_PAD) * 2).toInt()),
-            )
-            node.id to (m.size.width / 2f + NODE_H_PAD).coerceIn(NODE_HALF_H, NODE_MAX_HALF_W)
-        }
-    }
-    val cs = MaterialTheme.colorScheme
-    // Blend 25% toward the accent color so non-source fills have enough luminance to be visible
-    // against both dark and light canvas backgrounds (pure container colors are too dark in dark theme).
-    val categoryFill = mapOf(
-        RelationCategory.FAMILY to lerp(cs.tertiaryContainer, cs.tertiary, 0.25f),
-        RelationCategory.PROFESSIONAL to lerp(cs.primaryContainer, cs.primary, 0.25f),
-        RelationCategory.SOCIAL to lerp(cs.secondaryContainer, cs.secondary, 0.25f),
-    )
-    val categoryFillSource = mapOf(
-        RelationCategory.FAMILY to cs.tertiary,
-        RelationCategory.PROFESSIONAL to cs.primary,
-        RelationCategory.SOCIAL to cs.secondary,
-    )
-    val categoryStroke = mapOf(
-        RelationCategory.FAMILY to cs.tertiary,
-        RelationCategory.PROFESSIONAL to cs.primary,
-        RelationCategory.SOCIAL to cs.secondary,
-    )
-    val categoryText = mapOf(
-        RelationCategory.FAMILY to cs.onTertiaryContainer,
-        RelationCategory.PROFESSIONAL to cs.onPrimaryContainer,
-        RelationCategory.SOCIAL to cs.onSecondaryContainer,
-    )
-    val categoryTextSource = mapOf(
-        RelationCategory.FAMILY to cs.onTertiary,
-        RelationCategory.PROFESSIONAL to cs.onPrimary,
-        RelationCategory.SOCIAL to cs.onSecondary,
-    )
-    val defaultFill = lerp(cs.primaryContainer, cs.primary, 0.25f)
-    val defaultFillSource = cs.primary
-    val defaultStroke = cs.primary
-    val defaultText = cs.onPrimaryContainer
-    val defaultTextSource = cs.onPrimary
-    val labelColor = cs.onSurface
-    val dropTargetHighlightColor = cs.tertiary
-
-    fun nodeFill(cat: RelationCategory?, direct: Boolean, isNetSource: Boolean?, distanceFromCategory: Int): Color {
-        val base = if (isNetSource == true) {
-            categoryFillSource[cat] ?: defaultFillSource
-        } else {
-            categoryFill[cat] ?: defaultFill
-        }
-        // Use surfaceContainerHighest (slightly elevated, not pitch-black) to avoid nodes
-        // disappearing into the canvas background when blending for distance.
-        return when {
-            distanceFromCategory == 1 -> lerp(base, cs.surfaceContainerHighest, 0.40f)
-            distanceFromCategory == 2 -> lerp(base, cs.surfaceContainerHighest, 0.60f)
-            direct -> base
-            else -> lerp(base, cs.surfaceContainerHighest, 0.25f)
-        }
-    }
-
-    fun nodeStroke(cat: RelationCategory?, direct: Boolean, distanceFromCategory: Int): Color {
-        val base = categoryStroke[cat] ?: defaultStroke
-        return when {
-            distanceFromCategory == 1 -> lerp(base, cs.surfaceContainerHighest, 0.30f)
-            distanceFromCategory == 2 -> lerp(base, cs.surfaceContainerHighest, 0.45f)
-            direct -> base
-            else -> lerp(base, cs.surfaceContainerHighest, 0.20f)
-        }
-    }
-
-    fun nodeText(cat: RelationCategory?, direct: Boolean, isNetSource: Boolean?, distanceFromCategory: Int): Color {
-        val base = if (isNetSource == true) {
-            categoryTextSource[cat] ?: defaultTextSource
-        } else {
-            categoryText[cat] ?: defaultText
-        }
-        return when {
-            distanceFromCategory == 1 -> lerp(base, cs.onSurfaceVariant, 0.15f)
-            distanceFromCategory == 2 -> lerp(base, cs.onSurfaceVariant, 0.30f)
-            direct -> base
-            else -> lerp(base, cs.onSurfaceVariant, 0.10f)
-        }
-    }
-
-    fun edgeColor(cat: RelationCategory?) = categoryStroke[cat] ?: cs.outline
-
-    Canvas(
-        modifier = Modifier
-            .fillMaxSize()
-            .onSizeChanged { canvasSize = Size(it.width.toFloat(), it.height.toFloat()) }
-            .pointerInput(Unit) {
-                detectTransformGestures { centroid, pan, zoomChange, _ ->
-                    if (!isDragging) {
-                        val newZoom = (zoom * zoomChange).coerceIn(0.1f, 5f)
-                        panOffset = centroid - (centroid - panOffset) * (newZoom / zoom) + pan
-                        zoom = newZoom
-                    }
-                }
-            }
-            .pointerInput(nodes, zoom, panOffset) {
-                detectTapGestures { tapOffset ->
-                    val vx = (tapOffset.x - panOffset.x) / zoom
-                    val vy = (tapOffset.y - panOffset.y) / zoom
-                    nodes.firstOrNull { node ->
-                        val dx = vx - node.x
-                        val dy = vy - node.y
-                        abs(dx) <= (nodeHalfWidths[node.id] ?: NODE_MAX_HALF_W) &&
-                            abs(dy) <= NODE_HALF_H
-                    }?.let { onPersonClick(it.id) }
-                }
-            }
-            .pointerInput(nodes, zoom, panOffset) {
-                detectDragGesturesAfterLongPress(
-                    onDragStart = { offset ->
-                        val vx = (offset.x - panOffset.x) / zoom
-                        val vy = (offset.y - panOffset.y) / zoom
-                        val node = nodes.firstOrNull { n ->
-                            abs(vx - n.x) <= (nodeHalfWidths[n.id] ?: NODE_MAX_HALF_W) &&
-                                abs(vy - n.y) <= NODE_HALF_H
-                        }
-                        if (node != null) {
-                            draggedNodeId = node.id
-                            dragScreenPos = offset
-                            isDragging = true
-                        }
-                    },
-                    onDrag = { change, _ ->
-                        if (isDragging) {
-                            dragScreenPos = change.position
-                            val vx = (change.position.x - panOffset.x) / zoom
-                            val vy = (change.position.y - panOffset.y) / zoom
-                            dropTargetId = nodes.firstOrNull { n ->
-                                n.id != draggedNodeId &&
-                                    abs(vx - n.x) <= (nodeHalfWidths[n.id] ?: NODE_MAX_HALF_W) &&
-                                    abs(vy - n.y) <= NODE_HALF_H
-                            }?.id
-                            change.consume()
-                        }
-                    },
-                    onDragEnd = {
-                        if (isDragging) {
-                            val from = draggedNodeId
-                            val to = dropTargetId
-                            if (from != null && to != null) {
-                                onRelationDrop(from, to)
-                            }
-                            isDragging = false
-                            draggedNodeId = null
-                            dropTargetId = null
-                        }
-                    },
-                    onDragCancel = {
-                        isDragging = false
-                        draggedNodeId = null
-                        dropTargetId = null
-                    },
-                )
-            },
-    ) {
-        withTransform({
-            translate(panOffset.x, panOffset.y)
-            scale(zoom, zoom, Offset.Zero)
-        }) {
-            // Assign arc sides for pairs of nodes that share multiple relations so their
-            // edges fan out on opposite sides rather than overlapping. The sign is computed
-            // in the canonical (smaller-id → larger-id) frame so both directions are consistent.
-            val arcSides: Map<Long, Int> = buildMap {
-                edges.groupBy { e ->
-                    if (e.fromId < e.toId) e.fromId to e.toId else e.toId to e.fromId
-                }.values.forEach { group ->
-                    val n = group.size
-                    group.forEachIndexed { i, edge ->
-                        val arcIndex = if (n == 1) 0 else 2 * i - (n - 1)
-                        put(edge.id, if (edge.fromId <= edge.toId) arcIndex else -arcIndex)
-                    }
-                }
-            }
-
-            edges.forEach { edge ->
-                val from = nodeMap[edge.fromId] ?: return@forEach
-                val to = nodeMap[edge.toId] ?: return@forEach
-                drawEdge(
-                    from = Offset(from.x, from.y),
-                    to = Offset(to.x, to.y),
-                    fromHalfW = nodeHalfWidths[edge.fromId] ?: NODE_MAX_HALF_W,
-                    toHalfW = nodeHalfWidths[edge.toId] ?: NODE_MAX_HALF_W,
-                    fromId = edge.fromId,
-                    toId = edge.toId,
-                    label = edge.label,
-                    edgeColor = edgeColor(edge.category),
-                    labelColor = labelColor,
-                    textMeasurer = textMeasurer,
-                    drawArrow = !edge.isSymmetric,
-                    arcSide = arcSides[edge.id] ?: 0,
-                    allNodes = nodes,
-                    allHalfWidths = nodeHalfWidths,
-                )
-            }
-            nodes.forEach { node ->
-                val isDropTarget = isDragging && node.id == dropTargetId
-                val isDragSource = isDragging && node.id == draggedNodeId
-                val fill = nodeFill(
-                    node.dominantCategory,
-                    node.isDirectMember,
-                    node.isNetSource,
-                    node.distanceFromCategory,
-                )
-                val stroke = nodeStroke(node.dominantCategory, node.isDirectMember, node.distanceFromCategory)
-                val text = nodeText(
-                    node.dominantCategory,
-                    node.isDirectMember,
-                    node.isNetSource,
-                    node.distanceFromCategory,
-                )
-                drawNode(
-                    center = Offset(node.x, node.y),
-                    halfW = nodeHalfWidths[node.id] ?: NODE_MAX_HALF_W,
-                    name = node.name,
-                    nodeColor = if (isDragSource) fill.copy(alpha = 0.3f) else fill,
-                    strokeColor = when {
-                        isDropTarget -> dropTargetHighlightColor
-                        isDragSource -> stroke.copy(alpha = 0.3f)
-                        else -> stroke
-                    },
-                    textColor = if (isDragSource) text.copy(alpha = 0.3f) else text,
-                    textMeasurer = textMeasurer,
-                    useDashedBorder = node.distanceFromCategory > 0,
-                )
-                if (isDropTarget) {
-                    val hw = nodeHalfWidths[node.id] ?: NODE_MAX_HALF_W
-                    val pad = 6f
-                    drawRoundRect(
-                        color = dropTargetHighlightColor,
-                        topLeft = Offset(node.x - hw - pad, node.y - NODE_HALF_H - pad),
-                        size = Size((hw + pad) * 2, (NODE_HALF_H + pad) * 2),
-                        cornerRadius = CornerRadius(NODE_HALF_H + pad),
-                        style = Stroke(width = 3.5f),
-                    )
-                }
-            }
-            if (isDragging) {
-                val id = draggedNodeId
-                val ghostNode = if (id != null) nodeMap[id] else null
-                if (ghostNode != null) {
-                    val ghostCanvasX = (dragScreenPos.x - panOffset.x) / zoom
-                    val ghostCanvasY = (dragScreenPos.y - panOffset.y) / zoom
-                    drawNode(
-                        center = Offset(ghostCanvasX, ghostCanvasY),
-                        halfW = nodeHalfWidths[ghostNode.id] ?: NODE_MAX_HALF_W,
-                        name = ghostNode.name,
-                        nodeColor = nodeFill(
-                            ghostNode.dominantCategory,
-                            ghostNode.isDirectMember,
-                            ghostNode.isNetSource,
-                            ghostNode.distanceFromCategory,
-                        ),
-                        strokeColor = if (dropTargetId != null) {
-                            dropTargetHighlightColor
-                        } else {
-                            nodeStroke(
-                                ghostNode.dominantCategory,
-                                ghostNode.isDirectMember,
-                                ghostNode.distanceFromCategory,
-                            )
-                        },
-                        textColor = nodeText(
-                            ghostNode.dominantCategory,
-                            ghostNode.isDirectMember,
-                            ghostNode.isNetSource,
-                            ghostNode.distanceFromCategory,
-                        ),
-                        textMeasurer = textMeasurer,
-                        useDashedBorder = ghostNode.distanceFromCategory > 0,
-                    )
-                }
-            }
-        }
-    }
-}
-
-private fun rectBorderPoint(cx: Float, cy: Float, ux: Float, uy: Float, hw: Float, hh: Float): Offset {
-    val ax = abs(ux)
-    val ay = abs(uy)
-    val t = if (ax * hh >= ay * hw) hw / ax else hh / ay
-    return Offset(cx + ux * t, cy + uy * t)
-}
-
-private fun segmentIntersectsNode(
-    ax: Float,
-    ay: Float,
-    bx: Float,
-    by: Float,
-    cx: Float,
-    cy: Float,
-    hw: Float,
-    hh: Float,
-): Boolean {
-    val dx = bx - ax
-    val dy = by - ay
-    val lenSq = dx * dx + dy * dy
-    if (lenSq < 1f) return false
-    val t = (((cx - ax) * dx + (cy - ay) * dy) / lenSq).coerceIn(0f, 1f)
-    return abs(ax + t * dx - cx) < hw && abs(ay + t * dy - cy) < hh
-}
-
-private fun DrawScope.drawEdge(
-    from: Offset,
-    to: Offset,
-    fromHalfW: Float,
-    toHalfW: Float,
-    fromId: Long,
-    toId: Long,
-    label: String,
-    edgeColor: Color,
-    labelColor: Color,
-    textMeasurer: TextMeasurer,
-    drawArrow: Boolean = true,
-    arcSide: Int = 0,
-    allNodes: List<CanvasPersonNode>,
-    allHalfWidths: Map<Long, Float>,
-) {
-    val dx = to.x - from.x
-    val dy = to.y - from.y
-    val length = sqrt(dx * dx + dy * dy)
-    if (length < 1f) return
-
-    val ux = dx / length
-    val uy = dy / length
-    val perpX = -uy
-    val perpY = ux
-
-    val start = rectBorderPoint(from.x, from.y, ux, uy, fromHalfW, NODE_HALF_H)
-    val end = rectBorderPoint(to.x, to.y, -ux, -uy, toHalfW, NODE_HALF_H)
-
-    val occluded = arcSide == 0 && allNodes.any { node ->
-        node.id != fromId && node.id != toId &&
-            segmentIntersectsNode(
-                from.x, from.y, to.x, to.y,
-                node.x, node.y,
-                allHalfWidths[node.id] ?: NODE_MAX_HALF_W, NODE_HALF_H,
-            )
-    }
-    val effectiveSide = when {
-        arcSide != 0 -> arcSide
-        occluded -> 1
-        else -> 0
-    }
-
-    val labelPos: Offset
-    val arrowDirX: Float
-    val arrowDirY: Float
-
-    if (effectiveSide == 0) {
-        drawLine(color = edgeColor, start = start, end = end, strokeWidth = 2.5f, cap = StrokeCap.Round)
-        arrowDirX = ux
-        arrowDirY = uy
-        labelPos = Offset((start.x + end.x) / 2f, (start.y + end.y) / 2f)
-    } else {
-        val bendAmount = ARC_BEND * effectiveSide
-        val cpX = (from.x + to.x) / 2f + perpX * bendAmount
-        val cpY = (from.y + to.y) / 2f + perpY * bendAmount
-        drawPath(
-            path = Path().apply {
-                moveTo(start.x, start.y)
-                quadraticBezierTo(cpX, cpY, end.x, end.y)
-            },
-            color = edgeColor,
-            style = Stroke(width = 2.5f, cap = StrokeCap.Round),
-        )
-        val tanX = end.x - cpX
-        val tanY = end.y - cpY
-        val tanLen = sqrt(tanX * tanX + tanY * tanY).coerceAtLeast(0.001f)
-        arrowDirX = tanX / tanLen
-        arrowDirY = tanY / tanLen
-        // Point at t=0.5 on a quadratic Bézier: 0.25*start + 0.5*cp + 0.25*end
-        labelPos = Offset(
-            0.25f * start.x + 0.5f * cpX + 0.25f * end.x,
-            0.25f * start.y + 0.5f * cpY + 0.25f * end.y,
-        )
-    }
-
-    if (drawArrow) {
-        val angle = atan2(arrowDirY, arrowDirX)
-        val a1 = Offset(
-            end.x - ARROW_LEN * cos(angle - ARROW_HALF_ANGLE),
-            end.y - ARROW_LEN * sin(angle - ARROW_HALF_ANGLE),
-        )
-        val a2 = Offset(
-            end.x - ARROW_LEN * cos(angle + ARROW_HALF_ANGLE),
-            end.y - ARROW_LEN * sin(angle + ARROW_HALF_ANGLE),
-        )
-        drawPath(
-            path = Path().apply {
-                moveTo(end.x, end.y)
-                lineTo(a1.x, a1.y)
-                lineTo(a2.x, a2.y)
-                close()
-            },
-            color = edgeColor,
-        )
-    }
-
-    if (label.isNotBlank()) {
-        val measured = textMeasurer.measure(
-            text = label,
-            style = TextStyle(fontSize = 11.sp, color = labelColor),
-            overflow = TextOverflow.Ellipsis,
-            maxLines = 1,
-        )
-        drawText(
-            textLayoutResult = measured,
-            topLeft = Offset(labelPos.x - measured.size.width / 2f, labelPos.y - measured.size.height - 4f),
-        )
-    }
-}
-
-private fun DrawScope.drawNode(
-    center: Offset,
-    halfW: Float,
-    name: String,
-    nodeColor: Color,
-    strokeColor: Color,
-    textColor: Color,
-    textMeasurer: TextMeasurer,
-    useDashedBorder: Boolean = false,
-) {
-    val topLeft = Offset(center.x - halfW, center.y - NODE_HALF_H)
-    val size = Size(halfW * 2, NODE_HALF_H * 2)
-    val corner = CornerRadius(NODE_HALF_H, NODE_HALF_H)
-    drawRoundRect(color = nodeColor, topLeft = topLeft, size = size, cornerRadius = corner)
-    val strokeStyle = if (useDashedBorder) {
-        Stroke(width = 2.5f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 4f)))
-    } else {
-        Stroke(width = 2.5f)
-    }
-    drawRoundRect(
-        color = strokeColor,
-        topLeft = topLeft,
-        size = size,
-        cornerRadius = corner,
-        style = strokeStyle,
-    )
-
-    val measured = textMeasurer.measure(
-        text = name,
-        style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium, color = textColor),
-        overflow = TextOverflow.Ellipsis,
-        maxLines = 1,
-        constraints = Constraints(maxWidth = ((halfW - NODE_H_PAD) * 2).coerceAtLeast(1f).toInt()),
-    )
-    drawText(
-        textLayoutResult = measured,
-        topLeft = Offset(center.x - measured.size.width / 2f, center.y - measured.size.height / 2f),
-    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

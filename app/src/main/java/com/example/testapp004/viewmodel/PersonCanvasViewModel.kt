@@ -2,8 +2,12 @@ package com.example.testapp004.viewmodel
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import com.example.canvasgraph.GraphLayoutEngine
+import com.example.canvasgraph.HierarchicalLayoutEngine
+import com.example.canvasgraph.LayoutEdge
 import com.example.testapp004.data.AcquaintanceRepository
 import com.example.testapp004.data.RelationRepository
+import com.example.testapp004.model.RelationTypes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -34,7 +38,7 @@ class PersonCanvasViewModel @Inject constructor(
     relationRepository: RelationRepository,
 ) : CanvasViewModel(relationRepository) {
     val acquaintanceId: Long = checkNotNull(savedStateHandle["acquaintanceId"])
-    private val layoutEngine: CanvasLayoutEngine = HierarchicalLayoutEngine()
+    private val layoutEngine: GraphLayoutEngine = HierarchicalLayoutEngine()
 
     private val _uiState = MutableStateFlow(PersonCanvasUiState())
     val uiState: StateFlow<PersonCanvasUiState> = _uiState.asStateFlow()
@@ -130,9 +134,12 @@ class PersonCanvasViewModel @Inject constructor(
                     it.fromId in visibleIds && it.toId in visibleIds
                 }
 
+                val layoutEdges = visibleRelations.map { rel ->
+                    LayoutEdge(rel.fromId, rel.toId, RelationTypes.findByKey(rel.typeKey)?.verticalDelta ?: 0)
+                }
                 val positions = layoutEngine.computePositions(
                     nodeIds = visibleIds,
-                    edges = visibleRelations,
+                    edges = layoutEdges,
                     rootId = acquaintanceId,
                 )
 
