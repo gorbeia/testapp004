@@ -75,7 +75,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.testapp004.model.Acquaintance
@@ -89,6 +88,7 @@ import com.example.testapp004.viewmodel.PersonCanvasViewModel
 import com.example.testapp004.viewmodel.RelationDisplay
 
 private val PERSON_VIEW_TABS = listOf("Detail", "Canvas")
+private val CardSubtleElevation = 1.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -294,7 +294,7 @@ private fun BioSection(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = CardSubtleElevation),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             if (isDeceased) {
@@ -435,7 +435,7 @@ private fun LinkedContactSection(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = CardSubtleElevation),
     ) {
         if (!isLinked) {
             Row(
@@ -493,15 +493,13 @@ private fun LinkedContactSection(
                                 text = linkedContactInfo.displayName.take(1).uppercase(),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                fontWeight = FontWeight.Bold,
                             )
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
                                 text = linkedContactInfo.displayName,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.SemiBold,
+                                style = MaterialTheme.typography.titleMedium,
                             )
                             if (linkedContactInfo.primaryPhone != null) {
                                 Spacer(modifier = Modifier.height(2.dp))
@@ -645,7 +643,7 @@ private fun RelationsSection(
             Spacer(modifier = Modifier.height(8.dp))
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = CardSubtleElevation),
             ) {
                 relations.forEachIndexed { index, relation ->
                     if (index > 0) HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))

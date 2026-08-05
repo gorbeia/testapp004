@@ -28,11 +28,9 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.unit.sp
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -64,6 +62,7 @@ fun RelationGraph(
     onNodeTap: (id: Long) -> Unit = {},
     onRelationDrop: (fromId: Long, toId: Long) -> Unit = { _, _ -> },
     dropTargetHighlightColor: Color = MaterialTheme.colorScheme.tertiary,
+    nodeTextStyle: TextStyle = MaterialTheme.typography.labelMedium,
     modifier: Modifier = Modifier,
 ) {
     val nodeMap = remember(nodes) { nodes.associateBy { it.id } }
@@ -95,11 +94,11 @@ fun RelationGraph(
     }
 
     val textMeasurer = rememberTextMeasurer()
-    val nodeHalfWidths = remember(nodes, textMeasurer) {
+    val nodeHalfWidths = remember(nodes, textMeasurer, nodeTextStyle) {
         nodes.associate { node ->
             val m = textMeasurer.measure(
                 text = node.name,
-                style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium),
+                style = nodeTextStyle,
                 overflow = TextOverflow.Ellipsis,
                 maxLines = 1,
                 constraints = Constraints(maxWidth = ((NODE_MAX_HALF_W - NODE_H_PAD) * 2).toInt()),
@@ -247,6 +246,7 @@ fun RelationGraph(
                     name = node.name,
                     style = resolvedStyle,
                     textMeasurer = textMeasurer,
+                    nodeTextStyle = nodeTextStyle,
                 )
 
                 if (isDropTarget) {
@@ -277,6 +277,7 @@ fun RelationGraph(
                         name = ghostNode.name,
                         style = ghostNode.style.copy(strokeColor = ghostStroke),
                         textMeasurer = textMeasurer,
+                        nodeTextStyle = nodeTextStyle,
                     )
                 }
             }
@@ -290,6 +291,7 @@ private fun DrawScope.drawGraphNode(
     name: String,
     style: NodeStyle,
     textMeasurer: TextMeasurer,
+    nodeTextStyle: TextStyle,
 ) {
     val topLeft = Offset(center.x - halfW, center.y - NODE_HALF_H)
     val size = Size(halfW * 2, NODE_HALF_H * 2)
@@ -307,7 +309,7 @@ private fun DrawScope.drawGraphNode(
     )
     val measured = textMeasurer.measure(
         text = name,
-        style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium, color = style.textColor),
+        style = nodeTextStyle.copy(color = style.textColor),
         overflow = TextOverflow.Ellipsis,
         maxLines = 1,
         constraints = Constraints(maxWidth = ((halfW - NODE_H_PAD) * 2).coerceAtLeast(1f).toInt()),

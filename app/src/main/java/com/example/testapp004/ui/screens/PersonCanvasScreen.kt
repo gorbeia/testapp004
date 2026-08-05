@@ -47,6 +47,8 @@ import com.example.testapp004.viewmodel.CanvasPersonNode
 import com.example.testapp004.viewmodel.CanvasRelationEdge
 import com.example.testapp004.viewmodel.PersonCanvasViewModel
 
+private val CanvasEdgeLabelFontSize = 9.sp
+
 @Composable
 internal fun PersonCanvasContent(
     viewModel: PersonCanvasViewModel,
@@ -222,7 +224,7 @@ private fun rememberPersonGraphEdges(edges: List<CanvasRelationEdge>): List<Grap
                     edgeColor = categoryStroke[edge.category] ?: cs.outline,
                     labelColor = cs.onSurface,
                     labelBgColor = cs.surface.copy(alpha = 0.82f),
-                    labelFontSize = 9.sp,
+                    labelFontSize = CanvasEdgeLabelFontSize,
                 ),
                 isSymmetric = edge.isSymmetric,
             )
