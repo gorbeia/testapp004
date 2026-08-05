@@ -199,4 +199,49 @@ class CanvasLayoutEngineTest {
         val inigoX = positions[3L]!!.first
         assertTrue("Fernando (with children) should be left of Inigo (no children)", fernandoX < inigoX)
     }
+
+    @Test
+    fun `hierarchical layout minimises crossings between two layers`() {
+        val engine = HierarchicalLayoutEngine()
+        // Root(1), SibL(2), SibR(3) at level 0; PL(10) and PR(11) at level 1.
+        // PL is parent of Root and SibL; PR is parent of Root and SibR.
+        // BFS from Root reaches PL and PR via their PARENT_CHILD edges to Root,
+        // placing them at level 1. Crossing-optimal order is [SibL, Root, SibR]
+        // (0 crossings); natural sort gives [SibL, SibR, Root] (1 crossing).
+        // After centering on Root: SibL=-220, Root=0, SibR=+220.
+        val relations = listOf(
+            Relation(id = 1L, fromId = 1L, toId = 2L, typeKey = "SIBLING"),
+            Relation(id = 2L, fromId = 1L, toId = 3L, typeKey = "SIBLING"),
+            Relation(id = 3L, fromId = 10L, toId = 1L, typeKey = "PARENT_CHILD"),
+            Relation(id = 4L, fromId = 10L, toId = 2L, typeKey = "PARENT_CHILD"),
+            Relation(id = 5L, fromId = 11L, toId = 1L, typeKey = "PARENT_CHILD"),
+            Relation(id = 6L, fromId = 11L, toId = 3L, typeKey = "PARENT_CHILD"),
+        )
+        val positions = engine.computePositions(
+            nodeIds = setOf(1L, 2L, 3L, 10L, 11L),
+            edges = relations,
+            rootId = 1L,
+        )
+        val sibLX = positions[2L]!!.first
+        val sibRX = positions[3L]!!.first
+        assertTrue(
+            "SibL (child of left parent PL) should be left of SibR (child of right parent PR)",
+            sibLX < sibRX,
+        )
+    }
+
+    @Test
+    fun `hierarchical layout is deterministic regardless of input set order`() {
+        val engine = HierarchicalLayoutEngine()
+        val relations = listOf(
+            Relation(id = 1L, fromId = 6L, toId = 1L, typeKey = "PARENT_CHILD"),
+            Relation(id = 2L, fromId = 6L, toId = 2L, typeKey = "PARENT_CHILD"),
+            Relation(id = 3L, fromId = 6L, toId = 3L, typeKey = "PARENT_CHILD"),
+        )
+        val nodes = setOf(1L, 2L, 3L, 6L)
+        val pos1 = engine.computePositions(nodes, relations, rootId = 1L)
+        val pos2 = engine.computePositions(nodes, relations, rootId = 1L)
+        assertEquals(pos1[2L]!!.first, pos2[2L]!!.first, 0.001f)
+        assertEquals(pos1[3L]!!.first, pos2[3L]!!.first, 0.001f)
+    }
 }
