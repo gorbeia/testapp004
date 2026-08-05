@@ -58,6 +58,9 @@ import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import kotlin.math.roundToInt
 
+private val CategoryCardElevation = 2.dp
+private val CategoryCardDragElevation = 8.dp
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoriesScreen(
@@ -275,7 +278,7 @@ private fun CategoryItem(
             .zIndex(if (isDragging) 1f else 0f)
             .alpha(if (isDragging) 0.85f else 1f),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isDragging) 8.dp else 2.dp,
+            defaultElevation = if (isDragging) CategoryCardDragElevation else CategoryCardElevation,
         ),
         colors = when {
             isProposedParent -> CardDefaults.cardColors(
