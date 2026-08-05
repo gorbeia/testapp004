@@ -2,6 +2,7 @@ package com.example.testapp004
 
 import com.example.canvasgraph.ArcLayoutEngine
 import com.example.canvasgraph.CircularLayoutEngine
+import com.example.canvasgraph.ClusterLayoutEngine
 import com.example.canvasgraph.ForceDirectedLayoutEngine
 import com.example.canvasgraph.HierarchicalLayoutEngine
 import com.example.canvasgraph.LayoutEdge
@@ -470,6 +471,71 @@ class CanvasLayoutEngineTest {
         nodes.forEach { id ->
             assertEquals(pos1[id]!!.first, pos2[id]!!.first, 0.001f)
             assertEquals(pos1[id]!!.second, pos2[id]!!.second, 0.001f)
+        }
+    }
+
+    // --- ClusterLayoutEngine ---
+
+    @Test
+    fun `cluster layout assigns a position to every node`() {
+        val engine = ClusterLayoutEngine()
+        val nodeIds = setOf(1L, 2L, 3L, 4L)
+        val positions = engine.computePositions(nodeIds, emptyList()).positions
+        assertEquals(4, positions.size)
+        assertTrue(nodeIds.all { it in positions })
+    }
+
+    @Test
+    fun `cluster layout handles empty graph`() {
+        val engine = ClusterLayoutEngine()
+        val result = engine.computePositions(emptySet(), emptyList())
+        assertTrue(result.positions.isEmpty())
+    }
+
+    @Test
+    fun `cluster layout handles single node`() {
+        val engine = ClusterLayoutEngine()
+        val positions = engine.computePositions(setOf(7L), emptyList()).positions
+        assertEquals(1, positions.size)
+        assertTrue(7L in positions)
+    }
+
+    @Test
+    fun `cluster layout places nodes from different components in different positions`() {
+        val engine = ClusterLayoutEngine()
+        // Two disconnected components: {1,2} and {3,4}
+        val edges = listOf(LayoutEdge(1L, 2L), LayoutEdge(3L, 4L))
+        val positions = engine.computePositions(setOf(1L, 2L, 3L, 4L), edges).positions
+        val comp1Xs = listOf(positions[1L]!!.first, positions[2L]!!.first)
+        val comp2Xs = listOf(positions[3L]!!.first, positions[4L]!!.first)
+        // Components must not overlap exactly — their center x values should differ
+        val mid1 = comp1Xs.average()
+        val mid2 = comp2Xs.average()
+        assertTrue("Disconnected components should be placed apart", mid1 != mid2)
+    }
+
+    @Test
+    fun `cluster layout is deterministic`() {
+        val engine = ClusterLayoutEngine()
+        val edges = listOf(LayoutEdge(1L, 2L), LayoutEdge(3L, 4L))
+        val nodes = setOf(1L, 2L, 3L, 4L)
+        val pos1 = engine.computePositions(nodes, edges).positions
+        val pos2 = engine.computePositions(nodes, edges).positions
+        nodes.forEach { id ->
+            assertEquals(pos1[id]!!.first, pos2[id]!!.first, 0.001f)
+            assertEquals(pos1[id]!!.second, pos2[id]!!.second, 0.001f)
+        }
+    }
+
+    @Test
+    fun `cluster layout ignores rootId`() {
+        val engine = ClusterLayoutEngine()
+        val nodeIds = setOf(1L, 2L, 3L)
+        val posNoRoot = engine.computePositions(nodeIds, emptyList(), rootId = null).positions
+        val posWithRoot = engine.computePositions(nodeIds, emptyList(), rootId = 1L).positions
+        nodeIds.forEach { id ->
+            assertEquals(posNoRoot[id]!!.first, posWithRoot[id]!!.first, 0.001f)
+            assertEquals(posNoRoot[id]!!.second, posWithRoot[id]!!.second, 0.001f)
         }
     }
 }

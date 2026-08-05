@@ -6,6 +6,7 @@ enum class LayoutEngineType(val displayName: String) {
     Radial("Radial"),
     Circular("Circular"),
     Arc("Arc"),
+    Cluster("Cluster"),
 }
 
 fun LayoutEngineType.createEngine(): GraphLayoutEngine = when (this) {
@@ -14,4 +15,5 @@ fun LayoutEngineType.createEngine(): GraphLayoutEngine = when (this) {
     LayoutEngineType.Radial -> RadialLayoutEngine()
     LayoutEngineType.Circular -> CircularLayoutEngine()
     LayoutEngineType.Arc -> ArcLayoutEngine()
+    LayoutEngineType.Cluster -> ClusterLayoutEngine()
 }

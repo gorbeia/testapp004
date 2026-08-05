@@ -56,6 +56,67 @@ private fun bfsDistances(rootId: Long, adj: Map<Long, List<Long>>): MutableMap<L
     return distances
 }
 
+private fun findConnectedComponents(nodeIds: List<Long>, edges: List<LayoutEdge>): List<List<Long>> {
+    val parent = nodeIds.associateWith { it }.toMutableMap()
+
+    fun find(x: Long): Long {
+        var root = x
+        while (parent[root] != root) root = parent[root]!!
+        var curr = x
+        while (curr != root) {
+            val next = parent[curr]!!
+            parent[curr] = root
+            curr = next
+        }
+        return root
+    }
+    edges.forEach { edge ->
+        if (edge.fromId in parent && edge.toId in parent) {
+            val ra = find(edge.fromId)
+            val rb = find(edge.toId)
+            if (ra != rb) parent[ra] = rb
+        }
+    }
+    return nodeIds.groupBy { find(it) }.values.toList()
+}
+
+private fun placeComponentsAsCircles(components: List<List<Long>>): Map<Long, Pair<Float, Float>> {
+    val positions = mutableMapOf<Long, Pair<Float, Float>>()
+    val nodeRadius = 50f
+    val clusterGap = 100f
+    val maxPerRow = 3
+    var curX = nodeRadius + clusterGap
+    var curY = nodeRadius + clusterGap
+    var rowMaxHeight = 0f
+    var rowCount = 0
+    components.sortedByDescending { it.size }.forEach { component ->
+        val n = component.size
+        val clusterRadius = if (n == 1) {
+            0f
+        } else {
+            (n * (nodeRadius * 2 + 30f) / (2 * PI)).toFloat().coerceAtLeast(nodeRadius * 2)
+        }
+        component.forEachIndexed { index, nodeId ->
+            val angle = (2 * PI * index / n - PI / 2).toFloat()
+            val x = curX + clusterRadius + if (n == 1) 0f else clusterRadius * cos(angle)
+            val y = curY + clusterRadius + if (n == 1) 0f else clusterRadius * sin(angle)
+            positions[nodeId] = x to y
+        }
+        val span = (clusterRadius + nodeRadius) * 2
+        rowMaxHeight = maxOf(rowMaxHeight, span)
+        rowCount++
+        if (rowCount >= maxPerRow) {
+            curX = nodeRadius + clusterGap
+            curY += rowMaxHeight + clusterGap
+            rowMaxHeight = 0f
+            rowCount = 0
+        } else {
+            curX += span + clusterGap
+        }
+    }
+    return positions
+}
+
 /**
  * Ego-centric radial layout when a [rootId] is supplied: the root is placed at the origin,
  * direct neighbours on an inner ring, second-degree neighbours on an outer ring, and so on.
@@ -72,7 +133,7 @@ class RadialLayoutEngine : GraphLayoutEngine {
             computeEgoCentric(nodeIds, edges, rootId).toLayoutResult()
         } else {
             val components = findConnectedComponents(nodeIds.toList(), edges)
-            placeComponents(components).toLayoutResult()
+            placeComponentsAsCircles(components).toLayoutResult()
         }
     }
 
@@ -102,71 +163,22 @@ class RadialLayoutEngine : GraphLayoutEngine {
     companion object {
         private const val RING_RADIUS = 200f
     }
+}
 
-    private fun findConnectedComponents(nodeIds: List<Long>, edges: List<LayoutEdge>): List<List<Long>> {
-        val parent = nodeIds.associateWith { it }.toMutableMap()
-
-        fun find(x: Long): Long {
-            var root = x
-            while (parent[root] != root) root = parent[root]!!
-            var curr = x
-            while (curr != root) {
-                val next = parent[curr]!!
-                parent[curr] = root
-                curr = next
-            }
-            return root
-        }
-
-        edges.forEach { edge ->
-            if (edge.fromId in parent && edge.toId in parent) {
-                val ra = find(edge.fromId)
-                val rb = find(edge.toId)
-                if (ra != rb) parent[ra] = rb
-            }
-        }
-        return nodeIds.groupBy { find(it) }.values.toList()
-    }
-
-    private fun placeComponents(components: List<List<Long>>): Map<Long, Pair<Float, Float>> {
-        val positions = mutableMapOf<Long, Pair<Float, Float>>()
-        val nodeRadius = 50f
-        val clusterGap = 100f
-        val maxPerRow = 3
-
-        var curX = nodeRadius + clusterGap
-        var curY = nodeRadius + clusterGap
-        var rowMaxHeight = 0f
-        var rowCount = 0
-
-        components.sortedByDescending { it.size }.forEach { component ->
-            val n = component.size
-            val clusterRadius = if (n == 1) {
-                0f
-            } else {
-                (n * (nodeRadius * 2 + 30f) / (2 * PI)).toFloat().coerceAtLeast(nodeRadius * 2)
-            }
-
-            component.forEachIndexed { index, nodeId ->
-                val angle = (2 * PI * index / n - PI / 2).toFloat()
-                val x = curX + clusterRadius + if (n == 1) 0f else clusterRadius * cos(angle)
-                val y = curY + clusterRadius + if (n == 1) 0f else clusterRadius * sin(angle)
-                positions[nodeId] = x to y
-            }
-
-            val span = (clusterRadius + nodeRadius) * 2
-            rowMaxHeight = maxOf(rowMaxHeight, span)
-            rowCount++
-            if (rowCount >= maxPerRow) {
-                curX = nodeRadius + clusterGap
-                curY += rowMaxHeight + clusterGap
-                rowMaxHeight = 0f
-                rowCount = 0
-            } else {
-                curX += span + clusterGap
-            }
-        }
-        return positions
+/**
+ * Arranges each connected component on its own circle, then grids the circles by descending size.
+ * This is the original category-canvas layout style (before force-directed replaced it in ADR-044).
+ * Unlike [RadialLayoutEngine], there is no ego node — all components are treated equally.
+ */
+class ClusterLayoutEngine : GraphLayoutEngine {
+    override fun computePositions(
+        nodeIds: Set<Long>,
+        edges: List<LayoutEdge>,
+        rootId: Long?,
+    ): LayoutResult {
+        if (nodeIds.isEmpty()) return LayoutResult.Empty
+        val components = findConnectedComponents(nodeIds.toList(), edges)
+        return placeComponentsAsCircles(components).toLayoutResult()
     }
 }
 
