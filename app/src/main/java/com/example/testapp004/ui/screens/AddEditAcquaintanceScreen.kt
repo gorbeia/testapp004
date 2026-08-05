@@ -31,6 +31,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import com.example.testapp004.model.Category
 import com.example.testapp004.viewmodel.AddEditAcquaintanceViewModel
@@ -96,6 +98,7 @@ fun AddEditAcquaintanceScreen(
                 onValueChange = viewModel::onNameChange,
                 label = { Text("Name *") },
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                 modifier = Modifier.fillMaxWidth(),
             )
 
