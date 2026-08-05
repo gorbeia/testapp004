@@ -34,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.canvasgraph.EdgeStyle
 import com.example.canvasgraph.GraphEdge
 import com.example.canvasgraph.GraphNode
@@ -221,6 +222,7 @@ private fun rememberPersonGraphEdges(edges: List<CanvasRelationEdge>): List<Grap
                     edgeColor = categoryStroke[edge.category] ?: cs.outline,
                     labelColor = cs.onSurface,
                     labelBgColor = cs.surface.copy(alpha = 0.82f),
+                    labelFontSize = 9.sp,
                 ),
                 isSymmetric = edge.isSymmetric,
             )
