@@ -1,11 +1,13 @@
 package com.example.testapp004
 
+import com.example.canvasgraph.ForceDirectedLayoutEngine
 import com.example.canvasgraph.HierarchicalLayoutEngine
 import com.example.canvasgraph.LayoutEdge
 import com.example.canvasgraph.RadialLayoutEngine
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.math.sqrt
 
 class CanvasLayoutEngineTest {
     // --- RadialLayoutEngine ---
@@ -58,6 +60,87 @@ class CanvasLayoutEngineTest {
         val edge = LayoutEdge(fromId = 1L, toId = 999L)
         val positions = engine.computePositions(setOf(1L, 2L), listOf(edge))
         assertEquals(2, positions.size)
+    }
+
+    // --- ForceDirectedLayoutEngine ---
+
+    @Test
+    fun `force-directed layout assigns a position to every node`() {
+        val engine = ForceDirectedLayoutEngine()
+        val nodeIds = setOf(1L, 2L, 3L)
+        val positions = engine.computePositions(nodeIds, emptyList())
+        assertEquals(3, positions.size)
+        assertTrue(nodeIds.all { it in positions })
+    }
+
+    @Test
+    fun `force-directed layout handles a single isolated node`() {
+        val engine = ForceDirectedLayoutEngine()
+        val positions = engine.computePositions(setOf(42L), emptyList())
+        assertEquals(1, positions.size)
+        assertTrue(42L in positions)
+    }
+
+    @Test
+    fun `force-directed layout handles empty graph`() {
+        val engine = ForceDirectedLayoutEngine()
+        val positions = engine.computePositions(emptySet(), emptyList())
+        assertTrue(positions.isEmpty())
+    }
+
+    @Test
+    fun `force-directed layout assigns positions to connected nodes`() {
+        val engine = ForceDirectedLayoutEngine()
+        val edge = LayoutEdge(fromId = 1L, toId = 2L)
+        val positions = engine.computePositions(setOf(1L, 2L), listOf(edge))
+        assertEquals(2, positions.size)
+    }
+
+    @Test
+    fun `force-directed layout places isolated nodes separately from connected cluster`() {
+        val engine = ForceDirectedLayoutEngine()
+        val edge = LayoutEdge(fromId = 1L, toId = 2L)
+        val positions = engine.computePositions(setOf(1L, 2L, 99L), listOf(edge))
+        assertEquals(3, positions.size)
+        val pos99 = positions[99L]!!
+        assertTrue(positions.entries.none { (id, pos) -> id != 99L && pos == pos99 })
+    }
+
+    @Test
+    fun `force-directed layout ignores edges referencing nodes outside the visible set`() {
+        val engine = ForceDirectedLayoutEngine()
+        val edge = LayoutEdge(fromId = 1L, toId = 999L)
+        val positions = engine.computePositions(setOf(1L, 2L), listOf(edge))
+        assertEquals(2, positions.size)
+    }
+
+    @Test
+    fun `force-directed layout places connected nodes closer than isolated nodes`() {
+        val engine = ForceDirectedLayoutEngine()
+        val edge = LayoutEdge(fromId = 1L, toId = 2L)
+        val positions = engine.computePositions(setOf(1L, 2L, 3L), listOf(edge))
+        val (x1, y1) = positions[1L]!!
+        val (x2, y2) = positions[2L]!!
+        val (x3, y3) = positions[3L]!!
+        val d12 = sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1))
+        val d13 = sqrt((x3 - x1) * (x3 - x1) + (y3 - y1) * (y3 - y1))
+        assertTrue("Connected pair (1–2) should be closer than isolated node (3)", d12 < d13)
+    }
+
+    @Test
+    fun `force-directed layout is deterministic`() {
+        val engine = ForceDirectedLayoutEngine()
+        val edges = listOf(
+            LayoutEdge(fromId = 1L, toId = 2L),
+            LayoutEdge(fromId = 2L, toId = 3L),
+        )
+        val nodes = setOf(1L, 2L, 3L, 4L)
+        val pos1 = engine.computePositions(nodes, edges)
+        val pos2 = engine.computePositions(nodes, edges)
+        nodes.forEach { id ->
+            assertEquals(pos1[id]!!.first, pos2[id]!!.first, 0.001f)
+            assertEquals(pos1[id]!!.second, pos2[id]!!.second, 0.001f)
+        }
     }
 
     // --- HierarchicalLayoutEngine ---

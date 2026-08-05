@@ -234,6 +234,7 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | Person canvas: subtree-size tie-breaking in barycentric layout | ✅ Done | [ADR-041](docs/decisions/ADR-041-barycentric-subtree-tiebreak.md) |
 | Person canvas: exact crossing minimisation in hierarchical layout | ✅ Done | [ADR-042](docs/decisions/ADR-042-exact-crossing-minimisation.md) |
 | Canvas shared library (`:canvas` module, `RelationGraph` composable) | ✅ Done | [ADR-043](docs/decisions/ADR-043-android-canvas-shared-library.md) |
+| Category canvas: force-directed (Fruchterman–Reingold) layout replacing circle layout | ✅ Done | [ADR-044](docs/decisions/ADR-044-force-directed-category-canvas.md) |
 
 ---
 
@@ -284,3 +285,4 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | [ADR-041](docs/decisions/ADR-041-barycentric-subtree-tiebreak.md) | Barycentric tie-breaking by lower-level neighbour count | 2026-08-04 |
 | [ADR-042](docs/decisions/ADR-042-exact-crossing-minimisation.md) | Exact crossing minimisation replacing barycentric heuristic for small layers | 2026-08-04 |
 | [ADR-043](docs/decisions/ADR-043-android-canvas-shared-library.md) | Canvas shared library: `:canvas` module with `RelationGraph` composable and generic layout engines | 2026-08-05 |
+| [ADR-044](docs/decisions/ADR-044-force-directed-category-canvas.md) | Category canvas: Fruchterman–Reingold force-directed layout replacing circle layout | 2026-08-05 |
