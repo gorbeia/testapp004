@@ -73,6 +73,7 @@ fun RelationGraph(
     dropTargetHighlightColor: Color = MaterialTheme.colorScheme.tertiary,
     nodeTextStyle: TextStyle = MaterialTheme.typography.labelMedium,
     viewportState: GraphViewportState = rememberGraphViewportState(),
+    forceArcs: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val nodeMap = remember(nodes) { nodes.associateBy { it.id } }
@@ -224,7 +225,11 @@ fun RelationGraph(
                 }.values.forEach { group ->
                     val n = group.size
                     group.forEachIndexed { i, edge ->
-                        val arcIndex = if (n == 1) 0 else 2 * i - (n - 1)
+                        val arcIndex = when {
+                            n > 1 -> 2 * i - (n - 1)
+                            forceArcs -> 1
+                            else -> 0
+                        }
                         put(edge.id, if (edge.fromId <= edge.toId) arcIndex else -arcIndex)
                     }
                 }

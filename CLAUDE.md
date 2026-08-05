@@ -240,6 +240,8 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | `LayoutResult` with bounding-box fields replacing bare Map from `computePositions()` | ✅ Done | [ADR-045](docs/decisions/ADR-045-layout-engine-configurability.md) |
 | `GraphViewportState` — observable zoom/pan state for `RelationGraph` | ✅ Done | [ADR-045](docs/decisions/ADR-045-layout-engine-configurability.md) |
 | Canvas viewport persistence across back-navigation (`rememberSaveable` + custom Saver) | ✅ Done | [ADR-046](docs/decisions/ADR-046-canvas-viewport-persistence.md) |
+| Radial layout fix (ego-centric when rootId given) + Circular and Arc layout engines | ✅ Done | [ADR-047](docs/decisions/ADR-047-circular-arc-layout-engines.md) |
+| `forceArcs` flag on `RelationGraph` for Arc layout; `FlowRow` in control sheets for 5-chip layout selector | ✅ Done | [ADR-047](docs/decisions/ADR-047-circular-arc-layout-engines.md) |
 
 ---
 
@@ -293,3 +295,4 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | [ADR-044](docs/decisions/ADR-044-force-directed-category-canvas.md) | Category canvas: Fruchterman–Reingold force-directed layout replacing circle layout | 2026-08-05 |
 | [ADR-045](docs/decisions/ADR-045-layout-engine-configurability.md) | Canvas layout engine configurability: LayoutResult, GraphViewportState, node animation, in-app engine selector | 2026-08-05 |
 | [ADR-046](docs/decisions/ADR-046-canvas-viewport-persistence.md) | Canvas viewport persistence across back-navigation via rememberSaveable with listSaver | 2026-08-05 |
+| [ADR-047](docs/decisions/ADR-047-circular-arc-layout-engines.md) | Circular and Arc layout engines + ego-centric Radial fix + forceArcs flag on RelationGraph | 2026-08-05 |

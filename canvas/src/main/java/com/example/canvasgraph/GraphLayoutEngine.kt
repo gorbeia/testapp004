@@ -28,9 +28,38 @@ interface GraphLayoutEngine {
     ): LayoutResult
 }
 
+private fun buildAdjacency(nodeIds: Set<Long>, edges: List<LayoutEdge>): Map<Long, List<Long>> {
+    val adj = mutableMapOf<Long, MutableList<Long>>()
+    edges.forEach { e ->
+        if (e.fromId in nodeIds && e.toId in nodeIds) {
+            adj.getOrPut(e.fromId) { mutableListOf() }.add(e.toId)
+            adj.getOrPut(e.toId) { mutableListOf() }.add(e.fromId)
+        }
+    }
+    return adj
+}
+
+private fun bfsDistances(rootId: Long, adj: Map<Long, List<Long>>): MutableMap<Long, Int> {
+    val distances = mutableMapOf(rootId to 0)
+    val queue = ArrayDeque<Long>()
+    queue.add(rootId)
+    while (queue.isNotEmpty()) {
+        val curr = queue.removeFirst()
+        val d = distances[curr]!!
+        adj[curr]?.forEach { nb ->
+            if (nb !in distances) {
+                distances[nb] = d + 1
+                queue.add(nb)
+            }
+        }
+    }
+    return distances
+}
+
 /**
- * Groups nodes into connected components and arranges each cluster in a circle.
- * Suitable for category-scoped graphs where there is no natural root or hierarchy.
+ * Ego-centric radial layout when a [rootId] is supplied: the root is placed at the origin,
+ * direct neighbours on an inner ring, second-degree neighbours on an outer ring, and so on.
+ * Falls back to cluster-based arrangement (connected components in circles) when no root is given.
  */
 class RadialLayoutEngine : GraphLayoutEngine {
     override fun computePositions(
@@ -38,8 +67,40 @@ class RadialLayoutEngine : GraphLayoutEngine {
         edges: List<LayoutEdge>,
         rootId: Long?,
     ): LayoutResult {
-        val components = findConnectedComponents(nodeIds.toList(), edges)
-        return placeComponents(components).toLayoutResult()
+        if (nodeIds.isEmpty()) return LayoutResult.Empty
+        return if (rootId != null && rootId in nodeIds) {
+            computeEgoCentric(nodeIds, edges, rootId).toLayoutResult()
+        } else {
+            val components = findConnectedComponents(nodeIds.toList(), edges)
+            placeComponents(components).toLayoutResult()
+        }
+    }
+
+    private fun computeEgoCentric(
+        nodeIds: Set<Long>,
+        edges: List<LayoutEdge>,
+        rootId: Long,
+    ): Map<Long, Pair<Float, Float>> {
+        val adj = buildAdjacency(nodeIds, edges)
+        val distances = bfsDistances(rootId, adj)
+        val maxReached = (distances.values.maxOrNull() ?: 0) + 1
+        nodeIds.forEach { distances.getOrPut(it) { maxReached } }
+        val byDist = nodeIds.groupBy { distances[it]!! }
+        val positions = mutableMapOf(rootId to (0f to 0f))
+        byDist.entries.sortedBy { it.key }.forEach { (dist, ids) ->
+            if (dist == 0) return@forEach
+            val radius = dist * RING_RADIUS
+            val sorted = ids.sortedBy { it }
+            sorted.forEachIndexed { i, id ->
+                val angle = (2.0 * PI * i / sorted.size - PI / 2).toFloat()
+                positions[id] = (radius * cos(angle)) to (radius * sin(angle))
+            }
+        }
+        return positions
+    }
+
+    companion object {
+        private const val RING_RADIUS = 200f
     }
 
     private fun findConnectedComponents(nodeIds: List<Long>, edges: List<LayoutEdge>): List<List<Long>> {
@@ -563,5 +624,100 @@ class ForceDirectedLayoutEngine : GraphLayoutEngine {
         private const val NODE_HALF_H = 26f
         private const val COMPONENT_GAP = 100f
         private const val MAX_PER_ROW = 3
+    }
+}
+
+/**
+ * Places all nodes equidistantly around a circle. When a [rootId] is provided it is placed
+ * at the top (12 o'clock), and remaining nodes are ordered by BFS distance from the root.
+ */
+class CircularLayoutEngine : GraphLayoutEngine {
+    override fun computePositions(
+        nodeIds: Set<Long>,
+        edges: List<LayoutEdge>,
+        rootId: Long?,
+    ): LayoutResult {
+        if (nodeIds.isEmpty()) return LayoutResult.Empty
+        if (nodeIds.size == 1) return mapOf(nodeIds.first() to (0f to 0f)).toLayoutResult()
+        val ordered = orderNodes(nodeIds, edges, rootId)
+        val n = ordered.size
+        val radius = (n * NODE_GAP / (2.0 * PI)).toFloat().coerceAtLeast(MIN_RADIUS)
+        return ordered.mapIndexed { i, id ->
+            val angle = (2.0 * PI * i / n - PI / 2).toFloat()
+            id to ((radius * cos(angle)) to (radius * sin(angle)))
+        }.toMap().toLayoutResult()
+    }
+
+    private fun orderNodes(nodeIds: Set<Long>, edges: List<LayoutEdge>, rootId: Long?): List<Long> {
+        val root = rootId?.takeIf { it in nodeIds } ?: return nodeIds.sorted()
+        val adj = buildAdjacency(nodeIds, edges)
+        val order = mutableListOf<Long>()
+        val visited = mutableSetOf(root)
+        val queue = ArrayDeque<Long>()
+        queue.add(root)
+        while (queue.isNotEmpty()) {
+            val curr = queue.removeFirst()
+            order.add(curr)
+            adj[curr]?.sorted()?.forEach { nb -> if (visited.add(nb)) queue.add(nb) }
+        }
+        nodeIds.sorted().filter { it !in visited }.forEach { order.add(it) }
+        return order
+    }
+
+    companion object {
+        private const val NODE_GAP = 240f
+        private const val MIN_RADIUS = 180f
+    }
+}
+
+/**
+ * Arranges all nodes along a horizontal line. When a [rootId] is provided it is centred;
+ * neighbours are interleaved left and right by BFS order so well-connected nodes stay close
+ * to the root. Edges render best as arcs (pass [forceArcs]=true on the composable side).
+ */
+class ArcLayoutEngine : GraphLayoutEngine {
+    override fun computePositions(
+        nodeIds: Set<Long>,
+        edges: List<LayoutEdge>,
+        rootId: Long?,
+    ): LayoutResult {
+        if (nodeIds.isEmpty()) return LayoutResult.Empty
+        if (nodeIds.size == 1) return mapOf(nodeIds.first() to (0f to 0f)).toLayoutResult()
+        val ordered = orderNodes(nodeIds, edges, rootId)
+        val root = rootId?.takeIf { it in nodeIds }
+        val pivot = if (root != null) ordered.indexOf(root) else (ordered.size - 1) / 2
+        return ordered.mapIndexed { i, id ->
+            id to ((i - pivot) * NODE_SPACING to 0f)
+        }.toMap().toLayoutResult()
+    }
+
+    private fun orderNodes(nodeIds: Set<Long>, edges: List<LayoutEdge>, rootId: Long?): List<Long> {
+        val root = rootId?.takeIf { it in nodeIds }
+        if (root == null) {
+            val degree = nodeIds.associateWith { id ->
+                edges.count { it.fromId == id || it.toId == id }
+            }
+            return nodeIds.sortedWith(compareBy({ -degree.getValue(it) }, { it }))
+        }
+        val adj = buildAdjacency(nodeIds, edges)
+        val bfsOrder = mutableListOf<Long>()
+        val visited = mutableSetOf(root)
+        val queue = ArrayDeque<Long>()
+        queue.add(root)
+        while (queue.isNotEmpty()) {
+            val curr = queue.removeFirst()
+            bfsOrder.add(curr)
+            adj[curr]?.sorted()?.forEach { nb -> if (visited.add(nb)) queue.add(nb) }
+        }
+        nodeIds.sorted().filter { it !in visited }.forEach { bfsOrder.add(it) }
+        val rest = bfsOrder.drop(1)
+        val left = mutableListOf<Long>()
+        val right = mutableListOf<Long>()
+        rest.forEachIndexed { i, id -> if (i % 2 == 0) right.add(id) else left.add(id) }
+        return left.reversed() + listOf(root) + right
+    }
+
+    companion object {
+        private const val NODE_SPACING = 220f
     }
 }

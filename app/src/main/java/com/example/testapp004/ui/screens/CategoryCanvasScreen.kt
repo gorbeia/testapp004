@@ -3,6 +3,8 @@ package com.example.testapp004.ui.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -124,6 +126,7 @@ fun CategoryCanvasScreen(
                         edges = graphEdges,
                         onNodeTap = onPersonClick,
                         onRelationDrop = viewModel::openRelationDialog,
+                        forceArcs = uiState.layoutEngineType == LayoutEngineType.Arc,
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
@@ -271,7 +274,7 @@ private fun rememberCategoryGraphEdges(edges: List<CanvasRelationEdge>): List<Gr
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun CanvasControlSheet(
     relationDistance: Int,
@@ -294,9 +297,9 @@ private fun CanvasControlSheet(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text("Layout", style = MaterialTheme.typography.titleSmall)
-            Row(
+            FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 LayoutEngineType.values().forEach { type ->
                     FilterChip(
