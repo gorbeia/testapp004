@@ -3,6 +3,8 @@ package com.example.testapp004.ui.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -85,6 +87,7 @@ internal fun PersonCanvasContent(
                     edges = graphEdges,
                     onNodeTap = onPersonClick,
                     onRelationDrop = viewModel::openRelationDialog,
+                    forceArcs = uiState.layoutEngineType == LayoutEngineType.Arc,
                     modifier = Modifier.fillMaxSize(),
                 )
             }
@@ -235,7 +238,7 @@ private fun rememberPersonGraphEdges(edges: List<CanvasRelationEdge>): List<Grap
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun PersonCanvasControlSheet(
     relationDistance: Int,
@@ -253,9 +256,9 @@ private fun PersonCanvasControlSheet(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text("Layout", style = MaterialTheme.typography.titleSmall)
-            Row(
+            FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 LayoutEngineType.values().forEach { type ->
                     FilterChip(

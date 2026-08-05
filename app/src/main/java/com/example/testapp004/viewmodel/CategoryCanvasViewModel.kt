@@ -174,13 +174,12 @@ class CategoryCanvasViewModel @Inject constructor(
                     LayoutEdge(rel.fromId, rel.toId, RelationTypes.findByKey(rel.typeKey)?.verticalDelta ?: 0)
                 }
 
-                // Hierarchical layout needs a root; pick the most-connected person for a sensible result.
-                val rootId = if (engineType == LayoutEngineType.Hierarchical) {
-                    allPersonIds.maxByOrNull { id ->
+                // Hierarchical and Radial layouts need a root; pick the most-connected person.
+                val rootId = when (engineType) {
+                    LayoutEngineType.Hierarchical, LayoutEngineType.Radial -> allPersonIds.maxByOrNull { id ->
                         layoutEdges.count { it.fromId == id || it.toId == id }
                     }
-                } else {
-                    null
+                    else -> null
                 }
 
                 val layoutResult = engineType.createEngine().computePositions(allPersonIds, layoutEdges, rootId)
