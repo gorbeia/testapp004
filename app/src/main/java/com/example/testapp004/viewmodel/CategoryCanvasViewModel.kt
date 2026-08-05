@@ -2,9 +2,9 @@ package com.example.testapp004.viewmodel
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import com.example.canvasgraph.ForceDirectedLayoutEngine
 import com.example.canvasgraph.GraphLayoutEngine
 import com.example.canvasgraph.LayoutEdge
-import com.example.canvasgraph.RadialLayoutEngine
 import com.example.testapp004.data.AcquaintanceRepository
 import com.example.testapp004.data.CategoryRepository
 import com.example.testapp004.data.RelationRepository
@@ -65,7 +65,7 @@ class CategoryCanvasViewModel @Inject constructor(
     relationRepository: RelationRepository,
 ) : CanvasViewModel(relationRepository) {
     private val categoryId: Long = checkNotNull(savedStateHandle["categoryId"])
-    private val layoutEngine: GraphLayoutEngine = RadialLayoutEngine()
+    private val layoutEngine: GraphLayoutEngine = ForceDirectedLayoutEngine()
 
     private val _uiState = MutableStateFlow(CategoryCanvasUiState())
     val uiState: StateFlow<CategoryCanvasUiState> = _uiState.asStateFlow()

@@ -1,8 +1,10 @@
 package com.example.canvasgraph
 
 import kotlin.math.PI
+import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 /**
  * A generic directed edge used exclusively for layout computation.
@@ -363,5 +365,197 @@ class HierarchicalLayoutEngine : GraphLayoutEngine {
         } else {
             adjacentSwapOptimize(naturalOrder, aboveSorted, belowSorted, edges, naturalRank)
         }
+    }
+}
+
+/**
+ * Force-directed (Fruchterman–Reingold) layout engine for undirected cluster graphs.
+ * Finds connected components, runs a spring simulation within each, then arranges
+ * the settled components in a row-major grid.
+ * Suitable for category-scoped graphs where there is no natural root or hierarchy.
+ */
+class ForceDirectedLayoutEngine : GraphLayoutEngine {
+
+    override fun computePositions(
+        nodeIds: Set<Long>,
+        edges: List<LayoutEdge>,
+        rootId: Long?,
+    ): Map<Long, Pair<Float, Float>> {
+        if (nodeIds.isEmpty()) return emptyMap()
+        val components = findConnectedComponents(nodeIds.toList(), edges)
+        val settled = components.map { component ->
+            val compSet = component.toHashSet()
+            simulateComponent(
+                component,
+                edges.filter { it.fromId in compSet && it.toId in compSet },
+            )
+        }
+        return arrangeComponents(settled)
+    }
+
+    private fun findConnectedComponents(nodeIds: List<Long>, edges: List<LayoutEdge>): List<List<Long>> {
+        val parent = nodeIds.associateWith { it }.toMutableMap()
+
+        fun find(x: Long): Long {
+            var root = x
+            while (parent[root] != root) root = parent[root]!!
+            var curr = x
+            while (curr != root) {
+                val next = parent[curr]!!
+                parent[curr] = root
+                curr = next
+            }
+            return root
+        }
+
+        edges.forEach { edge ->
+            if (edge.fromId in parent && edge.toId in parent) {
+                val ra = find(edge.fromId)
+                val rb = find(edge.toId)
+                if (ra != rb) parent[ra] = rb
+            }
+        }
+        return nodeIds.groupBy { find(it) }.values.toList()
+    }
+
+    @Suppress("NestedBlockDepth")
+    private fun simulateComponent(
+        nodeIds: List<Long>,
+        edges: List<LayoutEdge>,
+    ): Map<Long, Pair<Float, Float>> {
+        val n = nodeIds.size
+        if (n == 1) return mapOf(nodeIds[0] to (0f to 0f))
+
+        val indexMap = nodeIds.withIndex().associate { (i, id) -> id to i }
+        val px = FloatArray(n)
+        val py = FloatArray(n)
+
+        // Deterministic circular initial placement
+        for (i in 0 until n) {
+            val angle = (2.0 * PI * i / n - PI / 2).toFloat()
+            val r = (n * K / (2.0 * PI)).toFloat().coerceAtLeast(K)
+            px[i] = r * cos(angle)
+            py[i] = r * sin(angle)
+        }
+
+        if (edges.isEmpty()) {
+            return nodeIds.mapIndexed { i, id -> id to (px[i] to py[i]) }.toMap()
+        }
+
+        val dx = FloatArray(n)
+        val dy = FloatArray(n)
+        var temp = K * INITIAL_TEMP_FACTOR
+
+        repeat(ITERATIONS) {
+            dx.fill(0f)
+            dy.fill(0f)
+
+            // Repulsion between every pair of nodes
+            for (i in 0 until n) {
+                for (j in i + 1 until n) {
+                    val rx = px[i] - px[j]
+                    val ry = py[i] - py[j]
+                    val dist = sqrt(rx * rx + ry * ry).coerceAtLeast(MIN_DIST)
+                    val force = K * K / dist
+                    val nx = rx / dist * force
+                    val ny = ry / dist * force
+                    dx[i] += nx
+                    dy[i] += ny
+                    dx[j] -= nx
+                    dy[j] -= ny
+                }
+            }
+
+            // Attraction along each edge
+            for (edge in edges) {
+                val i = indexMap[edge.fromId] ?: continue
+                val j = indexMap[edge.toId] ?: continue
+                val rx = px[i] - px[j]
+                val ry = py[i] - py[j]
+                val dist = sqrt(rx * rx + ry * ry).coerceAtLeast(MIN_DIST)
+                val force = dist * dist / K
+                val nx = rx / dist * force
+                val ny = ry / dist * force
+                dx[i] -= nx
+                dy[i] -= ny
+                dx[j] += nx
+                dy[j] += ny
+            }
+
+            // Apply displacements capped by current temperature
+            for (i in 0 until n) {
+                val dispLen = sqrt(dx[i] * dx[i] + dy[i] * dy[i]).coerceAtLeast(MIN_DIST)
+                val scale = minOf(dispLen, temp) / dispLen
+                px[i] += dx[i] * scale
+                py[i] += dy[i] * scale
+            }
+
+            temp *= COOLING
+        }
+
+        // Re-centre so that the bounding-box midpoint sits at the origin
+        val cxMean = px.average().toFloat()
+        val cyMean = py.average().toFloat()
+        for (i in 0 until n) {
+            px[i] -= cxMean
+            py[i] -= cyMean
+        }
+
+        return nodeIds.mapIndexed { i, id -> id to (px[i] to py[i]) }.toMap()
+    }
+
+    private fun arrangeComponents(settled: List<Map<Long, Pair<Float, Float>>>): Map<Long, Pair<Float, Float>> {
+        val result = mutableMapOf<Long, Pair<Float, Float>>()
+
+        // Half-extents for each component (positions are centred at origin after simulation)
+        val extW = settled.map { pos ->
+            if (pos.isEmpty()) 0f else pos.values.maxOf { abs(it.first) } + NODE_HALF_W
+        }
+        val extH = settled.map { pos ->
+            if (pos.isEmpty()) 0f else pos.values.maxOf { abs(it.second) } + NODE_HALF_H
+        }
+
+        // Largest components first
+        val order = settled.indices.sortedByDescending { settled[it].size }
+
+        var curX = 0f
+        var curY = 0f
+        var rowMaxH = 0f
+        var rowCount = 0
+
+        for (idx in order) {
+            val pos = settled[idx]
+            val ew = extW[idx]
+            val eh = extH[idx]
+
+            pos.forEach { (id, xy) ->
+                result[id] = (xy.first + curX + ew) to (xy.second + curY + eh)
+            }
+
+            rowMaxH = maxOf(rowMaxH, eh * 2 + COMPONENT_GAP)
+            rowCount++
+            if (rowCount >= MAX_PER_ROW) {
+                curX = 0f
+                curY += rowMaxH
+                rowMaxH = 0f
+                rowCount = 0
+            } else {
+                curX += ew * 2 + COMPONENT_GAP
+            }
+        }
+
+        return result
+    }
+
+    companion object {
+        private const val K = 220f
+        private const val ITERATIONS = 200
+        private const val COOLING = 0.95f
+        private const val INITIAL_TEMP_FACTOR = 2f
+        private const val MIN_DIST = 0.1f
+        private const val NODE_HALF_W = 110f
+        private const val NODE_HALF_H = 26f
+        private const val COMPONENT_GAP = 100f
+        private const val MAX_PER_ROW = 3
     }
 }
