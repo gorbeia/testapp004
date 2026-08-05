@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.sp
 import com.example.canvasgraph.EdgeStyle
 import com.example.canvasgraph.GraphEdge
 import com.example.canvasgraph.GraphNode
+import com.example.canvasgraph.LayoutEngineType
 import com.example.canvasgraph.NodeStyle
 import com.example.canvasgraph.RelationGraph
 import com.example.testapp004.model.RelationCategory
@@ -68,7 +69,9 @@ fun CategoryCanvasScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var isControlSheetOpen by remember { mutableStateOf(false) }
-    val hasActiveFilters = uiState.relationDistance > 0 || uiState.relationCategoryFilter.isNotEmpty()
+    val hasActiveFilters = uiState.relationDistance > 0 ||
+        uiState.relationCategoryFilter.isNotEmpty() ||
+        uiState.layoutEngineType != LayoutEngineType.ForceDirected
 
     Scaffold(
         topBar = {
@@ -146,8 +149,10 @@ fun CategoryCanvasScreen(
         CanvasControlSheet(
             relationDistance = uiState.relationDistance,
             relationCategoryFilter = uiState.relationCategoryFilter,
+            layoutEngineType = uiState.layoutEngineType,
             onDistanceChange = viewModel::setRelationDistance,
             onCategoryFilterToggle = viewModel::toggleRelationCategoryFilter,
+            onLayoutEngineTypeChange = viewModel::setLayoutEngineType,
             onDismiss = { isControlSheetOpen = false },
         )
     }
@@ -271,8 +276,10 @@ private fun rememberCategoryGraphEdges(edges: List<CanvasRelationEdge>): List<Gr
 private fun CanvasControlSheet(
     relationDistance: Int,
     relationCategoryFilter: Set<RelationCategory>,
+    layoutEngineType: LayoutEngineType,
     onDistanceChange: (Int) -> Unit,
     onCategoryFilterToggle: (RelationCategory) -> Unit,
+    onLayoutEngineTypeChange: (LayoutEngineType) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState()
@@ -286,6 +293,19 @@ private fun CanvasControlSheet(
                 .padding(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            Text("Layout", style = MaterialTheme.typography.titleSmall)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                LayoutEngineType.values().forEach { type ->
+                    FilterChip(
+                        selected = layoutEngineType == type,
+                        onClick = { onLayoutEngineTypeChange(type) },
+                        label = { Text(type.displayName) },
+                    )
+                }
+            }
             Text("Distance", style = MaterialTheme.typography.titleSmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 (0..2).forEach { d ->

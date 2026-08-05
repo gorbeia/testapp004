@@ -2,9 +2,9 @@ package com.example.testapp004.viewmodel
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
-import com.example.canvasgraph.GraphLayoutEngine
-import com.example.canvasgraph.HierarchicalLayoutEngine
 import com.example.canvasgraph.LayoutEdge
+import com.example.canvasgraph.LayoutEngineType
+import com.example.canvasgraph.createEngine
 import com.example.testapp004.data.AcquaintanceRepository
 import com.example.testapp004.data.RelationRepository
 import com.example.testapp004.model.RelationTypes
@@ -24,6 +24,7 @@ data class PersonCanvasUiState(
     val isLoading: Boolean = true,
     val error: String? = null,
     val relationDistance: Int = 0,
+    val layoutEngineType: LayoutEngineType = LayoutEngineType.Hierarchical,
     val isRelationDialogOpen: Boolean = false,
     val pendingRelationFromId: Long? = null,
     val pendingRelationToId: Long? = null,
@@ -38,12 +39,12 @@ class PersonCanvasViewModel @Inject constructor(
     relationRepository: RelationRepository,
 ) : CanvasViewModel(relationRepository) {
     val acquaintanceId: Long = checkNotNull(savedStateHandle["acquaintanceId"])
-    private val layoutEngine: GraphLayoutEngine = HierarchicalLayoutEngine()
 
     private val _uiState = MutableStateFlow(PersonCanvasUiState())
     val uiState: StateFlow<PersonCanvasUiState> = _uiState.asStateFlow()
 
     private val relationDistanceFlow = MutableStateFlow(0)
+    private val layoutEngineTypeFlow = MutableStateFlow(LayoutEngineType.Hierarchical)
 
     override val dialogFromId get() = _uiState.value.pendingRelationFromId
     override val dialogToId get() = _uiState.value.pendingRelationToId
@@ -74,7 +75,8 @@ class PersonCanvasViewModel @Inject constructor(
                 acquaintanceRepository.acquaintances,
                 relationRepository.relations,
                 relationDistanceFlow,
-            ) { acquaintances, relations, distance ->
+                layoutEngineTypeFlow,
+            ) { acquaintances, relations, distance, engineType ->
                 val centerPerson = acquaintances.find { it.id == acquaintanceId }
                     ?: return@combine PersonCanvasUiState(isLoading = false)
 
@@ -91,6 +93,7 @@ class PersonCanvasViewModel @Inject constructor(
                         edges = emptyList(),
                         isLoading = false,
                         relationDistance = distance,
+                        layoutEngineType = engineType,
                     )
                 }
 
@@ -137,7 +140,7 @@ class PersonCanvasViewModel @Inject constructor(
                 val layoutEdges = visibleRelations.map { rel ->
                     LayoutEdge(rel.fromId, rel.toId, RelationTypes.findByKey(rel.typeKey)?.verticalDelta ?: 0)
                 }
-                val positions = layoutEngine.computePositions(
+                val layoutResult = engineType.createEngine().computePositions(
                     nodeIds = visibleIds,
                     edges = layoutEdges,
                     rootId = acquaintanceId,
@@ -146,7 +149,7 @@ class PersonCanvasViewModel @Inject constructor(
                 val nodes = buildCanvasNodes(
                     acquaintances = acquaintances,
                     visibleIds = visibleIds,
-                    positions = positions,
+                    positions = layoutResult.positions,
                     distanceMap = distanceMap,
                     visibleRelations = visibleRelations,
                     isDirectMember = { id -> id == acquaintanceId },
@@ -159,6 +162,7 @@ class PersonCanvasViewModel @Inject constructor(
                     edges = edges,
                     isLoading = false,
                     relationDistance = distance,
+                    layoutEngineType = engineType,
                 )
             }.collect { newState ->
                 _uiState.update { current ->
@@ -176,5 +180,9 @@ class PersonCanvasViewModel @Inject constructor(
 
     fun setRelationDistance(d: Int) {
         relationDistanceFlow.value = d.coerceIn(0, 2)
+    }
+
+    fun setLayoutEngineType(type: LayoutEngineType) {
+        layoutEngineTypeFlow.value = type
     }
 }

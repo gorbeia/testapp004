@@ -1,6 +1,7 @@
 package com.example.testapp004
 
 import androidx.lifecycle.SavedStateHandle
+import com.example.canvasgraph.LayoutEngineType
 import com.example.testapp004.model.RelationCategory
 import com.example.testapp004.util.MainDispatcherRule
 import com.example.testapp004.viewmodel.PersonCanvasViewModel
@@ -406,5 +407,29 @@ class PersonCanvasViewModelTest {
         val vm = createViewModel(aliceId)
         vm.setRelationDistance(1)
         assertEquals(2, vm.uiState.value.edges.size)
+    }
+
+    // --- Layout engine selector tests ---
+
+    @Test
+    fun `layoutEngineType defaults to Hierarchical`() {
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
+        assertEquals(LayoutEngineType.Hierarchical, createViewModel(aliceId).uiState.value.layoutEngineType)
+    }
+
+    @Test
+    fun `setLayoutEngineType updates layoutEngineType in uiState`() {
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
+        val vm = createViewModel(aliceId)
+        vm.setLayoutEngineType(LayoutEngineType.ForceDirected)
+        assertEquals(LayoutEngineType.ForceDirected, vm.uiState.value.layoutEngineType)
+    }
+
+    @Test
+    fun `setLayoutEngineType to Radial updates layoutEngineType in uiState`() {
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
+        val vm = createViewModel(aliceId)
+        vm.setLayoutEngineType(LayoutEngineType.Radial)
+        assertEquals(LayoutEngineType.Radial, vm.uiState.value.layoutEngineType)
     }
 }

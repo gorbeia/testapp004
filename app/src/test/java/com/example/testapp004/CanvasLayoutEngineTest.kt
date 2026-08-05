@@ -16,7 +16,7 @@ class CanvasLayoutEngineTest {
     fun `radial layout assigns a position to every node`() {
         val engine = RadialLayoutEngine()
         val nodeIds = setOf(1L, 2L, 3L)
-        val positions = engine.computePositions(nodeIds, emptyList())
+        val positions = engine.computePositions(nodeIds, emptyList()).positions
         assertEquals(3, positions.size)
         assertTrue(nodeIds.all { it in positions })
     }
@@ -24,7 +24,7 @@ class CanvasLayoutEngineTest {
     @Test
     fun `radial layout handles a single isolated node`() {
         val engine = RadialLayoutEngine()
-        val positions = engine.computePositions(setOf(42L), emptyList())
+        val positions = engine.computePositions(setOf(42L), emptyList()).positions
         assertEquals(1, positions.size)
         assertTrue(42L in positions)
     }
@@ -32,15 +32,15 @@ class CanvasLayoutEngineTest {
     @Test
     fun `radial layout handles empty graph`() {
         val engine = RadialLayoutEngine()
-        val positions = engine.computePositions(emptySet(), emptyList())
-        assertTrue(positions.isEmpty())
+        val result = engine.computePositions(emptySet(), emptyList())
+        assertTrue(result.positions.isEmpty())
     }
 
     @Test
     fun `radial layout assigns positions to connected nodes`() {
         val engine = RadialLayoutEngine()
         val edge = LayoutEdge(fromId = 1L, toId = 2L)
-        val positions = engine.computePositions(setOf(1L, 2L), listOf(edge))
+        val positions = engine.computePositions(setOf(1L, 2L), listOf(edge)).positions
         assertEquals(2, positions.size)
     }
 
@@ -48,7 +48,7 @@ class CanvasLayoutEngineTest {
     fun `radial layout places isolated nodes separately from connected cluster`() {
         val engine = RadialLayoutEngine()
         val edge = LayoutEdge(fromId = 1L, toId = 2L)
-        val positions = engine.computePositions(setOf(1L, 2L, 99L), listOf(edge))
+        val positions = engine.computePositions(setOf(1L, 2L, 99L), listOf(edge)).positions
         assertEquals(3, positions.size)
         val pos99 = positions[99L]!!
         assertTrue(positions.entries.none { (id, pos) -> id != 99L && pos == pos99 })
@@ -58,7 +58,7 @@ class CanvasLayoutEngineTest {
     fun `radial layout ignores edges referencing nodes outside the visible set`() {
         val engine = RadialLayoutEngine()
         val edge = LayoutEdge(fromId = 1L, toId = 999L)
-        val positions = engine.computePositions(setOf(1L, 2L), listOf(edge))
+        val positions = engine.computePositions(setOf(1L, 2L), listOf(edge)).positions
         assertEquals(2, positions.size)
     }
 
@@ -68,7 +68,7 @@ class CanvasLayoutEngineTest {
     fun `force-directed layout assigns a position to every node`() {
         val engine = ForceDirectedLayoutEngine()
         val nodeIds = setOf(1L, 2L, 3L)
-        val positions = engine.computePositions(nodeIds, emptyList())
+        val positions = engine.computePositions(nodeIds, emptyList()).positions
         assertEquals(3, positions.size)
         assertTrue(nodeIds.all { it in positions })
     }
@@ -76,7 +76,7 @@ class CanvasLayoutEngineTest {
     @Test
     fun `force-directed layout handles a single isolated node`() {
         val engine = ForceDirectedLayoutEngine()
-        val positions = engine.computePositions(setOf(42L), emptyList())
+        val positions = engine.computePositions(setOf(42L), emptyList()).positions
         assertEquals(1, positions.size)
         assertTrue(42L in positions)
     }
@@ -84,15 +84,15 @@ class CanvasLayoutEngineTest {
     @Test
     fun `force-directed layout handles empty graph`() {
         val engine = ForceDirectedLayoutEngine()
-        val positions = engine.computePositions(emptySet(), emptyList())
-        assertTrue(positions.isEmpty())
+        val result = engine.computePositions(emptySet(), emptyList())
+        assertTrue(result.positions.isEmpty())
     }
 
     @Test
     fun `force-directed layout assigns positions to connected nodes`() {
         val engine = ForceDirectedLayoutEngine()
         val edge = LayoutEdge(fromId = 1L, toId = 2L)
-        val positions = engine.computePositions(setOf(1L, 2L), listOf(edge))
+        val positions = engine.computePositions(setOf(1L, 2L), listOf(edge)).positions
         assertEquals(2, positions.size)
     }
 
@@ -100,7 +100,7 @@ class CanvasLayoutEngineTest {
     fun `force-directed layout places isolated nodes separately from connected cluster`() {
         val engine = ForceDirectedLayoutEngine()
         val edge = LayoutEdge(fromId = 1L, toId = 2L)
-        val positions = engine.computePositions(setOf(1L, 2L, 99L), listOf(edge))
+        val positions = engine.computePositions(setOf(1L, 2L, 99L), listOf(edge)).positions
         assertEquals(3, positions.size)
         val pos99 = positions[99L]!!
         assertTrue(positions.entries.none { (id, pos) -> id != 99L && pos == pos99 })
@@ -110,7 +110,7 @@ class CanvasLayoutEngineTest {
     fun `force-directed layout ignores edges referencing nodes outside the visible set`() {
         val engine = ForceDirectedLayoutEngine()
         val edge = LayoutEdge(fromId = 1L, toId = 999L)
-        val positions = engine.computePositions(setOf(1L, 2L), listOf(edge))
+        val positions = engine.computePositions(setOf(1L, 2L), listOf(edge)).positions
         assertEquals(2, positions.size)
     }
 
@@ -118,7 +118,7 @@ class CanvasLayoutEngineTest {
     fun `force-directed layout places connected nodes closer than isolated nodes`() {
         val engine = ForceDirectedLayoutEngine()
         val edge = LayoutEdge(fromId = 1L, toId = 2L)
-        val positions = engine.computePositions(setOf(1L, 2L, 3L), listOf(edge))
+        val positions = engine.computePositions(setOf(1L, 2L, 3L), listOf(edge)).positions
         val (x1, y1) = positions[1L]!!
         val (x2, y2) = positions[2L]!!
         val (x3, y3) = positions[3L]!!
@@ -135,8 +135,8 @@ class CanvasLayoutEngineTest {
             LayoutEdge(fromId = 2L, toId = 3L),
         )
         val nodes = setOf(1L, 2L, 3L, 4L)
-        val pos1 = engine.computePositions(nodes, edges)
-        val pos2 = engine.computePositions(nodes, edges)
+        val pos1 = engine.computePositions(nodes, edges).positions
+        val pos2 = engine.computePositions(nodes, edges).positions
         nodes.forEach { id ->
             assertEquals(pos1[id]!!.first, pos2[id]!!.first, 0.001f)
             assertEquals(pos1[id]!!.second, pos2[id]!!.second, 0.001f)
@@ -148,14 +148,14 @@ class CanvasLayoutEngineTest {
     @Test
     fun `hierarchical layout returns empty map when rootId is null`() {
         val engine = HierarchicalLayoutEngine()
-        val positions = engine.computePositions(setOf(1L, 2L), emptyList())
-        assertTrue(positions.isEmpty())
+        val result = engine.computePositions(setOf(1L, 2L), emptyList())
+        assertTrue(result.positions.isEmpty())
     }
 
     @Test
     fun `hierarchical layout assigns positions to all visible nodes`() {
         val engine = HierarchicalLayoutEngine()
-        val positions = engine.computePositions(setOf(1L, 2L, 3L), emptyList(), rootId = 1L)
+        val positions = engine.computePositions(setOf(1L, 2L, 3L), emptyList(), rootId = 1L).positions
         assertEquals(3, positions.size)
         assertTrue(setOf(1L, 2L, 3L).all { it in positions })
     }
@@ -164,7 +164,7 @@ class CanvasLayoutEngineTest {
     fun `hierarchical layout places root at origin`() {
         val engine = HierarchicalLayoutEngine()
         val edge = LayoutEdge(fromId = 2L, toId = 1L) // symmetric edge, weight 0
-        val positions = engine.computePositions(setOf(1L, 2L), listOf(edge), rootId = 1L)
+        val positions = engine.computePositions(setOf(1L, 2L), listOf(edge), rootId = 1L).positions
         val root = positions[1L]!!
         assertEquals(0f, root.first, 0.001f)
         assertEquals(0f, root.second, 0.001f)
@@ -175,7 +175,7 @@ class CanvasLayoutEngineTest {
         val engine = HierarchicalLayoutEngine()
         // Bob (fromId=2) is parent of Alice (toId=1, the root). verticalWeight=1 (PARENT_CHILD).
         val edge = LayoutEdge(fromId = 2L, toId = 1L, verticalWeight = 1)
-        val positions = engine.computePositions(setOf(1L, 2L), listOf(edge), rootId = 1L)
+        val positions = engine.computePositions(setOf(1L, 2L), listOf(edge), rootId = 1L).positions
         val parentY = positions[2L]!!.second
         assertTrue("Parent should be above center (y < 0)", parentY < 0f)
     }
@@ -185,7 +185,7 @@ class CanvasLayoutEngineTest {
         val engine = HierarchicalLayoutEngine()
         // Alice (fromId=1, the root) is parent of Bob (toId=2). verticalWeight=1 (PARENT_CHILD).
         val edge = LayoutEdge(fromId = 1L, toId = 2L, verticalWeight = 1)
-        val positions = engine.computePositions(setOf(1L, 2L), listOf(edge), rootId = 1L)
+        val positions = engine.computePositions(setOf(1L, 2L), listOf(edge), rootId = 1L).positions
         val childY = positions[2L]!!.second
         assertTrue("Child should be below center (y > 0)", childY > 0f)
     }
@@ -194,7 +194,7 @@ class CanvasLayoutEngineTest {
     fun `hierarchical layout places sibling at same y as center`() {
         val engine = HierarchicalLayoutEngine()
         val edge = LayoutEdge(fromId = 1L, toId = 2L, verticalWeight = 0) // SIBLING weight=0
-        val positions = engine.computePositions(setOf(1L, 2L), listOf(edge), rootId = 1L)
+        val positions = engine.computePositions(setOf(1L, 2L), listOf(edge), rootId = 1L).positions
         val siblingY = positions[2L]!!.second
         assertEquals(0f, siblingY, 0.001f)
     }
@@ -202,7 +202,7 @@ class CanvasLayoutEngineTest {
     @Test
     fun `hierarchical layout single node is placed at origin`() {
         val engine = HierarchicalLayoutEngine()
-        val positions = engine.computePositions(setOf(5L), emptyList(), rootId = 5L)
+        val positions = engine.computePositions(setOf(5L), emptyList(), rootId = 5L).positions
         val pos = positions[5L]!!
         assertEquals(0f, pos.first, 0.001f)
         assertEquals(0f, pos.second, 0.001f)
@@ -212,7 +212,7 @@ class CanvasLayoutEngineTest {
     fun `hierarchical layout disconnected nodes default to same level as root`() {
         val engine = HierarchicalLayoutEngine()
         val edge = LayoutEdge(fromId = 1L, toId = 2L)
-        val positions = engine.computePositions(setOf(1L, 2L, 3L), listOf(edge), rootId = 1L)
+        val positions = engine.computePositions(setOf(1L, 2L, 3L), listOf(edge), rootId = 1L).positions
         val isolatedY = positions[3L]!!.second
         assertEquals(0f, isolatedY, 0.001f)
     }
@@ -239,7 +239,7 @@ class CanvasLayoutEngineTest {
             nodeIds = setOf(1L, 2L, 3L, 4L, 5L, 6L, 7L),
             edges = relations,
             rootId = 1L,
-        )
+        ).positions
         val fernandoX = positions[2L]!!.first
         val estiX = positions[1L]!!.first
         val inigoX = positions[3L]!!.first
@@ -270,7 +270,7 @@ class CanvasLayoutEngineTest {
             nodeIds = setOf(1L, 2L, 3L, 4L, 5L, 6L, 7L),
             edges = relations,
             rootId = 1L,
-        )
+        ).positions
         val fernandoX = positions[2L]!!.first
         val inigoX = positions[3L]!!.first
         assertTrue("Fernando (with children) should be left of Inigo (no children)", fernandoX < inigoX)
@@ -293,7 +293,7 @@ class CanvasLayoutEngineTest {
             nodeIds = setOf(1L, 2L, 3L, 10L, 11L),
             edges = relations,
             rootId = 1L,
-        )
+        ).positions
         val sibLX = positions[2L]!!.first
         val sibRX = positions[3L]!!.first
         assertTrue(
@@ -311,8 +311,8 @@ class CanvasLayoutEngineTest {
             LayoutEdge(fromId = 6L, toId = 3L, verticalWeight = 1),
         )
         val nodes = setOf(1L, 2L, 3L, 6L)
-        val pos1 = engine.computePositions(nodes, relations, rootId = 1L)
-        val pos2 = engine.computePositions(nodes, relations, rootId = 1L)
+        val pos1 = engine.computePositions(nodes, relations, rootId = 1L).positions
+        val pos2 = engine.computePositions(nodes, relations, rootId = 1L).positions
         assertEquals(pos1[2L]!!.first, pos2[2L]!!.first, 0.001f)
         assertEquals(pos1[3L]!!.first, pos2[3L]!!.first, 0.001f)
     }

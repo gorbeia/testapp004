@@ -1,5 +1,9 @@
 package com.example.canvasgraph
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -8,7 +12,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -36,6 +39,8 @@ import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 
 private const val NODE_HALF_H = 26f
 private const val NODE_MAX_HALF_W = 110f
@@ -54,6 +59,10 @@ private const val ARC_BEND = 60f
  * - Pinch / two-finger drag → pan and zoom
  * - Single tap on a node → [onNodeTap]
  * - Long-press drag from one node onto another → [onRelationDrop]
+ *
+ * Node positions animate smoothly with a low-stiffness spring whenever the
+ * [nodes] list changes coordinates (e.g. when switching layout engines).
+ * Pass an external [viewportState] to read or override zoom and pan from outside.
  */
 @Composable
 fun RelationGraph(
@@ -63,12 +72,11 @@ fun RelationGraph(
     onRelationDrop: (fromId: Long, toId: Long) -> Unit = { _, _ -> },
     dropTargetHighlightColor: Color = MaterialTheme.colorScheme.tertiary,
     nodeTextStyle: TextStyle = MaterialTheme.typography.labelMedium,
+    viewportState: GraphViewportState = rememberGraphViewportState(),
     modifier: Modifier = Modifier,
 ) {
     val nodeMap = remember(nodes) { nodes.associateBy { it.id } }
 
-    var zoom by remember { mutableFloatStateOf(1f) }
-    var panOffset by remember { mutableStateOf(Offset.Zero) }
     var canvasSize by remember { mutableStateOf(Size.Zero) }
 
     var isDragging by remember { mutableStateOf(false) }
@@ -85,13 +93,38 @@ fun RelationGraph(
         val maxY = nodes.maxOf { it.y } + NODE_HALF_H + padding
         val contentW = maxX - minX
         val contentH = maxY - minY
-        zoom = minOf(canvasSize.width / contentW, canvasSize.height / contentH, 1.2f)
+        viewportState.zoom = minOf(canvasSize.width / contentW, canvasSize.height / contentH, 1.2f)
             .coerceAtLeast(0.1f)
-        panOffset = Offset(
-            (canvasSize.width - contentW * zoom) / 2f - minX * zoom,
-            (canvasSize.height - contentH * zoom) / 2f - minY * zoom,
+        viewportState.panOffset = Offset(
+            (canvasSize.width - contentW * viewportState.zoom) / 2f - minX * viewportState.zoom,
+            (canvasSize.height - contentH * viewportState.zoom) / 2f - minY * viewportState.zoom,
         )
     }
+
+    // Per-node Animatables that drive smooth position transitions when nodes change layout.
+    val xAnimatables = remember { mutableMapOf<Long, Animatable<Float, AnimationVector1D>>() }
+    val yAnimatables = remember { mutableMapOf<Long, Animatable<Float, AnimationVector1D>>() }
+    LaunchedEffect(nodes) {
+        val currentIds = nodes.map { it.id }.toSet()
+        xAnimatables.keys.retainAll(currentIds)
+        yAnimatables.keys.retainAll(currentIds)
+        coroutineScope {
+            nodes.forEach { node ->
+                val xa = xAnimatables.getOrPut(node.id) { Animatable(node.x) }
+                val ya = yAnimatables.getOrPut(node.id) { Animatable(node.y) }
+                launch { xa.animateTo(node.x, spring(stiffness = Spring.StiffnessLow)) }
+                launch { ya.animateTo(node.y, spring(stiffness = Spring.StiffnessLow)) }
+            }
+        }
+    }
+
+    // Reading animatable .value here registers snapshot observations that drive recomposition.
+    val animatedNodes = nodes.map { node ->
+        val x = xAnimatables[node.id]?.value ?: node.x
+        val y = yAnimatables[node.id]?.value ?: node.y
+        node.copy(x = x, y = y)
+    }
+    val animatedNodeMap = animatedNodes.associateBy { it.id }
 
     val textMeasurer = rememberTextMeasurer()
     val nodeHalfWidths = remember(nodes, textMeasurer, nodeTextStyle) {
@@ -113,16 +146,17 @@ fun RelationGraph(
             .pointerInput(Unit) {
                 detectTransformGestures { centroid, pan, zoomChange, _ ->
                     if (!isDragging) {
-                        val newZoom = (zoom * zoomChange).coerceIn(0.1f, 5f)
-                        panOffset = centroid - (centroid - panOffset) * (newZoom / zoom) + pan
-                        zoom = newZoom
+                        val newZoom = (viewportState.zoom * zoomChange).coerceIn(0.1f, 5f)
+                        viewportState.panOffset = centroid -
+                            (centroid - viewportState.panOffset) * (newZoom / viewportState.zoom) + pan
+                        viewportState.zoom = newZoom
                     }
                 }
             }
-            .pointerInput(nodes, zoom, panOffset) {
+            .pointerInput(nodes) {
                 detectTapGestures { tapOffset ->
-                    val vx = (tapOffset.x - panOffset.x) / zoom
-                    val vy = (tapOffset.y - panOffset.y) / zoom
+                    val vx = (tapOffset.x - viewportState.panOffset.x) / viewportState.zoom
+                    val vy = (tapOffset.y - viewportState.panOffset.y) / viewportState.zoom
                     nodes.firstOrNull { node ->
                         val dx = vx - node.x
                         val dy = vy - node.y
@@ -131,11 +165,11 @@ fun RelationGraph(
                     }?.let { onNodeTap(it.id) }
                 }
             }
-            .pointerInput(nodes, zoom, panOffset) {
+            .pointerInput(nodes) {
                 detectDragGesturesAfterLongPress(
                     onDragStart = { offset ->
-                        val vx = (offset.x - panOffset.x) / zoom
-                        val vy = (offset.y - panOffset.y) / zoom
+                        val vx = (offset.x - viewportState.panOffset.x) / viewportState.zoom
+                        val vy = (offset.y - viewportState.panOffset.y) / viewportState.zoom
                         val node = nodes.firstOrNull { n ->
                             abs(vx - n.x) <= (nodeHalfWidths[n.id] ?: NODE_MAX_HALF_W) &&
                                 abs(vy - n.y) <= NODE_HALF_H
@@ -149,8 +183,8 @@ fun RelationGraph(
                     onDrag = { change, _ ->
                         if (isDragging) {
                             dragScreenPos = change.position
-                            val vx = (change.position.x - panOffset.x) / zoom
-                            val vy = (change.position.y - panOffset.y) / zoom
+                            val vx = (change.position.x - viewportState.panOffset.x) / viewportState.zoom
+                            val vy = (change.position.y - viewportState.panOffset.y) / viewportState.zoom
                             dropTargetId = nodes.firstOrNull { n ->
                                 n.id != draggedNodeId &&
                                     abs(vx - n.x) <= (nodeHalfWidths[n.id] ?: NODE_MAX_HALF_W) &&
@@ -178,8 +212,8 @@ fun RelationGraph(
             },
     ) {
         withTransform({
-            translate(panOffset.x, panOffset.y)
-            scale(zoom, zoom, Offset.Zero)
+            translate(viewportState.panOffset.x, viewportState.panOffset.y)
+            scale(viewportState.zoom, viewportState.zoom, Offset.Zero)
         }) {
             // Fan out parallel edges between the same pair of nodes so they don't overlap.
             // Arc direction is canonicalised in the smaller-id → larger-id frame for consistency.
@@ -196,8 +230,8 @@ fun RelationGraph(
             }
 
             edges.forEach { edge ->
-                val from = nodeMap[edge.fromId] ?: return@forEach
-                val to = nodeMap[edge.toId] ?: return@forEach
+                val from = animatedNodeMap[edge.fromId] ?: return@forEach
+                val to = animatedNodeMap[edge.toId] ?: return@forEach
                 drawGraphEdge(
                     from = Offset(from.x, from.y),
                     to = Offset(to.x, to.y),
@@ -209,13 +243,13 @@ fun RelationGraph(
                     style = edge.style,
                     drawArrow = !edge.isSymmetric,
                     arcSide = arcSides[edge.id] ?: 0,
-                    allNodes = nodes,
+                    allNodes = animatedNodes,
                     allHalfWidths = nodeHalfWidths,
                     textMeasurer = textMeasurer,
                 )
             }
 
-            nodes.forEach { node ->
+            animatedNodes.forEach { node ->
                 val isDropTarget = isDragging && node.id == dropTargetId
                 val isDragSource = isDragging && node.id == draggedNodeId
                 val hw = nodeHalfWidths[node.id] ?: NODE_MAX_HALF_W
@@ -262,10 +296,10 @@ fun RelationGraph(
             }
 
             if (isDragging) {
-                val ghostNode = draggedNodeId?.let { nodeMap[it] }
+                val ghostNode = draggedNodeId?.let { animatedNodeMap[it] }
                 if (ghostNode != null) {
-                    val ghostCanvasX = (dragScreenPos.x - panOffset.x) / zoom
-                    val ghostCanvasY = (dragScreenPos.y - panOffset.y) / zoom
+                    val ghostCanvasX = (dragScreenPos.x - viewportState.panOffset.x) / viewportState.zoom
+                    val ghostCanvasY = (dragScreenPos.y - viewportState.panOffset.y) / viewportState.zoom
                     val ghostStroke = if (dropTargetId != null) {
                         dropTargetHighlightColor
                     } else {
