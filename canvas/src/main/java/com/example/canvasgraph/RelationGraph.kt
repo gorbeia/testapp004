@@ -34,13 +34,13 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
 
 private const val NODE_HALF_H = 26f
 private const val NODE_MAX_HALF_W = 110f
