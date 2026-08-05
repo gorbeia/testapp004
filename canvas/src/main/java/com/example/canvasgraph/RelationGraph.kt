@@ -448,7 +448,7 @@ private fun DrawScope.drawGraphEdge(
     if (label.isNotBlank()) {
         val measured = textMeasurer.measure(
             text = label,
-            style = TextStyle(fontSize = 11.sp, color = style.labelColor),
+            style = TextStyle(fontSize = style.labelFontSize, color = style.labelColor),
             overflow = TextOverflow.Ellipsis,
             maxLines = 1,
         )

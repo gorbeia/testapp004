@@ -1,6 +1,8 @@
 package com.example.canvasgraph
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.sp
 
 /**
  * Visual style for a rendered graph edge. All colors are pre-resolved by the caller.
@@ -10,6 +12,7 @@ data class EdgeStyle(
     val labelColor: Color,
     /** When non-null, a filled rounded rect is drawn behind the edge label for legibility. */
     val labelBgColor: Color? = null,
+    val labelFontSize: TextUnit = 11.sp,
 )
 
 /**
