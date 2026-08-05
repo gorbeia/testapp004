@@ -239,6 +239,7 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | Canvas node position animation on layout switch (spring-based `Animatable`) | ✅ Done | [ADR-045](docs/decisions/ADR-045-layout-engine-configurability.md) |
 | `LayoutResult` with bounding-box fields replacing bare Map from `computePositions()` | ✅ Done | [ADR-045](docs/decisions/ADR-045-layout-engine-configurability.md) |
 | `GraphViewportState` — observable zoom/pan state for `RelationGraph` | ✅ Done | [ADR-045](docs/decisions/ADR-045-layout-engine-configurability.md) |
+| Canvas viewport persistence across back-navigation (`rememberSaveable` + custom Saver) | ✅ Done | [ADR-046](docs/decisions/ADR-046-canvas-viewport-persistence.md) |
 
 ---
 
@@ -291,3 +292,4 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | [ADR-043](docs/decisions/ADR-043-android-canvas-shared-library.md) | Canvas shared library: `:canvas` module with `RelationGraph` composable and generic layout engines | 2026-08-05 |
 | [ADR-044](docs/decisions/ADR-044-force-directed-category-canvas.md) | Category canvas: Fruchterman–Reingold force-directed layout replacing circle layout | 2026-08-05 |
 | [ADR-045](docs/decisions/ADR-045-layout-engine-configurability.md) | Canvas layout engine configurability: LayoutResult, GraphViewportState, node animation, in-app engine selector | 2026-08-05 |
+| [ADR-046](docs/decisions/ADR-046-canvas-viewport-persistence.md) | Canvas viewport persistence across back-navigation via rememberSaveable with listSaver | 2026-08-05 |

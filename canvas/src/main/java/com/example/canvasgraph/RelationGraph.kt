@@ -86,6 +86,7 @@ fun RelationGraph(
 
     LaunchedEffect(nodes, canvasSize) {
         if (nodes.isEmpty() || canvasSize == Size.Zero) return@LaunchedEffect
+        if (viewportState.zoom != 1f || viewportState.panOffset != Offset.Zero) return@LaunchedEffect
         val padding = 80f
         val minX = nodes.minOf { it.x } - NODE_MAX_HALF_W - padding
         val minY = nodes.minOf { it.y } - NODE_HALF_H - padding
