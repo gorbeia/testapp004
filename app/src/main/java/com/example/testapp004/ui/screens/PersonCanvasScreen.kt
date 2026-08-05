@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.sp
 import com.example.canvasgraph.EdgeStyle
 import com.example.canvasgraph.GraphEdge
 import com.example.canvasgraph.GraphNode
+import com.example.canvasgraph.LayoutEngineType
 import com.example.canvasgraph.NodeStyle
 import com.example.canvasgraph.RelationGraph
 import com.example.testapp004.model.RelationCategory
@@ -107,7 +108,9 @@ internal fun PersonCanvasContent(
     if (isControlSheetOpen) {
         PersonCanvasControlSheet(
             relationDistance = uiState.relationDistance,
+            layoutEngineType = uiState.layoutEngineType,
             onDistanceChange = viewModel::setRelationDistance,
+            onLayoutEngineTypeChange = viewModel::setLayoutEngineType,
             onDismiss = onControlSheetDismiss,
         )
     }
@@ -236,7 +239,9 @@ private fun rememberPersonGraphEdges(edges: List<CanvasRelationEdge>): List<Grap
 @Composable
 private fun PersonCanvasControlSheet(
     relationDistance: Int,
+    layoutEngineType: LayoutEngineType,
     onDistanceChange: (Int) -> Unit,
+    onLayoutEngineTypeChange: (LayoutEngineType) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState()
@@ -247,6 +252,19 @@ private fun PersonCanvasControlSheet(
                 .padding(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            Text("Layout", style = MaterialTheme.typography.titleSmall)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                LayoutEngineType.values().forEach { type ->
+                    FilterChip(
+                        selected = layoutEngineType == type,
+                        onClick = { onLayoutEngineTypeChange(type) },
+                        label = { Text(type.displayName) },
+                    )
+                }
+            }
             Text("Distance", style = MaterialTheme.typography.titleSmall)
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),

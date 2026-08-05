@@ -25,7 +25,7 @@ interface GraphLayoutEngine {
         nodeIds: Set<Long>,
         edges: List<LayoutEdge>,
         rootId: Long? = null,
-    ): Map<Long, Pair<Float, Float>>
+    ): LayoutResult
 }
 
 /**
@@ -37,9 +37,9 @@ class RadialLayoutEngine : GraphLayoutEngine {
         nodeIds: Set<Long>,
         edges: List<LayoutEdge>,
         rootId: Long?,
-    ): Map<Long, Pair<Float, Float>> {
+    ): LayoutResult {
         val components = findConnectedComponents(nodeIds.toList(), edges)
-        return placeComponents(components)
+        return placeComponents(components).toLayoutResult()
     }
 
     private fun findConnectedComponents(nodeIds: List<Long>, edges: List<LayoutEdge>): List<List<Long>> {
@@ -119,9 +119,9 @@ class HierarchicalLayoutEngine : GraphLayoutEngine {
         nodeIds: Set<Long>,
         edges: List<LayoutEdge>,
         rootId: Long?,
-    ): Map<Long, Pair<Float, Float>> {
-        val centerId = rootId ?: return emptyMap()
-        return computeHierarchicalPositions(centerId, nodeIds, edges)
+    ): LayoutResult {
+        val centerId = rootId ?: return LayoutResult.Empty
+        return computeHierarchicalPositions(centerId, nodeIds, edges).toLayoutResult()
     }
 
     private fun computeHierarchicalPositions(
@@ -379,8 +379,8 @@ class ForceDirectedLayoutEngine : GraphLayoutEngine {
         nodeIds: Set<Long>,
         edges: List<LayoutEdge>,
         rootId: Long?,
-    ): Map<Long, Pair<Float, Float>> {
-        if (nodeIds.isEmpty()) return emptyMap()
+    ): LayoutResult {
+        if (nodeIds.isEmpty()) return LayoutResult.Empty
         val components = findConnectedComponents(nodeIds.toList(), edges)
         val settled = components.map { component ->
             val compSet = component.toHashSet()
@@ -389,7 +389,7 @@ class ForceDirectedLayoutEngine : GraphLayoutEngine {
                 edges.filter { it.fromId in compSet && it.toId in compSet },
             )
         }
-        return arrangeComponents(settled)
+        return arrangeComponents(settled).toLayoutResult()
     }
 
     private fun findConnectedComponents(nodeIds: List<Long>, edges: List<LayoutEdge>): List<List<Long>> {
