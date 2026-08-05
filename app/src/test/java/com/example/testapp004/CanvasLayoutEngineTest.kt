@@ -141,16 +141,16 @@ class CanvasLayoutEngineTest {
         // parent layer (Juanje=6, Maite=7). Inigo(3) is Esti's sibling, also a child
         // of Juanje and Maite. Both Esti and Fernando are parents of Jon(4) and Irati(5).
         val relations = listOf(
-            LayoutEdge(fromId = 1L, toId = 2L, verticalWeight = 0), // SPOUSE
-            LayoutEdge(fromId = 1L, toId = 3L, verticalWeight = 0), // SIBLING
-            LayoutEdge(fromId = 6L, toId = 1L, verticalWeight = 1), // PARENT_CHILD
-            LayoutEdge(fromId = 6L, toId = 3L, verticalWeight = 1), // PARENT_CHILD
-            LayoutEdge(fromId = 7L, toId = 1L, verticalWeight = 1), // PARENT_CHILD
-            LayoutEdge(fromId = 7L, toId = 3L, verticalWeight = 1), // PARENT_CHILD
-            LayoutEdge(fromId = 1L, toId = 4L, verticalWeight = 1), // PARENT_CHILD
-            LayoutEdge(fromId = 1L, toId = 5L, verticalWeight = 1), // PARENT_CHILD
-            LayoutEdge(fromId = 2L, toId = 4L, verticalWeight = 1), // PARENT_CHILD
-            LayoutEdge(fromId = 2L, toId = 5L, verticalWeight = 1), // PARENT_CHILD
+            LayoutEdge(fromId = 1L, toId = 2L, verticalWeight = 0),
+            LayoutEdge(fromId = 1L, toId = 3L, verticalWeight = 0),
+            LayoutEdge(fromId = 6L, toId = 1L, verticalWeight = 1),
+            LayoutEdge(fromId = 6L, toId = 3L, verticalWeight = 1),
+            LayoutEdge(fromId = 7L, toId = 1L, verticalWeight = 1),
+            LayoutEdge(fromId = 7L, toId = 3L, verticalWeight = 1),
+            LayoutEdge(fromId = 1L, toId = 4L, verticalWeight = 1),
+            LayoutEdge(fromId = 1L, toId = 5L, verticalWeight = 1),
+            LayoutEdge(fromId = 2L, toId = 4L, verticalWeight = 1),
+            LayoutEdge(fromId = 2L, toId = 5L, verticalWeight = 1),
         )
         val positions = engine.computePositions(
             nodeIds = setOf(1L, 2L, 3L, 4L, 5L, 6L, 7L),
@@ -172,16 +172,16 @@ class CanvasLayoutEngineTest {
         // Both parents (Juanje=6, Maite=7) are parents of all three siblings.
         // Fernando additionally has children Jon(4) and Irati(5).
         val relations = listOf(
-            LayoutEdge(fromId = 1L, toId = 2L, verticalWeight = 0), // SIBLING
-            LayoutEdge(fromId = 1L, toId = 3L, verticalWeight = 0), // SIBLING
-            LayoutEdge(fromId = 6L, toId = 1L, verticalWeight = 1), // PARENT_CHILD
-            LayoutEdge(fromId = 6L, toId = 2L, verticalWeight = 1), // PARENT_CHILD
-            LayoutEdge(fromId = 6L, toId = 3L, verticalWeight = 1), // PARENT_CHILD
-            LayoutEdge(fromId = 7L, toId = 1L, verticalWeight = 1), // PARENT_CHILD
-            LayoutEdge(fromId = 7L, toId = 2L, verticalWeight = 1), // PARENT_CHILD
-            LayoutEdge(fromId = 7L, toId = 3L, verticalWeight = 1), // PARENT_CHILD
-            LayoutEdge(fromId = 2L, toId = 4L, verticalWeight = 1), // PARENT_CHILD
-            LayoutEdge(fromId = 2L, toId = 5L, verticalWeight = 1), // PARENT_CHILD
+            LayoutEdge(fromId = 1L, toId = 2L, verticalWeight = 0),
+            LayoutEdge(fromId = 1L, toId = 3L, verticalWeight = 0),
+            LayoutEdge(fromId = 6L, toId = 1L, verticalWeight = 1),
+            LayoutEdge(fromId = 6L, toId = 2L, verticalWeight = 1),
+            LayoutEdge(fromId = 6L, toId = 3L, verticalWeight = 1),
+            LayoutEdge(fromId = 7L, toId = 1L, verticalWeight = 1),
+            LayoutEdge(fromId = 7L, toId = 2L, verticalWeight = 1),
+            LayoutEdge(fromId = 7L, toId = 3L, verticalWeight = 1),
+            LayoutEdge(fromId = 2L, toId = 4L, verticalWeight = 1),
+            LayoutEdge(fromId = 2L, toId = 5L, verticalWeight = 1),
         )
         val positions = engine.computePositions(
             nodeIds = setOf(1L, 2L, 3L, 4L, 5L, 6L, 7L),
@@ -199,12 +199,12 @@ class CanvasLayoutEngineTest {
         // Root(1), SibL(2), SibR(3) at level 0; PL(10) and PR(11) at level 1.
         // PL is parent of Root and SibL; PR is parent of Root and SibR.
         val relations = listOf(
-            LayoutEdge(fromId = 1L, toId = 2L, verticalWeight = 0), // SIBLING
-            LayoutEdge(fromId = 1L, toId = 3L, verticalWeight = 0), // SIBLING
-            LayoutEdge(fromId = 10L, toId = 1L, verticalWeight = 1), // PARENT_CHILD
-            LayoutEdge(fromId = 10L, toId = 2L, verticalWeight = 1), // PARENT_CHILD
-            LayoutEdge(fromId = 11L, toId = 1L, verticalWeight = 1), // PARENT_CHILD
-            LayoutEdge(fromId = 11L, toId = 3L, verticalWeight = 1), // PARENT_CHILD
+            LayoutEdge(fromId = 1L, toId = 2L, verticalWeight = 0),
+            LayoutEdge(fromId = 1L, toId = 3L, verticalWeight = 0),
+            LayoutEdge(fromId = 10L, toId = 1L, verticalWeight = 1),
+            LayoutEdge(fromId = 10L, toId = 2L, verticalWeight = 1),
+            LayoutEdge(fromId = 11L, toId = 1L, verticalWeight = 1),
+            LayoutEdge(fromId = 11L, toId = 3L, verticalWeight = 1),
         )
         val positions = engine.computePositions(
             nodeIds = setOf(1L, 2L, 3L, 10L, 11L),
@@ -223,9 +223,9 @@ class CanvasLayoutEngineTest {
     fun `hierarchical layout is deterministic regardless of input set order`() {
         val engine = HierarchicalLayoutEngine()
         val relations = listOf(
-            LayoutEdge(fromId = 6L, toId = 1L, verticalWeight = 1), // PARENT_CHILD
-            LayoutEdge(fromId = 6L, toId = 2L, verticalWeight = 1), // PARENT_CHILD
-            LayoutEdge(fromId = 6L, toId = 3L, verticalWeight = 1), // PARENT_CHILD
+            LayoutEdge(fromId = 6L, toId = 1L, verticalWeight = 1),
+            LayoutEdge(fromId = 6L, toId = 2L, verticalWeight = 1),
+            LayoutEdge(fromId = 6L, toId = 3L, verticalWeight = 1),
         )
         val nodes = setOf(1L, 2L, 3L, 6L)
         val pos1 = engine.computePositions(nodes, relations, rootId = 1L)
