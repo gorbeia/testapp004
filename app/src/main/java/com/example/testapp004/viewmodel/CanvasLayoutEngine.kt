@@ -238,15 +238,25 @@ internal class HierarchicalLayoutEngine : CanvasLayoutEngine {
     }
 
     private fun permutations(ids: List<Long>): Sequence<List<Long>> = sequence {
-        if (ids.size <= 1) { yield(ids); return@sequence }
+        if (ids.size <= 1) {
+            yield(ids)
+            return@sequence
+        }
         val arr = ids.toMutableList()
         val c = IntArray(arr.size)
         yield(arr.toList())
         var i = 0
         while (i < arr.size) {
             if (c[i] < i) {
-                if (i % 2 == 0) { val tmp = arr[0]; arr[0] = arr[i]; arr[i] = tmp }
-                else { val tmp = arr[c[i]]; arr[c[i]] = arr[i]; arr[i] = tmp }
+                if (i % 2 == 0) {
+                    val tmp = arr[0]
+                    arr[0] = arr[i]
+                    arr[i] = tmp
+                } else {
+                    val tmp = arr[c[i]]
+                    arr[c[i]] = arr[i]
+                    arr[i] = tmp
+                }
                 yield(arr.toList())
                 c[i]++
                 i = 0
@@ -262,19 +272,28 @@ internal class HierarchicalLayoutEngine : CanvasLayoutEngine {
         aboveSorted: List<Long>,
         belowSorted: List<Long>,
         edges: List<Relation>,
+        naturalRank: Map<Long, Int>,
     ): List<Long> {
         val arr = ids.toMutableList()
-        fun crossings() =
-            countCrossings(arr, aboveSorted, edges) + countCrossings(arr, belowSorted, edges)
+
+        fun crossings() = countCrossings(arr, aboveSorted, edges) + countCrossings(arr, belowSorted, edges)
+
         var improved = true
         while (improved) {
             improved = false
             for (i in 0 until arr.size - 1) {
                 val before = crossings()
-                val tmp = arr[i]; arr[i] = arr[i + 1]; arr[i + 1] = tmp
+                val tmp = arr[i]
+                arr[i] = arr[i + 1]
+                arr[i + 1] = tmp
                 val after = crossings()
-                if (after > before || (after == before && arr[i] > arr[i + 1])) {
-                    val t = arr[i]; arr[i] = arr[i + 1]; arr[i + 1] = t
+                val leftRankAfter = naturalRank.getOrDefault(arr[i], 0)
+                val rightRankAfter = naturalRank.getOrDefault(arr[i + 1], 0)
+                val keepSwap = after < before || (after == before && leftRankAfter < rightRankAfter)
+                if (!keepSwap) {
+                    val t = arr[i]
+                    arr[i] = arr[i + 1]
+                    arr[i + 1] = t
                 } else {
                     improved = true
                 }
@@ -299,28 +318,29 @@ internal class HierarchicalLayoutEngine : CanvasLayoutEngine {
             .map { it.key }
             .sortedBy { positions[it]?.first ?: 0f }
 
+        val naturalOrder = ids.sortedWith(
+            compareBy(
+                { baryScore(it, level, levelMap, edges, positions) },
+                { upperNeighborCount(it, level, levelMap, edges) },
+                { -lowerNeighborCount(it, level, levelMap, edges) },
+                { it },
+            ),
+        )
+        val naturalRank = naturalOrder.withIndex().associate { (i, id) -> id to i }
+
         fun crossingsForCandidate(candidate: List<Long>): Int =
             countCrossings(candidate, aboveSorted, edges) + countCrossings(candidate, belowSorted, edges)
 
-        return when {
-            ids.size <= 6 -> {
-                permutations(ids)
-                    .minWithOrNull(
-                        compareBy({ crossingsForCandidate(it) }, { it.joinToString(",") }),
-                    ) ?: ids
-            }
-            ids.size <= 8 -> adjacentSwapOptimize(ids, aboveSorted, belowSorted, edges)
-            else -> {
-                val baryOrdered = ids.sortedWith(
+        return if (ids.size <= 6) {
+            permutations(ids)
+                .minWithOrNull(
                     compareBy(
-                        { baryScore(it, level, levelMap, edges, positions) },
-                        { upperNeighborCount(it, level, levelMap, edges) },
-                        { -lowerNeighborCount(it, level, levelMap, edges) },
-                        { it },
+                        { crossingsForCandidate(it) },
+                        { it.map { id -> naturalRank[id]!! }.joinToString(",") },
                     ),
-                )
-                adjacentSwapOptimize(baryOrdered, aboveSorted, belowSorted, edges)
-            }
+                ) ?: ids
+        } else {
+            adjacentSwapOptimize(naturalOrder, aboveSorted, belowSorted, edges, naturalRank)
         }
     }
 }
