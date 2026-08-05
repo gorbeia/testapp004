@@ -375,7 +375,6 @@ class HierarchicalLayoutEngine : GraphLayoutEngine {
  * Suitable for category-scoped graphs where there is no natural root or hierarchy.
  */
 class ForceDirectedLayoutEngine : GraphLayoutEngine {
-
     override fun computePositions(
         nodeIds: Set<Long>,
         edges: List<LayoutEdge>,
