@@ -425,6 +425,9 @@ class ForceDirectedLayoutEngine : GraphLayoutEngine {
         val n = nodeIds.size
         if (n == 1) return mapOf(nodeIds[0] to (0f to 0f))
 
+        // Standard FR: k scales with virtual area / n so larger components stay compact.
+        val k = (VIRTUAL_CANVAS_SIDE / sqrt(n.toFloat())).coerceIn(MIN_K, MAX_K)
+
         val indexMap = nodeIds.withIndex().associate { (i, id) -> id to i }
         val px = FloatArray(n)
         val py = FloatArray(n)
@@ -432,7 +435,7 @@ class ForceDirectedLayoutEngine : GraphLayoutEngine {
         // Deterministic circular initial placement
         for (i in 0 until n) {
             val angle = (2.0 * PI * i / n - PI / 2).toFloat()
-            val r = (n * K / (2.0 * PI)).toFloat().coerceAtLeast(K)
+            val r = (n * k / (2.0 * PI)).toFloat().coerceAtLeast(k)
             px[i] = r * cos(angle)
             py[i] = r * sin(angle)
         }
@@ -443,7 +446,7 @@ class ForceDirectedLayoutEngine : GraphLayoutEngine {
 
         val dx = FloatArray(n)
         val dy = FloatArray(n)
-        var temp = K * INITIAL_TEMP_FACTOR
+        var temp = k * INITIAL_TEMP_FACTOR
 
         repeat(ITERATIONS) {
             dx.fill(0f)
@@ -455,7 +458,7 @@ class ForceDirectedLayoutEngine : GraphLayoutEngine {
                     val rx = px[i] - px[j]
                     val ry = py[i] - py[j]
                     val dist = sqrt(rx * rx + ry * ry).coerceAtLeast(MIN_DIST)
-                    val force = K * K / dist
+                    val force = k * k / dist
                     val nx = rx / dist * force
                     val ny = ry / dist * force
                     dx[i] += nx
@@ -472,7 +475,7 @@ class ForceDirectedLayoutEngine : GraphLayoutEngine {
                 val rx = px[i] - px[j]
                 val ry = py[i] - py[j]
                 val dist = sqrt(rx * rx + ry * ry).coerceAtLeast(MIN_DIST)
-                val force = dist * dist / K
+                val force = dist * dist / k
                 val nx = rx / dist * force
                 val ny = ry / dist * force
                 dx[i] -= nx
@@ -547,7 +550,11 @@ class ForceDirectedLayoutEngine : GraphLayoutEngine {
     }
 
     companion object {
-        private const val K = 220f
+        // k = VIRTUAL_CANVAS_SIDE / sqrt(n), clamped to [MIN_K, MAX_K].
+        // Larger components automatically get tighter node spacing.
+        private const val VIRTUAL_CANVAS_SIDE = 900f
+        private const val MIN_K = 120f
+        private const val MAX_K = 220f
         private const val ITERATIONS = 200
         private const val COOLING = 0.95f
         private const val INITIAL_TEMP_FACTOR = 2f
