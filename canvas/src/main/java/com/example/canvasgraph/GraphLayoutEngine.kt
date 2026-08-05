@@ -58,6 +58,7 @@ private fun bfsDistances(rootId: Long, adj: Map<Long, List<Long>>): MutableMap<L
 
 private fun findConnectedComponents(nodeIds: List<Long>, edges: List<LayoutEdge>): List<List<Long>> {
     val parent = nodeIds.associateWith { it }.toMutableMap()
+
     fun find(x: Long): Long {
         var root = x
         while (parent[root] != root) root = parent[root]!!
