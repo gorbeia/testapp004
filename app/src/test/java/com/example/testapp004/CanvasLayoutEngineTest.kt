@@ -203,27 +203,31 @@ class CanvasLayoutEngineTest {
     @Test
     fun `hierarchical layout minimises crossings between two layers`() {
         val engine = HierarchicalLayoutEngine()
-        // Parent layer: P1(10), P2(11).  Child layer: C1(1), C2(2), C3(3).
-        // Edges: P1→C3, P2→C1. The crossing-free order is [C3, C2, C1] (or just C3 left of C1).
-        // BFS would discover C1 and C2 before C3; without crossing minimisation C1 ends up
-        // left of C3, crossing the P2→C1 / P1→C3 edge pair.
+        // Root(1), SibL(2), SibR(3) at level 0; PL(10) and PR(11) at level 1.
+        // PL is parent of Root and SibL; PR is parent of Root and SibR.
+        // BFS from Root reaches PL and PR via their PARENT_CHILD edges to Root,
+        // placing them at level 1. Crossing-optimal order is [SibL, Root, SibR]
+        // (0 crossings); natural sort gives [SibL, SibR, Root] (1 crossing).
+        // After centering on Root: SibL=-220, Root=0, SibR=+220.
         val relations = listOf(
-            Relation(id = 1L, fromId = 10L, toId = 3L, typeKey = "PARENT_CHILD"),
-            Relation(id = 2L, fromId = 11L, toId = 1L, typeKey = "PARENT_CHILD"),
-            Relation(id = 3L, fromId = 10L, toId = 2L, typeKey = "PARENT_CHILD"),
+            Relation(id = 1L, fromId = 1L, toId = 2L, typeKey = "SIBLING"),
+            Relation(id = 2L, fromId = 1L, toId = 3L, typeKey = "SIBLING"),
+            Relation(id = 3L, fromId = 10L, toId = 1L, typeKey = "PARENT_CHILD"),
+            Relation(id = 4L, fromId = 10L, toId = 2L, typeKey = "PARENT_CHILD"),
+            Relation(id = 5L, fromId = 11L, toId = 1L, typeKey = "PARENT_CHILD"),
+            Relation(id = 6L, fromId = 11L, toId = 3L, typeKey = "PARENT_CHILD"),
         )
         val positions = engine.computePositions(
             nodeIds = setOf(1L, 2L, 3L, 10L, 11L),
             edges = relations,
             rootId = 1L,
         )
-        // P1 is connected to C3 and C2; P2 is connected to C1.
-        // P2 has no upper connections so it sorts left of P1 → P2 < P1 in x.
-        // For the child layer: C1 is connected only to P2 (leftmost parent) → C1 should
-        // be left of C3 (connected to P1, the rightmost parent).
-        val c1X = positions[1L]!!.first
-        val c3X = positions[3L]!!.first
-        assertTrue("C1 (child of left parent P2) should be left of C3 (child of right parent P1)", c1X < c3X)
+        val sibLX = positions[2L]!!.first
+        val sibRX = positions[3L]!!.first
+        assertTrue(
+            "SibL (child of left parent PL) should be left of SibR (child of right parent PR)",
+            sibLX < sibRX,
+        )
     }
 
     @Test
