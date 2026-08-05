@@ -233,6 +233,7 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | Canvas layout engine extraction and Bézier edge routing | ✅ Done | [ADR-040](docs/decisions/ADR-040-canvas-layout-engine.md) |
 | Person canvas: subtree-size tie-breaking in barycentric layout | ✅ Done | [ADR-041](docs/decisions/ADR-041-barycentric-subtree-tiebreak.md) |
 | Person canvas: exact crossing minimisation in hierarchical layout | ✅ Done | [ADR-042](docs/decisions/ADR-042-exact-crossing-minimisation.md) |
+| Canvas shared library (`:canvas` module, `RelationGraph` composable) | ✅ Done | [ADR-043](docs/decisions/ADR-043-android-canvas-shared-library.md) |
 
 ---
 
@@ -282,3 +283,4 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | [ADR-040](docs/decisions/ADR-040-canvas-layout-engine.md) | Canvas layout engine extraction and Bézier edge routing | 2026-08-04 |
 | [ADR-041](docs/decisions/ADR-041-barycentric-subtree-tiebreak.md) | Barycentric tie-breaking by lower-level neighbour count | 2026-08-04 |
 | [ADR-042](docs/decisions/ADR-042-exact-crossing-minimisation.md) | Exact crossing minimisation replacing barycentric heuristic for small layers | 2026-08-04 |
+| [ADR-043](docs/decisions/ADR-043-android-canvas-shared-library.md) | Canvas shared library: `:canvas` module with `RelationGraph` composable and generic layout engines | 2026-08-05 |

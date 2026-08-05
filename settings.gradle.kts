@@ -21,3 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "testapp004"
 include(":app")
+include(":canvas")

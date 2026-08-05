@@ -80,6 +80,7 @@ dependencies {
     ksp(libs.hilt.compiler)
     ksp(libs.androidx.room.compiler)
 
+    implementation(project(":canvas"))
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.junit)
