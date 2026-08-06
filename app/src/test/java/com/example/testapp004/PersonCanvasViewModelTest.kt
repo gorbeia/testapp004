@@ -336,5 +336,4 @@ class PersonCanvasViewModelTest {
         vm.setRelationDistance(1)
         assertEquals(2, vm.uiState.value.edges.size)
     }
-
 }

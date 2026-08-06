@@ -436,5 +436,4 @@ class CategoryCanvasViewModelTest {
         vm.toggleRelationCategoryFilter(RelationCategory.FAMILY)
         assert(vm.uiState.value.nodes.any { it.name == "Charlie" })
     }
-
 }
