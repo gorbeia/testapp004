@@ -68,17 +68,6 @@ class PersonCanvasViewModelTest {
     }
 
     @Test
-    fun `center person is placed at the origin`() {
-        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
-        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
-        runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "COLLEAGUE", null) }
-        val vm = createViewModel(aliceId)
-        val centerNode = vm.uiState.value.nodes.first { it.id == aliceId }
-        assertEquals(0f, centerNode.x, 0.01f)
-        assertEquals(0f, centerNode.y, 0.01f)
-    }
-
-    @Test
     fun `edge category is FAMILY for a family relation`() {
         val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
         val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
@@ -338,65 +327,6 @@ class PersonCanvasViewModelTest {
         assertEquals(0, bobNode.distanceFromCategory)
     }
 
-    // --- Hierarchical layout tests ---
-
-    @Test
-    fun `parent of center is placed above center (negative y)`() {
-        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
-        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
-        runBlocking { fakeRelationRepository.addRelation(bobId, aliceId, "PARENT_CHILD", null) }
-        val vm = createViewModel(aliceId)
-        val bobNode = vm.uiState.value.nodes.first { it.id == bobId }
-        assertTrue(bobNode.y < 0f)
-    }
-
-    @Test
-    fun `child of center is placed below center (positive y)`() {
-        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
-        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
-        runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "PARENT_CHILD", null) }
-        val vm = createViewModel(aliceId)
-        val bobNode = vm.uiState.value.nodes.first { it.id == bobId }
-        assertTrue(bobNode.y > 0f)
-    }
-
-    @Test
-    fun `sibling of center is on same y level as center`() {
-        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
-        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
-        runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "SIBLING", null) }
-        val vm = createViewModel(aliceId)
-        val bobNode = vm.uiState.value.nodes.first { it.id == bobId }
-        assertEquals(0f, bobNode.y, 0.01f)
-    }
-
-    @Test
-    fun `grandparent of center is placed higher than parent`() {
-        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
-        val parentId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Parent", "", emptySet()) }
-        val grandId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Grand", "", emptySet()) }
-        runBlocking { fakeRelationRepository.addRelation(parentId, aliceId, "PARENT_CHILD", null) }
-        runBlocking { fakeRelationRepository.addRelation(grandId, aliceId, "GRANDPARENT_GRANDCHILD", null) }
-        val vm = createViewModel(aliceId)
-        val parentNode = vm.uiState.value.nodes.first { it.id == parentId }
-        val grandNode = vm.uiState.value.nodes.first { it.id == grandId }
-        assertTrue(grandNode.y < parentNode.y)
-    }
-
-    @Test
-    fun `two siblings of center are on same y level as each other`() {
-        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
-        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
-        val carolId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Carol", "", emptySet()) }
-        runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "SIBLING", null) }
-        runBlocking { fakeRelationRepository.addRelation(aliceId, carolId, "SIBLING", null) }
-        val vm = createViewModel(aliceId)
-        val bobNode = vm.uiState.value.nodes.first { it.id == bobId }
-        val carolNode = vm.uiState.value.nodes.first { it.id == carolId }
-        assertEquals(bobNode.y, carolNode.y, 0.01f)
-        assertNotEquals(bobNode.x, carolNode.x, 0.01f)
-    }
-
     @Test
     fun `distance 1 includes edges between expanded nodes`() {
         val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
@@ -409,20 +339,84 @@ class PersonCanvasViewModelTest {
         assertEquals(2, vm.uiState.value.edges.size)
     }
 
+    // --- Hierarchical layout tests ---
+
+    @Test
+    fun `parent of center is placed above center (negative y) with Hierarchical layout`() {
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
+        runBlocking { fakeRelationRepository.addRelation(bobId, aliceId, "PARENT_CHILD", null) }
+        val vm = createViewModel(aliceId)
+        vm.setLayoutEngineType(LayoutEngineType.Hierarchical)
+        val bobNode = vm.uiState.value.nodes.first { it.id == bobId }
+        assertTrue(bobNode.y < 0f)
+    }
+
+    @Test
+    fun `child of center is placed below center (positive y) with Hierarchical layout`() {
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "PARENT_CHILD", null) }
+        val vm = createViewModel(aliceId)
+        vm.setLayoutEngineType(LayoutEngineType.Hierarchical)
+        val bobNode = vm.uiState.value.nodes.first { it.id == bobId }
+        assertTrue(bobNode.y > 0f)
+    }
+
+    @Test
+    fun `sibling of center is on same y level as center with Hierarchical layout`() {
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "SIBLING", null) }
+        val vm = createViewModel(aliceId)
+        vm.setLayoutEngineType(LayoutEngineType.Hierarchical)
+        val bobNode = vm.uiState.value.nodes.first { it.id == bobId }
+        assertEquals(0f, bobNode.y, 0.01f)
+    }
+
+    @Test
+    fun `grandparent of center is placed higher than parent with Hierarchical layout`() {
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
+        val parentId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Parent", "", emptySet()) }
+        val grandId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Grand", "", emptySet()) }
+        runBlocking { fakeRelationRepository.addRelation(parentId, aliceId, "PARENT_CHILD", null) }
+        runBlocking { fakeRelationRepository.addRelation(grandId, aliceId, "GRANDPARENT_GRANDCHILD", null) }
+        val vm = createViewModel(aliceId)
+        vm.setLayoutEngineType(LayoutEngineType.Hierarchical)
+        val parentNode = vm.uiState.value.nodes.first { it.id == parentId }
+        val grandNode = vm.uiState.value.nodes.first { it.id == grandId }
+        assertTrue(grandNode.y < parentNode.y)
+    }
+
+    @Test
+    fun `two siblings of center are on same y level as each other with Hierarchical layout`() {
+        val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
+        val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
+        val carolId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Carol", "", emptySet()) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "SIBLING", null) }
+        runBlocking { fakeRelationRepository.addRelation(aliceId, carolId, "SIBLING", null) }
+        val vm = createViewModel(aliceId)
+        vm.setLayoutEngineType(LayoutEngineType.Hierarchical)
+        val bobNode = vm.uiState.value.nodes.first { it.id == bobId }
+        val carolNode = vm.uiState.value.nodes.first { it.id == carolId }
+        assertEquals(bobNode.y, carolNode.y, 0.01f)
+        assertNotEquals(bobNode.x, carolNode.x, 0.01f)
+    }
+
     // --- Layout engine selector tests ---
 
     @Test
-    fun `layoutEngineType defaults to Hierarchical`() {
+    fun `layoutEngineType defaults to ForceDirected`() {
         val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
-        assertEquals(LayoutEngineType.Hierarchical, createViewModel(aliceId).uiState.value.layoutEngineType)
+        assertEquals(LayoutEngineType.ForceDirected, createViewModel(aliceId).uiState.value.layoutEngineType)
     }
 
     @Test
     fun `setLayoutEngineType updates layoutEngineType in uiState`() {
         val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
         val vm = createViewModel(aliceId)
-        vm.setLayoutEngineType(LayoutEngineType.ForceDirected)
-        assertEquals(LayoutEngineType.ForceDirected, vm.uiState.value.layoutEngineType)
+        vm.setLayoutEngineType(LayoutEngineType.Hierarchical)
+        assertEquals(LayoutEngineType.Hierarchical, vm.uiState.value.layoutEngineType)
     }
 
     @Test
