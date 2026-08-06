@@ -298,3 +298,4 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | [ADR-046](docs/decisions/ADR-046-canvas-viewport-persistence.md) | Canvas viewport persistence across back-navigation via rememberSaveable with listSaver | 2026-08-05 |
 | [ADR-047](docs/decisions/ADR-047-circular-arc-layout-engines.md) | Circular and Arc layout engines + ego-centric Radial fix + forceArcs flag on RelationGraph | 2026-08-05 |
 | [ADR-048](docs/decisions/ADR-048-cluster-layout-engine.md) | Cluster layout engine: component-circle layout (original category-canvas style) restored as explicit option | 2026-08-05 |
+| [ADR-049](docs/decisions/ADR-049-canvas-visualization-optimizations.md) | Canvas visualization optimizations: minimum zoom 0.35f, hierarchical layer height 130f, component grid 5 per row | 2026-08-05 |

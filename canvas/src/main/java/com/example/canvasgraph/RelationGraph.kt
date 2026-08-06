@@ -96,7 +96,7 @@ fun RelationGraph(
         val contentW = maxX - minX
         val contentH = maxY - minY
         viewportState.zoom = minOf(canvasSize.width / contentW, canvasSize.height / contentH, 1.2f)
-            .coerceAtLeast(0.1f)
+            .coerceAtLeast(0.35f)
         viewportState.panOffset = Offset(
             (canvasSize.width - contentW * viewportState.zoom) / 2f - minX * viewportState.zoom,
             (canvasSize.height - contentH * viewportState.zoom) / 2f - minY * viewportState.zoom,

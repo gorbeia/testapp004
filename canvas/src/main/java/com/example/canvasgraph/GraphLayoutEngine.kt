@@ -84,7 +84,7 @@ private fun placeComponentsAsCircles(components: List<List<Long>>): Map<Long, Pa
     val positions = mutableMapOf<Long, Pair<Float, Float>>()
     val nodeRadius = 50f
     val clusterGap = 100f
-    val maxPerRow = 3
+    val maxPerRow = 5
     var curX = nodeRadius + clusterGap
     var curY = nodeRadius + clusterGap
     var rowMaxHeight = 0f
@@ -226,7 +226,7 @@ class HierarchicalLayoutEngine : GraphLayoutEngine {
 
         val levelGroups = levelMap.entries.groupBy({ it.value }, { it.key })
         val allLevels = levelGroups.keys.sorted()
-        val layerHeight = 170f
+        val layerHeight = 130f
         val baseSpacing = 220f
         val maxNodesInLayer = levelGroups.values.maxOfOrNull { it.size } ?: 1
         val nodeSpacing = baseSpacing * (4f / maxNodesInLayer.coerceAtLeast(4)).coerceIn(0.7f, 1.3f)
@@ -635,7 +635,7 @@ class ForceDirectedLayoutEngine : GraphLayoutEngine {
         private const val NODE_HALF_W = 110f
         private const val NODE_HALF_H = 26f
         private const val COMPONENT_GAP = 100f
-        private const val MAX_PER_ROW = 3
+        private const val MAX_PER_ROW = 5
     }
 }
 
