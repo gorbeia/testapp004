@@ -48,7 +48,6 @@ data class CategoryCanvasUiState(
     val error: String? = null,
     val relationDistance: Int = 0,
     val relationCategoryFilter: Set<RelationCategory> = emptySet(),
-    val layoutEngineType: LayoutEngineType = LayoutEngineType.ForceDirected,
     val isRelationDialogOpen: Boolean = false,
     val pendingRelationFromId: Long? = null,
     val pendingRelationToId: Long? = null,
@@ -59,7 +58,6 @@ data class CategoryCanvasUiState(
 private data class CanvasFilters(
     val distance: Int,
     val categoryFilter: Set<RelationCategory>,
-    val layoutEngineType: LayoutEngineType,
 )
 
 @HiltViewModel
@@ -76,13 +74,11 @@ class CategoryCanvasViewModel @Inject constructor(
 
     private val relationDistanceFlow = MutableStateFlow(0)
     private val relationCategoryFilterFlow = MutableStateFlow(emptySet<RelationCategory>())
-    private val layoutEngineTypeFlow = MutableStateFlow(LayoutEngineType.ForceDirected)
     private val filtersFlow = combine(
         relationDistanceFlow,
         relationCategoryFilterFlow,
-        layoutEngineTypeFlow,
-    ) { distance, categoryFilter, engineType ->
-        CanvasFilters(distance, categoryFilter, engineType)
+    ) { distance, categoryFilter ->
+        CanvasFilters(distance, categoryFilter)
     }
 
     override val dialogFromId get() = _uiState.value.pendingRelationFromId
@@ -118,7 +114,6 @@ class CategoryCanvasViewModel @Inject constructor(
             ) { acquaintances, categories, relations, filters ->
                 val distance = filters.distance
                 val categoryFilter = filters.categoryFilter
-                val engineType = filters.layoutEngineType
                 val categoryName = categories.find { it.id == categoryId }?.name ?: ""
                 val categoryTreeIds = categories.descendantsAndSelf(categoryId)
 
@@ -174,15 +169,8 @@ class CategoryCanvasViewModel @Inject constructor(
                     LayoutEdge(rel.fromId, rel.toId, RelationTypes.findByKey(rel.typeKey)?.verticalDelta ?: 0)
                 }
 
-                // Hierarchical and Radial layouts need a root; pick the most-connected person.
-                val rootId = when (engineType) {
-                    LayoutEngineType.Hierarchical, LayoutEngineType.Radial -> allPersonIds.maxByOrNull { id ->
-                        layoutEdges.count { it.fromId == id || it.toId == id }
-                    }
-                    else -> null
-                }
-
-                val layoutResult = engineType.createEngine().computePositions(allPersonIds, layoutEdges, rootId)
+                val layoutResult = LayoutEngineType.ForceDirected.createEngine()
+                    .computePositions(allPersonIds, layoutEdges)
 
                 val nodes = buildCanvasNodes(
                     acquaintances = acquaintances,
@@ -200,7 +188,6 @@ class CategoryCanvasViewModel @Inject constructor(
                     categoryName = categoryName,
                     relationDistance = distance,
                     relationCategoryFilter = categoryFilter,
-                    layoutEngineType = engineType,
                     nodes = nodes,
                     edges = edges,
                     isLoading = false,
@@ -226,9 +213,5 @@ class CategoryCanvasViewModel @Inject constructor(
     fun toggleRelationCategoryFilter(category: RelationCategory) {
         val current = relationCategoryFilterFlow.value
         relationCategoryFilterFlow.value = if (category in current) current - category else current + category
-    }
-
-    fun setLayoutEngineType(type: LayoutEngineType) {
-        layoutEngineTypeFlow.value = type
     }
 }

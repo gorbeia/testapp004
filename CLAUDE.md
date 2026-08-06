@@ -243,6 +243,7 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | Radial layout fix (ego-centric when rootId given) + Circular and Arc layout engines | ✅ Done | [ADR-047](docs/decisions/ADR-047-circular-arc-layout-engines.md) |
 | `forceArcs` flag on `RelationGraph` for Arc layout; `FlowRow` in control sheets for 5-chip layout selector | ✅ Done | [ADR-047](docs/decisions/ADR-047-circular-arc-layout-engines.md) |
 | Cluster layout engine (component-circle, the original category-canvas view) | ✅ Done | [ADR-048](docs/decisions/ADR-048-cluster-layout-engine.md) |
+| Force-directed layout as the sole canvas engine (selector removed from both canvases) | ✅ Done | [ADR-050](docs/decisions/ADR-050-force-directed-only-canvas.md) |
 
 ---
 
@@ -299,3 +300,4 @@ ADRs are append-only: never edit a settled ADR; mark it "Superseded by ADR-NNN" 
 | [ADR-047](docs/decisions/ADR-047-circular-arc-layout-engines.md) | Circular and Arc layout engines + ego-centric Radial fix + forceArcs flag on RelationGraph | 2026-08-05 |
 | [ADR-048](docs/decisions/ADR-048-cluster-layout-engine.md) | Cluster layout engine: component-circle layout (original category-canvas style) restored as explicit option | 2026-08-05 |
 | [ADR-049](docs/decisions/ADR-049-canvas-visualization-optimizations.md) | Canvas visualization optimizations: minimum zoom 0.35f, hierarchical layer height 130f, component grid 5 per row | 2026-08-05 |
+| [ADR-050](docs/decisions/ADR-050-force-directed-only-canvas.md) | Force-directed layout as the sole canvas engine; layout selector removed from both canvases | 2026-08-06 |

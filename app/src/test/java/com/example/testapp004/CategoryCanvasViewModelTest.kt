@@ -1,7 +1,6 @@
 package com.example.testapp004
 
 import androidx.lifecycle.SavedStateHandle
-import com.example.canvasgraph.LayoutEngineType
 import com.example.testapp004.model.RelationCategory
 import com.example.testapp004.util.MainDispatcherRule
 import com.example.testapp004.viewmodel.CategoryCanvasViewModel
@@ -438,26 +437,4 @@ class CategoryCanvasViewModelTest {
         assert(vm.uiState.value.nodes.any { it.name == "Charlie" })
     }
 
-    @Test
-    fun `layoutEngineType defaults to ForceDirected`() {
-        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
-        val vm = createViewModel(catId)
-        assertEquals(LayoutEngineType.ForceDirected, vm.uiState.value.layoutEngineType)
-    }
-
-    @Test
-    fun `setLayoutEngineType updates layoutEngineType in uiState`() {
-        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
-        val vm = createViewModel(catId)
-        vm.setLayoutEngineType(LayoutEngineType.Radial)
-        assertEquals(LayoutEngineType.Radial, vm.uiState.value.layoutEngineType)
-    }
-
-    @Test
-    fun `setLayoutEngineType to Hierarchical updates layoutEngineType in uiState`() {
-        val catId = runBlocking { fakeCategoryRepository.addCategory("Test") }
-        val vm = createViewModel(catId)
-        vm.setLayoutEngineType(LayoutEngineType.Hierarchical)
-        assertEquals(LayoutEngineType.Hierarchical, vm.uiState.value.layoutEngineType)
-    }
 }

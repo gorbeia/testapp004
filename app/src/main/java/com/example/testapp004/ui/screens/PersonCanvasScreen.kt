@@ -3,8 +3,6 @@ package com.example.testapp004.ui.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -40,7 +38,6 @@ import androidx.compose.ui.unit.sp
 import com.example.canvasgraph.EdgeStyle
 import com.example.canvasgraph.GraphEdge
 import com.example.canvasgraph.GraphNode
-import com.example.canvasgraph.LayoutEngineType
 import com.example.canvasgraph.NodeStyle
 import com.example.canvasgraph.RelationGraph
 import com.example.testapp004.model.RelationCategory
@@ -87,7 +84,7 @@ internal fun PersonCanvasContent(
                     edges = graphEdges,
                     onNodeTap = onPersonClick,
                     onRelationDrop = viewModel::openRelationDialog,
-                    forceArcs = uiState.layoutEngineType == LayoutEngineType.Arc,
+                    forceArcs = false,
                     modifier = Modifier.fillMaxSize(),
                 )
             }
@@ -111,9 +108,7 @@ internal fun PersonCanvasContent(
     if (isControlSheetOpen) {
         PersonCanvasControlSheet(
             relationDistance = uiState.relationDistance,
-            layoutEngineType = uiState.layoutEngineType,
             onDistanceChange = viewModel::setRelationDistance,
-            onLayoutEngineTypeChange = viewModel::setLayoutEngineType,
             onDismiss = onControlSheetDismiss,
         )
     }
@@ -238,13 +233,11 @@ private fun rememberPersonGraphEdges(edges: List<CanvasRelationEdge>): List<Grap
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PersonCanvasControlSheet(
     relationDistance: Int,
-    layoutEngineType: LayoutEngineType,
     onDistanceChange: (Int) -> Unit,
-    onLayoutEngineTypeChange: (LayoutEngineType) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState()
@@ -255,19 +248,6 @@ private fun PersonCanvasControlSheet(
                 .padding(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text("Layout", style = MaterialTheme.typography.titleSmall)
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                LayoutEngineType.values().forEach { type ->
-                    FilterChip(
-                        selected = layoutEngineType == type,
-                        onClick = { onLayoutEngineTypeChange(type) },
-                        label = { Text(type.displayName) },
-                    )
-                }
-            }
             Text("Distance", style = MaterialTheme.typography.titleSmall)
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
