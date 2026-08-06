@@ -24,6 +24,7 @@ data class PersonCanvasUiState(
     val isLoading: Boolean = true,
     val error: String? = null,
     val relationDistance: Int = 0,
+    val layoutEngineType: LayoutEngineType = LayoutEngineType.ForceDirected,
     val isRelationDialogOpen: Boolean = false,
     val pendingRelationFromId: Long? = null,
     val pendingRelationToId: Long? = null,
@@ -43,6 +44,7 @@ class PersonCanvasViewModel @Inject constructor(
     val uiState: StateFlow<PersonCanvasUiState> = _uiState.asStateFlow()
 
     private val relationDistanceFlow = MutableStateFlow(0)
+    private val layoutEngineTypeFlow = MutableStateFlow(LayoutEngineType.ForceDirected)
 
     override val dialogFromId get() = _uiState.value.pendingRelationFromId
     override val dialogToId get() = _uiState.value.pendingRelationToId
@@ -73,7 +75,8 @@ class PersonCanvasViewModel @Inject constructor(
                 acquaintanceRepository.acquaintances,
                 relationRepository.relations,
                 relationDistanceFlow,
-            ) { acquaintances, relations, distance ->
+                layoutEngineTypeFlow,
+            ) { acquaintances, relations, distance, engineType ->
                 val centerPerson = acquaintances.find { it.id == acquaintanceId }
                     ?: return@combine PersonCanvasUiState(isLoading = false)
 
@@ -90,6 +93,7 @@ class PersonCanvasViewModel @Inject constructor(
                         edges = emptyList(),
                         isLoading = false,
                         relationDistance = distance,
+                        layoutEngineType = engineType,
                     )
                 }
 
@@ -136,7 +140,7 @@ class PersonCanvasViewModel @Inject constructor(
                 val layoutEdges = visibleRelations.map { rel ->
                     LayoutEdge(rel.fromId, rel.toId, RelationTypes.findByKey(rel.typeKey)?.verticalDelta ?: 0)
                 }
-                val layoutResult = LayoutEngineType.ForceDirected.createEngine().computePositions(
+                val layoutResult = engineType.createEngine().computePositions(
                     nodeIds = visibleIds,
                     edges = layoutEdges,
                     rootId = acquaintanceId,
@@ -158,6 +162,7 @@ class PersonCanvasViewModel @Inject constructor(
                     edges = edges,
                     isLoading = false,
                     relationDistance = distance,
+                    layoutEngineType = engineType,
                 )
             }.collect { newState ->
                 _uiState.update { current ->
@@ -175,5 +180,9 @@ class PersonCanvasViewModel @Inject constructor(
 
     fun setRelationDistance(d: Int) {
         relationDistanceFlow.value = d.coerceIn(0, 2)
+    }
+
+    fun setLayoutEngineType(type: LayoutEngineType) {
+        layoutEngineTypeFlow.value = type
     }
 }
