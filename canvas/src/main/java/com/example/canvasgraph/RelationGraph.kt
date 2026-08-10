@@ -49,6 +49,7 @@ private const val ARROW_LEN = 22f
 private const val ARROW_HALF_ANGLE = 0.4f
 private const val ARC_BEND = 100f
 private const val ARC_LABEL_OFFSET = 16f
+private const val NODE_BORDER_GAP = 5f
 
 /**
  * A pan/zoom/drag-to-relate graph composable with no app-specific knowledge.
@@ -412,8 +413,8 @@ private fun DrawScope.drawGraphEdge(
     val perpX = -uy
     val perpY = ux
 
-    val start = rectBorderPoint(from.x, from.y, ux, uy, fromHalfW, NODE_HALF_H)
-    val end = rectBorderPoint(to.x, to.y, -ux, -uy, toHalfW, NODE_HALF_H)
+    val start = rectBorderPoint(from.x, from.y, ux, uy, fromHalfW + NODE_BORDER_GAP, NODE_HALF_H + NODE_BORDER_GAP)
+    val end = rectBorderPoint(to.x, to.y, -ux, -uy, toHalfW + NODE_BORDER_GAP, NODE_HALF_H + NODE_BORDER_GAP)
 
     val occluded = arcSide == 0 && allNodes.any { node ->
         node.id != fromId && node.id != toId &&
