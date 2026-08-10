@@ -47,7 +47,7 @@ private const val NODE_MAX_HALF_W = 110f
 private const val NODE_H_PAD = 18f
 private const val ARROW_LEN = 22f
 private const val ARROW_HALF_ANGLE = 0.4f
-private const val ARC_BEND = 60f
+private const val ARC_BEND = 100f
 private const val ARC_LABEL_OFFSET = 16f
 
 /**
