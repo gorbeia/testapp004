@@ -412,9 +412,9 @@ class PersonCanvasViewModelTest {
     // --- Layout engine selector tests ---
 
     @Test
-    fun `layoutEngineType defaults to Hierarchical`() {
+    fun `layoutEngineType defaults to ForceDirected`() {
         val aliceId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Alice", "", emptySet()) }
-        assertEquals(LayoutEngineType.Hierarchical, createViewModel(aliceId).uiState.value.layoutEngineType)
+        assertEquals(LayoutEngineType.ForceDirected, createViewModel(aliceId).uiState.value.layoutEngineType)
     }
 
     @Test
