@@ -24,7 +24,7 @@ data class PersonCanvasUiState(
     val isLoading: Boolean = true,
     val error: String? = null,
     val relationDistance: Int = 0,
-    val layoutEngineType: LayoutEngineType = LayoutEngineType.Hierarchical,
+    val layoutEngineType: LayoutEngineType = LayoutEngineType.ForceDirected,
     val isRelationDialogOpen: Boolean = false,
     val pendingRelationFromId: Long? = null,
     val pendingRelationToId: Long? = null,
@@ -44,7 +44,7 @@ class PersonCanvasViewModel @Inject constructor(
     val uiState: StateFlow<PersonCanvasUiState> = _uiState.asStateFlow()
 
     private val relationDistanceFlow = MutableStateFlow(0)
-    private val layoutEngineTypeFlow = MutableStateFlow(LayoutEngineType.Hierarchical)
+    private val layoutEngineTypeFlow = MutableStateFlow(LayoutEngineType.ForceDirected)
 
     override val dialogFromId get() = _uiState.value.pendingRelationFromId
     override val dialogToId get() = _uiState.value.pendingRelationToId
