@@ -61,7 +61,7 @@ import com.example.testapp004.viewmodel.CanvasPersonNode
 import com.example.testapp004.viewmodel.CanvasRelationEdge
 import com.example.testapp004.viewmodel.CategoryCanvasViewModel
 
-private val CanvasEdgeLabelFontSize = 9.sp
+private val CanvasEdgeLabelFontSize = 11.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -273,6 +273,7 @@ private fun rememberCategoryGraphEdges(edges: List<CanvasRelationEdge>): List<Gr
                 style = EdgeStyle(
                     edgeColor = categoryStroke[edge.category] ?: cs.outline,
                     labelColor = cs.onSurface,
+                    labelBgColor = cs.surface.copy(alpha = 0.92f),
                     labelFontSize = CanvasEdgeLabelFontSize,
                 ),
                 isSymmetric = edge.isSymmetric,
