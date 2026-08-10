@@ -17,6 +17,11 @@ class GraphViewportState(
 ) {
     var zoom by mutableFloatStateOf(initialZoom)
     var panOffset by mutableStateOf(initialPanOffset)
+
+    fun reset() {
+        zoom = 1f
+        panOffset = Offset.Zero
+    }
 }
 
 private val GraphViewportStateSaver = listSaver<GraphViewportState, Float>(
