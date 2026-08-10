@@ -73,6 +73,7 @@ class PersonCanvasViewModelTest {
         val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
         runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "COLLEAGUE", null) }
         val vm = createViewModel(aliceId)
+        vm.setLayoutEngineType(LayoutEngineType.Hierarchical)
         val centerNode = vm.uiState.value.nodes.first { it.id == aliceId }
         assertEquals(0f, centerNode.x, 0.01f)
         assertEquals(0f, centerNode.y, 0.01f)
@@ -346,6 +347,7 @@ class PersonCanvasViewModelTest {
         val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
         runBlocking { fakeRelationRepository.addRelation(bobId, aliceId, "PARENT_CHILD", null) }
         val vm = createViewModel(aliceId)
+        vm.setLayoutEngineType(LayoutEngineType.Hierarchical)
         val bobNode = vm.uiState.value.nodes.first { it.id == bobId }
         assertTrue(bobNode.y < 0f)
     }
@@ -366,6 +368,7 @@ class PersonCanvasViewModelTest {
         val bobId = runBlocking { fakeAcquaintanceRepository.addAcquaintance("Bob", "", emptySet()) }
         runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "SIBLING", null) }
         val vm = createViewModel(aliceId)
+        vm.setLayoutEngineType(LayoutEngineType.Hierarchical)
         val bobNode = vm.uiState.value.nodes.first { it.id == bobId }
         assertEquals(0f, bobNode.y, 0.01f)
     }
@@ -391,6 +394,7 @@ class PersonCanvasViewModelTest {
         runBlocking { fakeRelationRepository.addRelation(aliceId, bobId, "SIBLING", null) }
         runBlocking { fakeRelationRepository.addRelation(aliceId, carolId, "SIBLING", null) }
         val vm = createViewModel(aliceId)
+        vm.setLayoutEngineType(LayoutEngineType.Hierarchical)
         val bobNode = vm.uiState.value.nodes.first { it.id == bobId }
         val carolNode = vm.uiState.value.nodes.first { it.id == carolId }
         assertEquals(bobNode.y, carolNode.y, 0.01f)
