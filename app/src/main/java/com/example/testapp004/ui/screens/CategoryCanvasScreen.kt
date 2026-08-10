@@ -61,7 +61,7 @@ import com.example.testapp004.viewmodel.CanvasPersonNode
 import com.example.testapp004.viewmodel.CanvasRelationEdge
 import com.example.testapp004.viewmodel.CategoryCanvasViewModel
 
-private val CanvasEdgeLabelFontSize = 11.sp
+private val CanvasEdgeLabelFontSize = 9.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

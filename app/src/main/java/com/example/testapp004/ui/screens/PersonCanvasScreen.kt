@@ -52,7 +52,7 @@ import com.example.testapp004.viewmodel.CanvasPersonNode
 import com.example.testapp004.viewmodel.CanvasRelationEdge
 import com.example.testapp004.viewmodel.PersonCanvasViewModel
 
-private val CanvasEdgeLabelFontSize = 11.sp
+private val CanvasEdgeLabelFontSize = 9.sp
 
 @Composable
 internal fun PersonCanvasContent(
