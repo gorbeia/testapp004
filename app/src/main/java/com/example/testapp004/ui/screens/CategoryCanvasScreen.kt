@@ -36,6 +36,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,6 +53,7 @@ import com.example.canvasgraph.GraphNode
 import com.example.canvasgraph.LayoutEngineType
 import com.example.canvasgraph.NodeStyle
 import com.example.canvasgraph.RelationGraph
+import com.example.canvasgraph.rememberGraphViewportState
 import com.example.testapp004.model.RelationCategory
 import com.example.testapp004.model.RelationTypeOption
 import com.example.testapp004.model.RelationTypes
@@ -121,12 +123,17 @@ fun CategoryCanvasScreen(
                 else -> {
                     val graphNodes = rememberCategoryGraphNodes(uiState.nodes, uiState.edges)
                     val graphEdges = rememberCategoryGraphEdges(uiState.edges)
+                    val viewportState = rememberGraphViewportState()
+                    LaunchedEffect(uiState.layoutEngineType) {
+                        viewportState.reset()
+                    }
                     RelationGraph(
                         nodes = graphNodes,
                         edges = graphEdges,
                         onNodeTap = onPersonClick,
                         onRelationDrop = viewModel::openRelationDialog,
                         forceArcs = uiState.layoutEngineType == LayoutEngineType.Arc,
+                        viewportState = viewportState,
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
@@ -266,6 +273,7 @@ private fun rememberCategoryGraphEdges(edges: List<CanvasRelationEdge>): List<Gr
                 style = EdgeStyle(
                     edgeColor = categoryStroke[edge.category] ?: cs.outline,
                     labelColor = cs.onSurface,
+                    labelBgColor = cs.surface.copy(alpha = 0.92f),
                     labelFontSize = CanvasEdgeLabelFontSize,
                 ),
                 isSymmetric = edge.isSymmetric,

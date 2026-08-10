@@ -47,7 +47,9 @@ private const val NODE_MAX_HALF_W = 110f
 private const val NODE_H_PAD = 18f
 private const val ARROW_LEN = 18f
 private const val ARROW_HALF_ANGLE = 0.4f
-private const val ARC_BEND = 60f
+private const val ARC_BEND = 100f
+private const val ARC_LABEL_OFFSET = 16f
+private const val NODE_BORDER_GAP = 5f
 
 /**
  * A pan/zoom/drag-to-relate graph composable with no app-specific knowledge.
@@ -411,8 +413,8 @@ private fun DrawScope.drawGraphEdge(
     val perpX = -uy
     val perpY = ux
 
-    val start = rectBorderPoint(from.x, from.y, ux, uy, fromHalfW, NODE_HALF_H)
-    val end = rectBorderPoint(to.x, to.y, -ux, -uy, toHalfW, NODE_HALF_H)
+    val start = rectBorderPoint(from.x, from.y, ux, uy, fromHalfW + NODE_BORDER_GAP, NODE_HALF_H + NODE_BORDER_GAP)
+    val end = rectBorderPoint(to.x, to.y, -ux, -uy, toHalfW + NODE_BORDER_GAP, NODE_HALF_H + NODE_BORDER_GAP)
 
     val occluded = arcSide == 0 && allNodes.any { node ->
         node.id != fromId && node.id != toId &&
@@ -458,9 +460,10 @@ private fun DrawScope.drawGraphEdge(
         val tanLen = sqrt(tanX * tanX + tanY * tanY).coerceAtLeast(0.001f)
         arrowDirX = tanX / tanLen
         arrowDirY = tanY / tanLen
+        val bendSign = if (effectiveSide > 0) 1f else -1f
         labelPos = Offset(
-            0.25f * start.x + 0.5f * cpX + 0.25f * end.x,
-            0.25f * start.y + 0.5f * cpY + 0.25f * end.y,
+            0.25f * start.x + 0.5f * cpX + 0.25f * end.x + perpX * bendSign * ARC_LABEL_OFFSET,
+            0.25f * start.y + 0.5f * cpY + 0.25f * end.y + perpY * bendSign * ARC_LABEL_OFFSET,
         )
         labelPerpX = 0f
         labelPerpY = 0f
