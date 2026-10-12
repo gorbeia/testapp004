@@ -77,11 +77,13 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     implementation(libs.reorderable)
+    implementation(libs.play.services.auth)
     ksp(libs.hilt.compiler)
     ksp(libs.androidx.room.compiler)
 
     implementation(project(":canvas"))
     testImplementation(libs.junit)
+    testImplementation(libs.org.json)
     testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

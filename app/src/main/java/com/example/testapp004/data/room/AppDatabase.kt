@@ -12,7 +12,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         RelationEntity::class,
         AcquaintanceCategoryCrossRef::class,
     ],
-    version = 5,
+    version = AppDatabase.VERSION,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -22,7 +22,11 @@ abstract class AppDatabase : RoomDatabase() {
 
     abstract fun relationDao(): RelationDao
 
+    abstract fun backupDao(): BackupDao
+
     companion object {
+        const val VERSION = 5
+
         val MIGRATION_4_5 = object : Migration(4, 5) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE acquaintances ADD COLUMN is_deceased INTEGER NOT NULL DEFAULT 0")
