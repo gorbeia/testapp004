@@ -45,12 +45,14 @@ import com.example.testapp004.model.UpdateCheckOutcome
 import com.example.testapp004.ui.screens.AcquaintanceDetailScreen
 import com.example.testapp004.ui.screens.AcquaintancesListScreen
 import com.example.testapp004.ui.screens.AddEditAcquaintanceScreen
+import com.example.testapp004.ui.screens.BackupScreen
 import com.example.testapp004.ui.screens.CategoriesScreen
 import com.example.testapp004.ui.screens.CategoryCanvasScreen
 import com.example.testapp004.ui.screens.ImportContactsScreen
 import com.example.testapp004.viewmodel.AcquaintanceDetailViewModel
 import com.example.testapp004.viewmodel.AcquaintancesViewModel
 import com.example.testapp004.viewmodel.AddEditAcquaintanceViewModel
+import com.example.testapp004.viewmodel.BackupViewModel
 import com.example.testapp004.viewmodel.CategoriesViewModel
 import com.example.testapp004.viewmodel.CategoryCanvasViewModel
 import com.example.testapp004.viewmodel.ImportContactsViewModel
@@ -98,6 +100,8 @@ sealed class Screen(val route: String) {
     }
 
     object ImportContacts : Screen("import_contacts")
+
+    object Backup : Screen("backup")
 }
 
 @Composable
@@ -146,6 +150,7 @@ fun AppNavigation() {
                             navController.navigate(Screen.ImportContacts.route)
                         },
                         onManageCategoriesClick = { navController.navigate(Screen.Categories.route) },
+                        onBackupClick = { navController.navigate(Screen.Backup.route) },
                         onCheckForUpdatesClick = updateViewModel::openDebugDialog,
                         onCategoryClick = { navController.navigate(Screen.Categories.route) },
                         onCanvasClick = { id ->
@@ -247,6 +252,13 @@ fun AppNavigation() {
                         viewModel = importViewModel,
                         onNavigateBack = { navController.popBackStack() },
                         onImportDone = { navController.popBackStack() },
+                    )
+                }
+                composable(Screen.Backup.route) {
+                    val backupViewModel: BackupViewModel = hiltViewModel()
+                    BackupScreen(
+                        viewModel = backupViewModel,
+                        onNavigateBack = { navController.popBackStack() },
                     )
                 }
                 composable(

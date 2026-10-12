@@ -71,6 +71,7 @@ fun AcquaintancesListScreen(
     onAddPersonClick: () -> Unit,
     onImportFromContactsClick: () -> Unit,
     onManageCategoriesClick: () -> Unit,
+    onBackupClick: () -> Unit,
     onCheckForUpdatesClick: () -> Unit,
     onCategoryClick: () -> Unit,
     onCanvasClick: (Long) -> Unit,
@@ -120,6 +121,13 @@ fun AcquaintancesListScreen(
                                     onClick = {
                                         menuExpanded = false
                                         onManageCategoriesClick()
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Backup & restore") },
+                                    onClick = {
+                                        menuExpanded = false
+                                        onBackupClick()
                                     },
                                 )
                                 DropdownMenuItem(
